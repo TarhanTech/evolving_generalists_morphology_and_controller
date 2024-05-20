@@ -26,10 +26,10 @@
         <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="aux_1_geom" size="0.08" type="capsule"/>
         <body name="aux_1" pos="0.2 0.2 0">
           <joint axis="0 0 1" name="hip_1" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 0.6654987389453499 0.6654987389453499 0.0" name="left_leg_geom" size="0.08" type="capsule"/>
-          <body pos="0.6654987389453499 0.6654987389453499 0">
+          <geom fromto="0.0 0.0 0.0 0.9344087839126587 0.9344087839126587 0.0" name="left_leg_geom" size="0.08" type="capsule"/>
+          <body pos="0.9344087839126587 0.9344087839126587 0">
             <joint axis="-1 1 0" name="ankle_1" pos="0.0 0.0 0.0" range="30 70" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 0.3868622438486064 0.3868622438486064 0.0" name="left_ankle_geom" size="0.08" type="capsule"/>
+            <geom fromto="0.0 0.0 0.0 0.9809960126876831 0.9809960126876831 0.0" name="left_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
       </body>
@@ -37,10 +37,10 @@
         <geom fromto="0.0 0.0 0.0 -0.2 0.2 0.0" name="aux_2_geom" size="0.08" type="capsule"/>
         <body name="aux_2" pos="-0.2 0.2 0">
           <joint axis="0 0 1" name="hip_2" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 -0.3175176135042265 0.3175176135042265 0.0" name="right_leg_geom" size="0.08" type="capsule"/>
-          <body pos="-0.3175176135042265 0.3175176135042265 0">
+          <geom fromto="0.0 0.0 0.0 -1.0935670137405396 1.0935670137405396 0.0" name="right_leg_geom" size="0.08" type="capsule"/>
+          <body pos="-1.0935670137405396 1.0935670137405396 0">
             <joint axis="1 1 0" name="ankle_2" pos="0.0 0.0 0.0" range="-70 -30" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 -0.9048791753610963 0.9048791753610963 0.0" name="right_ankle_geom" size="0.08" type="capsule"/>
+            <geom fromto="0.0 0.0 0.0 -0.32044529914855957 0.32044529914855957 0.0" name="right_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
       </body>
@@ -48,10 +48,10 @@
         <geom fromto="0.0 0.0 0.0 -0.2 -0.2 0.0" name="aux_3_geom" size="0.08" type="capsule"/>
         <body name="aux_3" pos="-0.2 -0.2 0">
           <joint axis="0 0 1" name="hip_3" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 -1.4978177170712645 -1.4978177170712645 0.0" name="back_leg_geom" size="0.08" type="capsule"/>
-          <body pos="-1.4978177170712645 -1.4978177170712645 0">
+          <geom fromto="0.0 0.0 0.0 -0.3689643144607544 -0.3689643144607544 0.0" name="back_leg_geom" size="0.08" type="capsule"/>
+          <body pos="-0.3689643144607544 -0.3689643144607544 0">
             <joint axis="-1 1 0" name="ankle_3" pos="0.0 0.0 0.0" range="-70 -30" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 -0.8187649167357041 -0.8187649167357041 0.0" name="third_ankle_geom" size="0.08" type="capsule"/>
+            <geom fromto="0.0 0.0 0.0 -1.380472183227539 -1.380472183227539 0.0" name="third_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
       </body>
@@ -59,10 +59,10 @@
         <geom fromto="0.0 0.0 0.0 0.2 -0.2 0.0" name="aux_4_geom" size="0.08" type="capsule"/>
         <body name="aux_4" pos="0.2 -0.2 0">
           <joint axis="0 0 1" name="hip_4" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 1.1132533232980084 -1.1132533232980084 0.0" name="rightback_leg_geom" size="0.08" type="capsule"/>
-          <body pos="1.1132533232980084 -1.1132533232980084 0">
+          <geom fromto="0.0 0.0 0.0 1.2391499280929565 -1.2391499280929565 0.0" name="rightback_leg_geom" size="0.08" type="capsule"/>
+          <body pos="1.2391499280929565 -1.2391499280929565 0">
             <joint axis="1 1 0" name="ankle_4" pos="0.0 0.0 0.0" range="30 70" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 1.2434649024916973 -1.2434649024916973 0.0" name="fourth_ankle_geom" size="0.08" type="capsule"/>
+            <geom fromto="0.0 0.0 0.0 1.390988826751709 -1.390988826751709 0.0" name="fourth_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
       </body>
