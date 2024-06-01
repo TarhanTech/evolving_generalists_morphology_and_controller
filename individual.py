@@ -3,6 +3,7 @@ import gymnasium as gym
 from gymnasium.envs.mujoco.ant_v4 import AntEnv
 from individual import *
 import pprint
+import os
 
 import torch
 from torch import Tensor
@@ -15,21 +16,32 @@ class Individual:
         self.params_size =  self.morphology.total_genes + self.controller.total_weigths
 
     def evaluate_fitness(self):
-        env: AntEnv = gym.make("Ant-v4", xml_file=self.morphology.ant_xml_path)
+        generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
+        with open(generated_ant_xml, 'w') as file:
+            file.write(self.morphology.modified_xml_str)
+
+        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml)
 
         obs, _ = env.reset()
         total_reward = 0
         while True:
             obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
             action = self.controller(obs_tensor)
-            obs, reward, terminated, truncated, info = env.step(action)
+            obs, reward, terminated, truncated, _ = env.step(action)
             total_reward += reward
-            if terminated or truncated: break
+            if terminated or truncated: 
+                break
         env.close()
+        if os.path.exists(generated_ant_xml):
+            os.remove(generated_ant_xml)
         return total_reward
     
     def evaluate_fitness_rendered(self):
-        env: AntEnv = gym.make("Ant-v4", render_mode="human", xml_file=self.morphology.ant_xml_path)
+        generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
+        with open(generated_ant_xml, 'w') as file:
+            file.write(self.morphology.modified_xml_str)
+
+        env: AntEnv = gym.make("Ant-v4", render_mode="human", xml_file=generated_ant_xml)
         self._print_env_info(env)
 
         obs, _ = env.reset()
@@ -42,6 +54,8 @@ class Individual:
             env.render()
             if terminated or truncated: break
         env.close()
+        if os.path.exists(generated_ant_xml):
+            os.remove(generated_ant_xml)
         print(f"Total Reward: {total_reward}")
         return total_reward
     
@@ -69,13 +83,12 @@ class Morphology:
         self.morph_params_tensor: Tensor = None
         self.morph_params_map = None 
 
+        self.modified_xml_str = ""
+
         if(morph_params is None):
             self.set_morph_params(self.generate_random_morph_params())
         else:
             self.set_morph_params(morph_params)
-
-        self.ant_xml_path = "./xml_models/ant_evolved.xml"
-        self.modified_xml_str = self.load_and_modify_xml("./xml_models/ant_with_keys.xml", self.ant_xml_path)
 
     def generate_random_morph_params(self):
         random_leg_lengths = torch.FloatTensor(8).uniform_(self.leg_length_range[0], self.leg_length_range[1])
@@ -83,15 +96,14 @@ class Morphology:
 
         return torch.cat((random_leg_lengths, random_leg_widths), dim=0)
     
-    def load_and_modify_xml(self, file_path, output_file_path):
-        with open(file_path, 'r') as file:
+    def create_xml_str(self):
+        file_path_ant_with_keys = "./xml_models/ant_with_keys.xml"
+
+        with open(file_path_ant_with_keys, 'r') as file:
             xml_str = file.read()
 
         for key, value in self.morph_params_map.items():
             xml_str = xml_str.replace(f'{{{key}}}', str(value))
-
-        with open(output_file_path, 'w') as file:
-            file.write(xml_str)
 
         return xml_str
 
@@ -120,6 +132,8 @@ class Morphology:
             "aux_4_width": self.morph_params_tensor[14].item(),
             "ankle_4_width": self.morph_params_tensor[15].item(),
         } 
+
+        self.modified_xml_str = self.create_xml_str()
 
 
 class NeuralNetwork(nn.Module):
