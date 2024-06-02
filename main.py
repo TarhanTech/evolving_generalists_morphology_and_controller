@@ -39,7 +39,7 @@ def test_ant(tensor_path: str):
 
 def train_ant():
     start_time = time.time()
-    parallel_jobs: int = 6
+    parallel_jobs: int = 12
 
     individuals: List[Individual] = [Individual() for _ in range(parallel_jobs)]
     individuals[0].print_morph_info()
