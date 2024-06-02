@@ -1,9 +1,13 @@
+from typing import Tuple
+
 import numpy as np
 import gymnasium as gym
 from gymnasium.envs.mujoco.ant_v4 import AntEnv
 from individual import *
 import pprint
 import os
+import random 
+import math
 
 import torch
 from torch import Tensor
@@ -20,19 +24,26 @@ class Individual:
         with open(generated_ant_xml, 'w') as file:
             file.write(self.morphology.modified_xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml)
+        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4))
 
         total_reward = 0
-        episodes: int = 3
+        episodes: int = 1
         for _ in range(episodes):
             obs, _ = env.reset()
-            while True:
+            prev_distance_from_origin = 0
+            distance_counter = 0
+            done = False
+            while not done:
                 obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
                 action = self.controller(obs_tensor)
-                obs, reward, terminated, truncated, _ = env.step(action)
+                obs, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
-                if terminated or truncated: 
-                    break
+                if math.isclose(info["distance_from_origin"], prev_distance_from_origin, abs_tol=1e-2):
+                    distance_counter += 1
+                else:
+                    distance_counter = 0
+                prev_distance_from_origin = info["distance_from_origin"]
+                done = (terminated or truncated or distance_counter > 100)
             env.close()
         
         if os.path.exists(generated_ant_xml):
@@ -44,19 +55,30 @@ class Individual:
         with open(generated_ant_xml, 'w') as file:
             file.write(self.morphology.modified_xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", render_mode="human", xml_file=generated_ant_xml)
+        env: AntEnv = gym.make("Ant-v4", render_mode="human", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4))
         self._print_env_info(env)
 
         obs, _ = env.reset()
+        prev_distance_from_origin = 0
+        distance_counter = 0
         total_reward = 0
-        while True:
+        done = False
+        while not done:
             obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
             action = self.controller(obs_tensor)
-            obs, reward, terminated, truncated, _ = env.step(action)
-            total_reward += reward
+            obs, reward, terminated, truncated, info = env.step(action)
             env.render()
-            if truncated: break
+            total_reward += reward
+            if math.isclose(info["distance_from_origin"], prev_distance_from_origin, abs_tol=1e-2):
+                distance_counter += 1
+            else:
+                distance_counter = 0
+            # print(f"prev_distance_from_origin: {prev_distance_from_origin}")
+            # print(f"info['distance_from_origin']: {info['distance_from_origin']}")
+            prev_distance_from_origin = info["distance_from_origin"]
+            done = (terminated or truncated or distance_counter > 100)
         env.close()
+
         if os.path.exists(generated_ant_xml):
             os.remove(generated_ant_xml)
         print(f"Total Reward: {total_reward}")
@@ -73,16 +95,18 @@ class Individual:
 
     def print_controller_info(self):
         print("Controller Parameters:")
-        print(f"{self.controller.input_size} Inp -> {self.controller.hidden_size} Hid -> {self.controller.output_size} Out")
+        print(f"{self.controller.input_size} Inp (+1 bias) -> {self.controller.hidden_size} Hid (+1 bias) -> {self.controller.output_size} Out")
         print(f"Total Weights: {self.controller.total_weigths}")
 
     
 class Morphology:
     def __init__(self, morph_params: Tensor = None):
-        self.leg_length_range = (0.3, 1.5) 
-        # self.leg_width_range = (0.05, 0.5)
-        self.total_params = 8 # If using also width of the legs then use 16
+        self.leg_length_range = (0.3, 1.5)
+        self.initial_leg_length_range_size = 1.2
 
+        # self.leg_width_range = (0.05, 0.5)
+        
+        self.total_params = 8 # If using also width of the legs then use 16
         self.morph_params_tensor: Tensor = None
         self.morph_params_map = None 
 
@@ -141,6 +165,18 @@ class Morphology:
 
         self.modified_xml_str = self.create_xml_str()
 
+    def generate_initial_leg_length_range(self) -> Tuple[float, float]:
+        assert self.initial_leg_length_range_size <= (self.leg_length_range[1] - self.leg_length_range[0]), (
+            f"The sample range {self.initial_leg_length_range_size} is bigger then the range it samples from."
+        )
+        min_start: float = self.leg_length_range[0]
+        max_start: float = self.leg_length_range[1] - self.initial_leg_length_range_size
+
+        start: float = random.uniform(min_start, max_start)
+        end: float = start + self.initial_leg_length_range_size
+        print(f"Generated bounds for the leg lengths are ({start}, {end})")
+
+        return (start, end)
 
 class NeuralNetwork(nn.Module):
     def __init__(self, nn_params: Tensor = None):

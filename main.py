@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 
 import argparse
 
-import evotorch
 from evotorch.algorithms import XNES
 from evotorch.logging import StdOutLogger, PandasLogger
 
@@ -57,8 +56,8 @@ def train_ant():
     os.makedirs(f"{folder_run_data}/tensors", exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors_csv", exist_ok=True)
 
-    max_generations: int = 100
-    save_generation_rate: int = 20
+    max_generations: int = 1500
+    save_generation_rate: int = 100
     for i in range(save_generation_rate, max_generations + 1, save_generation_rate):
         for _ in range(save_generation_rate):
             searcher.step()
