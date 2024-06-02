@@ -1,5 +1,5 @@
 from individual import *
-from typing import List
+from typing import List, Tuple
 
 from evotorch import Problem
 import torch
@@ -8,15 +8,25 @@ import joblib
 
 class AntProblem(Problem):
     def __init__(self, individuals: List[Individual]):
+        initial_leg_length_range: Tuple[float, float] = individuals[0].morphology.generate_initial_leg_length_range()
+
         nn_lower_bounds = [-0.00001] * individuals[0].controller.total_weigths
-        morph_leg_length_lower_bounds = [individuals[0].morphology.leg_length_range[0]] * 8
-        lower_bounds = nn_lower_bounds + morph_leg_length_lower_bounds
+        morph_leg_length_lower_bounds = [initial_leg_length_range[0]] * 8
 
         nn_upper_bounds = [0.00001] * individuals[0].controller.total_weigths
-        morph_leg_length_upper_bounds = [individuals[0].morphology.leg_length_range[0] + 0.1] * 8
+        morph_leg_length_upper_bounds = [initial_leg_length_range[1]] * 8
+
+        lower_bounds = nn_lower_bounds + morph_leg_length_lower_bounds
         upper_bounds = nn_upper_bounds + morph_leg_length_upper_bounds
         
-        super().__init__("max", solution_length=individuals[0].params_size, initial_bounds=(lower_bounds, upper_bounds), dtype=torch.float64, eval_dtype=torch.float64, device="cuda")
+        super().__init__(
+            "max", 
+            solution_length=individuals[0].params_size, 
+            initial_bounds=(lower_bounds, upper_bounds), 
+            dtype=torch.float64, 
+            eval_dtype=torch.float64, 
+            device="cuda"
+        )
         self.individuals: List[Individual] = individuals
     
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
