@@ -13,7 +13,7 @@ class Individual:
     def __init__(self, morph_params = None, nn_params = None):
         self.morphology = Morphology(morph_params)
         self.controller = NeuralNetwork(nn_params).to("cuda")
-        self.params_size =  self.morphology.total_genes + self.controller.total_weigths
+        self.params_size =  self.morphology.total_params + self.controller.total_weigths
 
     def evaluate_fitness(self):
         generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
@@ -49,10 +49,10 @@ class Individual:
         while True:
             obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
             action = self.controller(obs_tensor)
-            obs, reward, terminated, truncated, info = env.step(action)
+            obs, reward, terminated, truncated, _ = env.step(action)
             total_reward += reward
             env.render()
-            if terminated or truncated: break
+            if truncated: break
         env.close()
         if os.path.exists(generated_ant_xml):
             os.remove(generated_ant_xml)
@@ -77,8 +77,8 @@ class Individual:
 class Morphology:
     def __init__(self, morph_params: Tensor = None):
         self.leg_length_range = (0.3, 1.5) 
-        self.leg_width_range = (0.05, 0.5)
-        self.total_genes = 16
+        # self.leg_width_range = (0.05, 0.5)
+        self.total_params = 8 # If using also width of the legs then use 16
 
         self.morph_params_tensor: Tensor = None
         self.morph_params_map = None 
@@ -92,9 +92,9 @@ class Morphology:
 
     def generate_random_morph_params(self):
         random_leg_lengths = torch.FloatTensor(8).uniform_(self.leg_length_range[0], self.leg_length_range[1])
-        random_leg_widths = torch.FloatTensor(8).uniform_(self.leg_width_range[0], self.leg_width_range[1])
+        # random_leg_widths = torch.FloatTensor(8).uniform_(self.leg_width_range[0], self.leg_width_range[1])
 
-        return torch.cat((random_leg_lengths, random_leg_widths), dim=0)
+        return random_leg_lengths # torch.cat((random_leg_lengths, random_leg_widths), dim=0)
     
     def create_xml_str(self):
         file_path_ant_with_keys = "./xml_models/ant_with_keys.xml"
@@ -108,8 +108,8 @@ class Morphology:
         return xml_str
 
     def set_morph_params(self, morph_params: Tensor):
-        assert morph_params.size(0) == self.total_genes, (
-            f"Expected {self.total_genes} parameters, but got {morph_params.size(0)}."
+        assert morph_params.size(0) == self.total_params, (
+            f"Expected {self.total_params} parameters, but got {morph_params.size(0)}."
         )
 
         self.morph_params_tensor = morph_params.clone()
@@ -123,15 +123,18 @@ class Morphology:
             "aux_4_length": self.morph_params_tensor[6].item(),
             "ankle_4_length": self.morph_params_tensor[7].item(),
 
-            "aux_1_width": self.morph_params_tensor[8].item(),
-            "ankle_1_width": self.morph_params_tensor[9].item(),
-            "aux_2_width": self.morph_params_tensor[10].item(),
-            "ankle_2_width": self.morph_params_tensor[11].item(),
-            "aux_3_width": self.morph_params_tensor[12].item(),
-            "ankle_3_width": self.morph_params_tensor[13].item(),
-            "aux_4_width": self.morph_params_tensor[14].item(),
-            "ankle_4_width": self.morph_params_tensor[15].item(),
+            # "aux_1_width": self.morph_params_tensor[8].item(),
+            # "ankle_1_width": self.morph_params_tensor[9].item(),
+            # "aux_2_width": self.morph_params_tensor[10].item(),
+            # "ankle_2_width": self.morph_params_tensor[11].item(),
+            # "aux_3_width": self.morph_params_tensor[12].item(),
+            # "ankle_3_width": self.morph_params_tensor[13].item(),
+            # "aux_4_width": self.morph_params_tensor[14].item(),
+            # "ankle_4_width": self.morph_params_tensor[15].item(),
         } 
+        assert len(self.morph_params_map) == self.total_params, (
+            f"Expected self.morph_params_map to have {self.total_params} elements, but has {len(self.morph_params_map)}."
+        )
 
         self.modified_xml_str = self.create_xml_str()
 

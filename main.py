@@ -30,7 +30,7 @@ def create_plot(df: pd.DataFrame, save_path: str):
 def test_ant(tensor_path: str):
     ind: Individual = Individual()
     tensor = torch.load(tensor_path)
-    nn_params, morph_params = torch.split(tensor, (ind.controller.total_weigths, ind.morphology.total_genes))
+    nn_params, morph_params = torch.split(tensor, (ind.controller.total_weigths, ind.morphology.total_params))
     print(nn_params)
     print(morph_params)
     ind.controller.set_nn_params(nn_params)
@@ -57,8 +57,10 @@ def train_ant():
     os.makedirs(f"{folder_run_data}/tensors", exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors_csv", exist_ok=True)
 
-    for i in range(0, 10):
-        for _ in range(5):
+    max_generations: int = 100
+    save_generation_rate: int = 20
+    for i in range(save_generation_rate, max_generations + 1, save_generation_rate):
+        for _ in range(save_generation_rate):
             searcher.step()
         end_time = time.time()
         elapsed_time = end_time - start_time
