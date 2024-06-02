@@ -22,19 +22,22 @@ class Individual:
 
         env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml)
 
-        obs, _ = env.reset()
         total_reward = 0
-        while True:
-            obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
-            action = self.controller(obs_tensor)
-            obs, reward, terminated, truncated, _ = env.step(action)
-            total_reward += reward
-            if terminated or truncated: 
-                break
-        env.close()
+        episodes: int = 3
+        for _ in range(episodes):
+            obs, _ = env.reset()
+            while True:
+                obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
+                action = self.controller(obs_tensor)
+                obs, reward, terminated, truncated, _ = env.step(action)
+                total_reward += reward
+                if terminated or truncated: 
+                    break
+            env.close()
+        
         if os.path.exists(generated_ant_xml):
-            os.remove(generated_ant_xml)
-        return total_reward
+                os.remove(generated_ant_xml)
+        return total_reward / episodes
     
     def evaluate_fitness_rendered(self):
         generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
