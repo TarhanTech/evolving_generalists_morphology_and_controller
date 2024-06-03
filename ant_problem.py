@@ -30,9 +30,7 @@ class AntProblem(Problem):
         self.individuals: List[Individual] = individuals
     
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
-        nn_params, morph_params = torch.split(params, (ind.controller.total_weigths, ind.morphology.total_params))
-        ind.controller.set_nn_params(nn_params)
-        ind.morphology.set_morph_params(morph_params)
+        ind.set_params(params)
         return ind.evaluate_fitness()
 
     def _evaluate_batch(self, solutions: evotorch.SolutionBatch):

@@ -28,12 +28,8 @@ def create_plot(df: pd.DataFrame, save_path: str):
 
 def test_ant(tensor_path: str):
     ind: Individual = Individual()
-    tensor = torch.load(tensor_path)
-    nn_params, morph_params = torch.split(tensor, (ind.controller.total_weigths, ind.morphology.total_params))
-    print(nn_params)
-    print(morph_params)
-    ind.controller.set_nn_params(nn_params)
-    ind.morphology.set_morph_params(morph_params)
+    params = torch.load(tensor_path)
+    ind.set_params(params)
     ind.evaluate_fitness_rendered()
 
 def train_ant():
@@ -55,12 +51,14 @@ def train_ant():
     os.makedirs(folder_run_data, exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors", exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors_csv", exist_ok=True)
+    os.makedirs(f"{folder_run_data}/screenshots", exist_ok=True)
 
     max_generations: int = 1500
-    save_generation_rate: int = 100
+    save_generation_rate: int = 10
     for i in range(save_generation_rate, max_generations + 1, save_generation_rate):
         for _ in range(save_generation_rate):
             searcher.step()
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time} seconds")
@@ -69,12 +67,14 @@ def train_ant():
         df.to_csv(f"{folder_run_data}/evo_pandas_df.csv", index=False)
         create_plot(df, folder_run_data)
 
-        pop_best_solution: torch.Tensor = searcher.status["pop_best"].values
-        torch.save(pop_best_solution, f"{folder_run_data}/tensors/pop_best_{i}.pt")
+        pop_best_params: torch.Tensor = searcher.status["pop_best"].values
+        individuals[0].set_params(pop_best_params)
+        individuals[0].make_screenshot(f"{folder_run_data}/screenshots/ant_{i}.png")
+        torch.save(pop_best_params, f"{folder_run_data}/tensors/pop_best_{i}.pt")
 
-        pop_best_solution_np = pop_best_solution.to("cpu").detach().numpy()
-        pop_best_solution_df = pd.DataFrame(pop_best_solution_np)
-        pop_best_solution_df.to_csv(f"{folder_run_data}/tensors_csv/pop_best_{i}.csv", index=False)
+        pop_best_params_np = pop_best_params.to("cpu").detach().numpy()
+        pop_best_params_df = pd.DataFrame(pop_best_params_np)
+        pop_best_params_df.to_csv(f"{folder_run_data}/tensors_csv/pop_best_{i}.csv", index=False)
 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")

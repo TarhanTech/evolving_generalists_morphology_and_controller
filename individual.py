@@ -8,6 +8,7 @@ import pprint
 import os
 import random 
 import math
+from PIL import Image
 
 import torch
 from torch import Tensor
@@ -18,6 +19,11 @@ class Individual:
         self.morphology = Morphology(morph_params)
         self.controller = NeuralNetwork(nn_params).to("cuda")
         self.params_size =  self.morphology.total_params + self.controller.total_weigths
+
+    def set_params(self, params: Tensor):
+        nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.morphology.total_params))
+        self.controller.set_nn_params(nn_params)
+        self.morphology.set_morph_params(morph_params)
 
     def evaluate_fitness(self):
         generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
@@ -83,7 +89,23 @@ class Individual:
             os.remove(generated_ant_xml)
         print(f"Total Reward: {total_reward}")
         return total_reward
-    
+
+    def make_screenshot(self, path: str):
+        generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
+        with open(generated_ant_xml, 'w') as file:
+            file.write(self.morphology.modified_xml_str)
+
+        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4), camera_name="track_1")
+
+        env.reset()
+        frame = env.render()
+        image = Image.fromarray(frame)
+        image.save(f"{path}")
+
+        env.close
+        if os.path.exists(generated_ant_xml):
+            os.remove(generated_ant_xml)
+            
     def _print_env_info(self, env: AntEnv):
         print(f"Action Space:\n{env.action_space}\n")
         print(f"Observation Space:\n{env.observation_space}\n")
@@ -98,7 +120,6 @@ class Individual:
         print(f"{self.controller.input_size} Inp (+1 bias) -> {self.controller.hidden_size} Hid (+1 bias) -> {self.controller.output_size} Out")
         print(f"Total Weights: {self.controller.total_weigths}")
 
-    
 class Morphology:
     def __init__(self, morph_params: Tensor = None):
         self.leg_length_range = (0.3, 1.5)
