@@ -1,0 +1,81 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage[
+        backend=biber,
+        sorting=none,
+    ]{biblatex}
+
+      \textwidth 15cm
+      \textheight 22cm
+      \parindent 10pt
+      \oddsidemargin 0.85cm
+      \evensidemargin 0.37cm
+
+% Bibliography file
+\addbibresource{references.bib}
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\begin{center}
+
+      Vrije Universiteit Amsterdam
+
+      \vspace{1mm}
+
+      \includegraphics[height=28mm]{./resources/vu-griffioen.pdf}
+
+      \vspace{1.5cm}
+
+      {\Large Bachelor Thesis}
+
+      \vspace*{1.5cm}
+
+      \rule{.9\linewidth}{.6pt}\\[0.4cm]
+      {\huge \bfseries Co-Evolution of Generalist Controllers and Morphology for Diverse Environments\par}
+      \vspace{0.4cm}
+      \rule{.9\linewidth}{.6pt}\\[1.5cm]
+
+      \vspace*{2mm}
+
+      {\Large
+            \begin{tabular}{l}
+                  {\bf Author:} ~~Kubilay Tarhan ~~~~ (2721178)
+            \end{tabular}
+      }
+
+      \vspace*{1.5cm}
+
+      \begin{tabular}{ll}
+            {\it 1st supervisor:}   & ~~Anil Yaman                               \\
+            {\it 2nd reader:}       & ~~supervisor name
+      \end{tabular}
+
+      \vspace*{2cm}
+
+      \textit{A thesis submitted in fulfillment of the requirements for\\ the VU Bachelor of Science degree in Computer Science }
+
+      \vspace*{1cm}
+
+      \today\\[4cm] % Date
+
+\end{center}
+
+\input{./sections/abstract.tex}
+
+% Keywords
+\noindent\textbf{Keywords:} keyword1, keyword2, keyword3
+
+% Introduction
+\section{Introduction}
+The introduction should briefly place the study in a broad context and highlight why it is important. It should define the purpose of the work and its significance,\cite{Keshav-SIGCOMMCCR2007} including specific hypotheses being tested.
+
+% Background
+\section{Methodology}
+This section should describe the background of your research.
+
+% References
+\printbibliography
+
+\end{document}
