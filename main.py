@@ -54,7 +54,7 @@ def train_ant():
     os.makedirs(f"{folder_run_data}/screenshots", exist_ok=True)
 
     max_generations: int = 1500
-    save_generation_rate: int = 10
+    save_generation_rate: int = 50
     for i in range(save_generation_rate, max_generations + 1, save_generation_rate):
         for _ in range(save_generation_rate):
             searcher.step()
