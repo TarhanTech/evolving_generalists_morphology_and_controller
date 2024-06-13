@@ -36,9 +36,9 @@ class Individual:
         episodes: int = 1
         for _ in range(episodes):
             obs, _ = env.reset()
-            prev_distance_from_origin = 0
-            distance_counter = 0
-            done = False
+            prev_distance_from_origin: int = 0
+            distance_counter: int = 0
+            done: bool = False
             while not done:
                 obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
                 action = self.controller(obs_tensor)
