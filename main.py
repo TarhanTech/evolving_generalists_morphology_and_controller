@@ -1,12 +1,14 @@
-from individual import *
-from ant_problem import *
+from source.individual import Individual
+from source.ant_problem import AntProblem
 from typing import List
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
 import argparse
+import os
 
+import torch
 from evotorch.algorithms import XNES
 from evotorch.logging import StdOutLogger, PandasLogger
 
@@ -68,7 +70,7 @@ def train_ant():
         create_plot(df, folder_run_data)
 
         pop_best_params: torch.Tensor = searcher.status["pop_best"].values
-        individuals[0].set_params(pop_best_params)
+        individuals[0].setup(pop_best_params, "hills")
         individuals[0].make_screenshot(f"{folder_run_data}/screenshots/ant_{i}.png")
         torch.save(pop_best_params, f"{folder_run_data}/tensors/pop_best_{i}.pt")
 

@@ -1,4 +1,4 @@
-from individual import *
+from code.individual import *
 from typing import List, Tuple
 
 from evotorch import Problem
