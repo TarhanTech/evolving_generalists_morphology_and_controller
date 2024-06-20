@@ -4,34 +4,41 @@ import numpy as np
 from typing import Tuple
 import random 
 
+from PIL import Image
+from noise import pnoise2
+
 class MJEnv:
     def __init__(self, morph_params: Tensor = None):
-        self.env = TerrainEnv()
+        self.terrain_env = TerrainEnv()
         self.morphology = Morphology(morph_params)
 
-        self.file_path_template_hills = "./xml_models/ant_with_keys.xml"
+        self.file_path_template_hills = "./xml_models/ant_hills_with_keys.xml"
         self.file_path_template_rough = "./xml_models/ant_with_keys.xml"
         self.xml_str = ""
 
-    def setup(self, morph_params: Tensor, env: str):
+    def setup(self, morph_params: Tensor, terrain_env: str):
         self.morphology.set_morph_params(morph_params)
-        if env == "hills":
-            self.set_xml_str_for_hills_terrain()
-        elif env == "rough":
-            self.set_xml_str_for_rough_terrain()
+        if terrain_env == "hills":
+            self.set_xml_str_with_hills_terrain()
+        elif terrain_env == "rough":
+            self.set_xml_str_with_rough_terrain()
         else:
-            assert False, f"Unsupported environment: {env}"
+            assert False, f"Unsupported environment: {terrain_env}"
 
-    def set_xml_str_for_hills_terrain(self):
+    def set_xml_str_with_hills_terrain(self):
         with open(self.file_path_template_hills, 'r') as file:
             temp_xml_str = file.read()
 
         for key, value in self.morphology.morph_params_map.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
+
+        self.terrain_env.setup_hills()
+        for key, value in self.terrain_env.hills_params.items():
+            temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
         
         self.xml_str = temp_xml_str
 
-    def set_xml_str_for_rough_terrain(self):
+    def set_xml_str_with_rough_terrain(self):
         with open(self.file_path_template_rough, 'r') as file:
             temp_xml_str = file.read()
 
@@ -42,7 +49,49 @@ class MJEnv:
 
 
 class TerrainEnv:
-    def __init(self):
+    def __init__(self):
+        self.hills_params = {
+            "terrain_noise": f"./terrain_noise/generated_terrain_hills_{id(self)}.png",
+            "floor_width": 150,
+            "floor_length": 10,
+            "floor_height": 1,
+            "torso_pos": None
+        }
+        self.hills_params["torso_pos"] = f"{self.hills_params['floor_width'] - 5} 0 3"
+        self.rough_params = {
+            "hfield_ncol": 1500,
+            "hfield_nrow": 100,
+            "hfield_elevation": None,
+            "floor_width": 150,
+            "floor_length": 10
+        }
+
+    def setup_hills(self):
+        width: int = 300
+        height: int = 20
+        noise_image = self._generate_noise_image(width, height)
+
+        normalized_img = np.floor(255 * (noise_image - np.min(noise_image)) / (np.max(noise_image) - np.min(noise_image))).astype(np.uint8)
+        # normalized_img = (normalized_img > 127).astype(np.uint8) * 255
+
+        image = Image.fromarray(normalized_img, mode="L")  # 'L' mode is for grayscale
+        image.save(f"./terrain_noise/generated_terrain_hills_{id(self)}.png")
+
+
+    def _generate_noise_image(self, width, height, scale=5, octaves=6, persistence=0.5, lacunarity=2.0):
+        noise_array = np.zeros((height, width))
+        for i in range(height):
+            for j in range(width):
+                noise_array[i][j] = pnoise2(i / scale, j / scale,
+                                            octaves=octaves,
+                                            persistence=persistence,
+                                            lacunarity=lacunarity,
+                                            repeatx=width,
+                                            repeaty=height,
+                                            base=0)
+        return noise_array
+    
+    def setup_rough(self):
         pass
 
 

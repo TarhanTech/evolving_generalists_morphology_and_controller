@@ -29,9 +29,10 @@ def create_plot(df: pd.DataFrame, save_path: str):
     plt.savefig(f"{save_path}/evaluation_metrics_plot.png", dpi=300, bbox_inches="tight")
 
 def test_ant(tensor_path: str):
+    print()
     ind: Individual = Individual()
     params = torch.load(tensor_path)
-    ind.set_params(params)
+    ind.setup(params, "hills")
     ind.evaluate_fitness_rendered()
 
 def train_ant():
@@ -39,7 +40,7 @@ def train_ant():
     parallel_jobs: int = 12
 
     individuals: List[Individual] = [Individual() for _ in range(parallel_jobs)]
-    individuals[0].print_morph_info()
+    individuals[0].print_mjenv_info()
     individuals[0].print_controller_info()
 
     problem : AntProblem = AntProblem(individuals)

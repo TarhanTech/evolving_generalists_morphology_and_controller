@@ -1,4 +1,4 @@
-from code.individual import *
+from source.individual import Individual
 from typing import List, Tuple
 
 from evotorch import Problem
@@ -8,7 +8,7 @@ import joblib
 
 class AntProblem(Problem):
     def __init__(self, individuals: List[Individual]):
-        initial_leg_length_range: Tuple[float, float] = individuals[0].morphology.generate_initial_leg_length_range()
+        initial_leg_length_range: Tuple[float, float] = individuals[0].mjEnv.morphology.generate_initial_leg_length_range()
 
         nn_lower_bounds = [-0.00001] * individuals[0].controller.total_weigths
         morph_leg_length_lower_bounds = [initial_leg_length_range[0]] * 8
@@ -30,7 +30,7 @@ class AntProblem(Problem):
         self.individuals: List[Individual] = individuals
     
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
-        ind.set_params(params)
+        ind.setup(params, "hills")
         return ind.evaluate_fitness()
 
     def _evaluate_batch(self, solutions: evotorch.SolutionBatch):
