@@ -3,6 +3,7 @@ from torch import Tensor
 import numpy as np
 from typing import Tuple
 import random 
+import os
 
 from PIL import Image
 from noise import pnoise2
@@ -18,7 +19,6 @@ class MJEnv:
 
     def setup(self, morph_params: Tensor, terrain: str, floor_height: float):
         self.morphology.set_morph_params(morph_params)
-        print(terrain)
         if terrain == "hills":
             self.set_xml_str_with_hills_terrain(floor_height)
         elif terrain == "rough":
@@ -57,7 +57,7 @@ class TerrainEnv:
     def __init__(self):
         # The difficulty increase comes from the floor_height param
         self.hills_params = {
-            "terrain_noise": f"./terrain_noise/generated_terrain_hills_{id(self)}.png",
+            "terrain_noise": None,
             "floor_width": 150,
             "floor_length": 10,
             "floor_height": 1,
@@ -79,13 +79,17 @@ class TerrainEnv:
 
     def setup_hills(self, floor_height: float):
         self.hills_params["floor_height"] = floor_height
+        if self.hills_params["terrain_noise"] is not None and os.path.exists(self.hills_params["terrain_noise"]):
+            os.remove(self.hills_params["terrain_noise"])
 
         width: int = 300
         height: int = 20
         noise_image = self._generate_noise_image(width, height)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
-        image.save(f"./terrain_noise/generated_terrain_hills_{id(self)}.png")
+        terrain_noise_file = f"./terrain_noise/generated_terrain_hills_{id(self)}.png"
+        image.save(terrain_noise_file)
+        self.hills_params["terrain_noise"] = terrain_noise_file
 
 
     def _generate_noise_image(self, width, height, scale=5, octaves=6, persistence=0.5, lacunarity=2.0):
