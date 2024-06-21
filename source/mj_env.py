@@ -13,68 +13,78 @@ class MJEnv:
         self.morphology = Morphology(morph_params)
 
         self.file_path_template_hills = "./xml_models/ant_hills_with_keys.xml"
-        self.file_path_template_rough = "./xml_models/ant_with_keys.xml"
+        self.file_path_template_rough = "./xml_models/ant_rough_with_keys.xml"
         self.xml_str = ""
 
-    def setup(self, morph_params: Tensor, terrain_env: str):
+    def setup(self, morph_params: Tensor, terrain: str, floor_height: float):
         self.morphology.set_morph_params(morph_params)
-        if terrain_env == "hills":
-            self.set_xml_str_with_hills_terrain()
-        elif terrain_env == "rough":
-            self.set_xml_str_with_rough_terrain()
+        print(terrain)
+        if terrain == "hills":
+            self.set_xml_str_with_hills_terrain(floor_height)
+        elif terrain == "rough":
+            self.set_xml_str_with_rough_terrain(floor_height)
         else:
-            assert False, f"Unsupported environment: {terrain_env}"
+            assert False, f"Unsupported environment: {terrain}"
 
-    def set_xml_str_with_hills_terrain(self):
+    def set_xml_str_with_hills_terrain(self, floor_height: float):
         with open(self.file_path_template_hills, 'r') as file:
             temp_xml_str = file.read()
 
         for key, value in self.morphology.morph_params_map.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
 
-        self.terrain_env.setup_hills()
+        self.terrain_env.setup_hills(floor_height)
         for key, value in self.terrain_env.hills_params.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
         
         self.xml_str = temp_xml_str
 
-    def set_xml_str_with_rough_terrain(self):
+    def set_xml_str_with_rough_terrain(self, floor_height: float):
         with open(self.file_path_template_rough, 'r') as file:
             temp_xml_str = file.read()
 
         for key, value in self.morphology.morph_params_map.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
         
+        self.terrain_env.setup_rough(floor_height)
+        for key, value in self.terrain_env.rough_params.items():
+            temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
+
         self.xml_str = temp_xml_str
 
 
 class TerrainEnv:
     def __init__(self):
+        # The difficulty increase comes from the floor_height param
         self.hills_params = {
             "terrain_noise": f"./terrain_noise/generated_terrain_hills_{id(self)}.png",
             "floor_width": 150,
             "floor_length": 10,
             "floor_height": 1,
-            "torso_pos": None
+            "floor_pos": None
         }
-        self.hills_params["torso_pos"] = f"{self.hills_params['floor_width'] - 5} 0 3"
+        self.hills_params["floor_pos"] = f"{self.hills_params['floor_width'] - 5} 0 0"
+        
+        # The difficulty increase comes from the floor_height param
         self.rough_params = {
             "hfield_ncol": 1500,
             "hfield_nrow": 100,
             "hfield_elevation": None,
             "floor_width": 150,
-            "floor_length": 10
+            "floor_length": 10,
+            "floor_heigth": 0.1,
+            "floor_pos": None
         }
+        self.rough_params["floor_pos"] = f"{self.rough_params['floor_width'] - 5} 0 0"
 
-    def setup_hills(self):
+    def setup_hills(self, floor_height: float):
+        self.hills_params["floor_height"] = floor_height
+
         width: int = 300
         height: int = 20
         noise_image = self._generate_noise_image(width, height)
 
-        normalized_img = np.floor(255 * (noise_image - np.min(noise_image)) / (np.max(noise_image) - np.min(noise_image))).astype(np.uint8)
-        # normalized_img = (normalized_img > 127).astype(np.uint8) * 255
-
-        image = Image.fromarray(normalized_img, mode="L")  # 'L' mode is for grayscale
+        image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
         image.save(f"./terrain_noise/generated_terrain_hills_{id(self)}.png")
 
 
@@ -89,11 +99,33 @@ class TerrainEnv:
                                             repeatx=width,
                                             repeaty=height,
                                             base=0)
-        return noise_array
+                
+        normalized_noise_image = np.floor(255 * (noise_array - np.min(noise_array)) / (np.max(noise_array) - np.min(noise_array))).astype(np.uint8)
+        # normalized_noise_image = (normalized_img > 127).astype(np.uint8) * 255
+        return normalized_noise_image
     
-    def setup_rough(self):
-        pass
+    def setup_rough(self, floor_heigth: float):
+        self.rough_params["floor_heigth"] = floor_heigth
+        # TODO: Make the rough terrain generation based on the floor height. 
 
+        rough_terrain = self._generate_rough_terrain(100, 1500, 2)
+        rough_terrain_str = " ".join(" ".join(str(cell) for cell in row) for row in rough_terrain)
+
+        self.rough_params["hfield_elevation"] = rough_terrain_str
+
+    def _generate_rough_terrain(self, height, width, block_size):
+        terrain = np.zeros((height, width), dtype=int)
+        
+        num_blocks_vertical = height // block_size
+        num_blocks_horizontal = width // block_size
+        
+        for i in range(num_blocks_vertical):
+            for j in range(num_blocks_horizontal):
+                # Randomly decide if this block should be raised (1) or not (0)
+                if np.random.rand() > 0.5:
+                    terrain[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size] = 1
+                    
+        return terrain
 
 class Morphology:
     def __init__(self, morph_params: Tensor = None):

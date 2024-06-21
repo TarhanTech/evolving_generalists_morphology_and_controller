@@ -32,7 +32,7 @@ def test_ant(tensor_path: str):
     print()
     ind: Individual = Individual()
     params = torch.load(tensor_path)
-    ind.setup(params, "hills")
+    ind.setup(params, "hills", 4)
     ind.evaluate_fitness_rendered()
 
 def train_ant():

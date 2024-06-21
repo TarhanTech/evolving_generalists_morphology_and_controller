@@ -16,10 +16,10 @@ class Individual:
         self.controller = NeuralNetwork(nn_params).to("cuda")
         self.params_size =  self.mjEnv.morphology.total_params + self.controller.total_weigths
 
-    def setup(self, params: Tensor, terrain_env: str):
+    def setup(self, params: Tensor, terrain_env: str, floor_height: float):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
         self.controller.set_nn_params(nn_params)
-        self.mjEnv.setup(morph_params, terrain_env)
+        self.mjEnv.setup(morph_params, terrain_env, floor_height)
 
     def evaluate_fitness(self):
         generated_ant_xml: str = f"./generated_ant_xml_{id(self)}.xml"
