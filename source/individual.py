@@ -3,6 +3,7 @@ from gymnasium.envs.mujoco.ant_v4 import AntEnv
 from source.neural_network import NeuralNetwork
 from source.mj_env import MJEnv
 import pprint
+from source.globals import *
 import os
 import math
 from PIL import Image
@@ -11,22 +12,34 @@ from torch import Tensor
 from scipy.spatial.transform import Rotation
 
 class Individual:
-    def __init__(self, morph_params = None, nn_params = None):
-        self.mjEnv = MJEnv(morph_params)
-        self.controller = NeuralNetwork(nn_params).to("cuda")
-        self.params_size =  self.mjEnv.morphology.total_params + self.controller.total_weigths
 
-    def setup(self, params: Tensor, terrain_env: str, floor_height: float):
+    def __init__(self, id, morph_params = None, nn_params = None):
+        self.id = id
+        self.mjEnv = MJEnv(id=id, morph_params=morph_params)
+        self.controller = NeuralNetwork(id=id, nn_params=nn_params).to("cuda")
+        self.params_size =  self.mjEnv.morphology.total_params + self.controller.total_weigths
+    
+    def setup_ant_hills(self, params: Tensor, floor_height: float):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
         self.controller.set_nn_params(nn_params)
-        self.mjEnv.setup(morph_params, terrain_env, floor_height)
+        self.mjEnv.setup_ant_hills(morph_params=morph_params, floor_height=floor_height)
 
-    def evaluate_fitness(self):
-        generated_ant_xml: str = f"./generated_ant_xml_{id(self)}.xml"
+    def setup_ant_rough(self, params: Tensor, floor_height: float):
+        nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
+        self.controller.set_nn_params(nn_params)
+        self.mjEnv.setup_ant_rough(morph_params=morph_params, floor_height=floor_height)
+
+    def setup_ant_default(self, params: Tensor):
+        nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
+        self.controller.set_nn_params(nn_params)
+        self.mjEnv.setup_ant_default(morph_params=morph_params)
+
+    def evaluate_fitness(self, render_mode: str = None):
+        generated_ant_xml: str = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, terminate_when_unhealthy=False)
+        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, terminate_when_unhealthy=False, render_mode=render_mode)
 
         total_reward: float = 0
         episodes: int = 1
@@ -40,6 +53,8 @@ class Individual:
                 action = self.controller(obs_tensor)
                 obs, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
+                if render_mode == "human": env.render()
+
                 if math.isclose(info["distance_from_origin"], prev_distance_from_origin, abs_tol=1e-2):
                     distance_counter += 1
                 else:
@@ -48,46 +63,12 @@ class Individual:
                 done = (terminated or truncated or distance_counter > 300 or self._is_upside_down(env))
             env.close()
         
-        if os.path.exists(generated_ant_xml):
-                os.remove(generated_ant_xml)
+        # if os.path.exists(generated_ant_xml):
+        #     os.remove(generated_ant_xml)
         return total_reward / episodes
-    
-    def evaluate_fitness_rendered(self):
-        generated_ant_xml: str = f"./generated_ant_xml_{id(self)}.xml"
-        with open(generated_ant_xml, 'w') as file:
-            file.write(self.mjEnv.xml_str)
-
-        env: AntEnv = gym.make("Ant-v4", render_mode="human", xml_file=generated_ant_xml, terminate_when_unhealthy=False)
-        self._print_env_info(env)
-
-        obs, _ = env.reset()
-        prev_distance_from_origin: int = 0
-        distance_counter: int = 0
-        total_reward: float = 0
-        done = False
-        while not done:
-            obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
-            action = self.controller(obs_tensor)
-            obs, reward, terminated, truncated, info = env.step(action)
-            env.render()
-            total_reward += reward
-            if math.isclose(info["distance_from_origin"], prev_distance_from_origin, abs_tol=1e-2):
-                distance_counter += 1
-            else:
-                distance_counter = 0
-            # print(f"prev_distance_from_origin: {prev_distance_from_origin}")
-            # print(f"info['distance_from_origin']: {info['distance_from_origin']}")
-            prev_distance_from_origin = info["distance_from_origin"]
-            done = (terminated or truncated or distance_counter > 300 or self._is_upside_down(env))
-        env.close()
-
-        if os.path.exists(generated_ant_xml):
-            os.remove(generated_ant_xml)
-        print(f"Total Reward: {total_reward}")
-        return total_reward
 
     def make_screenshot(self, path: str):
-        generated_ant_xml = f"./generated_ant_xml_{id(self)}.xml"
+        generated_ant_xml = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
 

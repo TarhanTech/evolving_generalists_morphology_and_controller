@@ -9,29 +9,19 @@ from PIL import Image
 from noise import pnoise2
 
 class MJEnv:
-    def __init__(self, morph_params: Tensor = None):
-        self.terrain_env = TerrainEnv()
-        self.morphology = Morphology(morph_params)
+    def __init__(self, id, morph_params: Tensor = None):
+        self.id = id
+        self.terrain_env = TerrainEnv(id=id)
+        self.morphology = Morphology(id=id, morph_params=morph_params)
 
         self.file_path_template_hills = "./xml_models/ant_hills_with_keys.xml"
         self.file_path_template_rough = "./xml_models/ant_rough_with_keys.xml"
+        self.file_path_template_default = "./xml_models/ant_default_with_keys.xml" # TODO: create this xml file with the keys
         self.xml_str = ""
 
-    def setup(self, morph_params: Tensor, terrain: str, floor_height: float):
+    def setup_ant_hills(self, morph_params: Tensor, floor_height: float):
         self.morphology.set_morph_params(morph_params)
-        if terrain == "hills":
-            self.set_xml_str_with_hills_terrain(floor_height)
-        elif terrain == "rough":
-            self.set_xml_str_with_rough_terrain(floor_height)
-        else:
-            assert False, f"Unsupported environment: {terrain}"
-
-    def set_xml_str_with_hills_terrain(self, floor_height: float):
-        with open(self.file_path_template_hills, 'r') as file:
-            temp_xml_str = file.read()
-
-        for key, value in self.morphology.morph_params_map.items():
-            temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
+        temp_xml_str = self._create_xml_with_morph_params(template_xml=self.file_path_template_hills)
 
         self.terrain_env.setup_hills(floor_height)
         for key, value in self.terrain_env.hills_params.items():
@@ -39,22 +29,34 @@ class MJEnv:
         
         self.xml_str = temp_xml_str
 
-    def set_xml_str_with_rough_terrain(self, floor_height: float):
-        with open(self.file_path_template_rough, 'r') as file:
-            temp_xml_str = file.read()
+    def setup_ant_rough(self, morph_params: Tensor, floor_height: float):
+        self.morphology.set_morph_params(morph_params)
+        temp_xml_str = self._create_xml_with_morph_params(template_xml=self.file_path_template_rough)
 
-        for key, value in self.morphology.morph_params_map.items():
-            temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
-        
         self.terrain_env.setup_rough(floor_height)
         for key, value in self.terrain_env.rough_params.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
-
+        
         self.xml_str = temp_xml_str
 
+    def setup_ant_default(self, morph_params: Tensor):
+        self.morphology.set_morph_params(morph_params)
+        self.xml_str = self._create_xml_with_morph_params() # TODO: pass in the template for default env
+
+    
+    def _create_xml_with_morph_params(self, template_xml: str):
+        with open(template_xml, 'r') as file:
+            xml_str = file.read()
+
+        for key, value in self.morphology.morph_params_map.items():
+            xml_str = xml_str.replace(f'{{{key}}}', str(value))
+
+        return xml_str
 
 class TerrainEnv:
-    def __init__(self):
+    def __init__(self, id):
+        self.id = id
+
         # The difficulty increase comes from the floor_height param
         self.hills_params = {
             "terrain_noise": None,
@@ -87,10 +89,9 @@ class TerrainEnv:
         noise_image = self._generate_noise_image(width, height)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
-        terrain_noise_file = f"./terrain_noise/generated_terrain_hills_{id(self)}.png"
+        terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.id}.png"
         image.save(terrain_noise_file)
-        self.hills_params["terrain_noise"] = terrain_noise_file
-
+        self.hills_params["terrain_noise"] = os.path.abspath(terrain_noise_file)
 
     def _generate_noise_image(self, width, height, scale=5, octaves=6, persistence=0.5, lacunarity=2.0):
         noise_array = np.zeros((height, width))
@@ -132,7 +133,8 @@ class TerrainEnv:
         return terrain
 
 class Morphology:
-    def __init__(self, morph_params: Tensor = None):
+    def __init__(self, id, morph_params: Tensor = None):
+        self.id = id
         self.leg_length_range = (0.3, 1.5)
         self.initial_leg_length_range_size = 1.2
 

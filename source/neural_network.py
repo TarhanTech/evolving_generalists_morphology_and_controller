@@ -3,9 +3,10 @@ import numpy as np
 import torch.nn as nn
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, nn_params: Tensor = None):
+    def __init__(self, id, nn_params: Tensor = None):
         super(NeuralNetwork, self).__init__()
-
+        self.id = id
+        
         self.bias_size: int = 1
         self.input_size: int = 27
         self.hidden_size: int = 20
