@@ -3,3 +3,4 @@ __pycache__
 tensors
 tensors_csv
 runs
+train_terrain_noise

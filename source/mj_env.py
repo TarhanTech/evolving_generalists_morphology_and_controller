@@ -61,7 +61,7 @@ class TerrainEnv:
         self.hills_params = {
             "terrain_noise": None,
             "floor_width": 150,
-            "floor_length": 10,
+            "floor_length": 20,
             "floor_height": 1,
             "floor_pos": None
         }
@@ -73,7 +73,7 @@ class TerrainEnv:
             "hfield_nrow": 100,
             "hfield_elevation": None,
             "floor_width": 150,
-            "floor_length": 10,
+            "floor_length": 20,
             "floor_heigth": 0.1,
             "floor_pos": None
         }
@@ -84,8 +84,8 @@ class TerrainEnv:
         if self.hills_params["terrain_noise"] is not None and os.path.exists(self.hills_params["terrain_noise"]):
             os.remove(self.hills_params["terrain_noise"])
 
-        width: int = 300
-        height: int = 20
+        width: int = self.hills_params["floor_width"] * 2
+        height: int = self.hills_params["floor_length"] * 2
         noise_image = self._generate_noise_image(width, height)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
@@ -113,24 +113,23 @@ class TerrainEnv:
         self.rough_params["floor_heigth"] = floor_heigth
         # TODO: Make the rough terrain generation based on the floor height. 
 
-        rough_terrain = self._generate_rough_terrain(100, 1500, 2)
-        rough_terrain_str = " ".join(" ".join(str(cell) for cell in row) for row in rough_terrain)
-
+        rough_terrain_str: str = self._generate_rough_terrain(self.rough_params["hfield_nrow"], self.rough_params["hfield_ncol"], 1)
         self.rough_params["hfield_elevation"] = rough_terrain_str
 
-    def _generate_rough_terrain(self, height, width, block_size):
-        terrain = np.zeros((height, width), dtype=int)
+    def _generate_rough_terrain(self, row, col, block_size):
+        terrain = np.zeros((row, col), dtype=int)
         
-        num_blocks_vertical = height // block_size
-        num_blocks_horizontal = width // block_size
+        num_blocks_vertical = row // block_size
+        num_blocks_horizontal = col // block_size
         
         for i in range(num_blocks_vertical):
             for j in range(num_blocks_horizontal):
                 # Randomly decide if this block should be raised (1) or not (0)
                 if np.random.rand() > 0.5:
                     terrain[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size] = 1
-                    
-        return terrain
+
+        rough_terrain_str = " ".join(" ".join(str(cell) for cell in row) for row in terrain)            
+        return rough_terrain_str
 
 class Morphology:
     def __init__(self, id, morph_params: Tensor = None):
