@@ -1,4 +1,5 @@
 from source.individual import Individual
+from source.mj_env import Morphology
 from source.ant_problem import AntProblem
 from source.globals import *
 from typing import List
@@ -37,12 +38,11 @@ def train_ant():
     individuals[0].print_controller_info()
 
     problem : AntProblem = AntProblem(individuals)
-    searcher: XNES = XNES(problem, stdev_init=0.01, popsize=24)
+    searcher: XNES = XNES(problem, stdev_init=0.1, popsize=24)
     print(f"Pop size: {searcher._popsize}")
 
     stdout_logger: StdOutLogger = StdOutLogger(searcher)
     pandas_logger: PandasLogger = PandasLogger(searcher)
-    
      
     if not os.path.exists(train_ant_xml_folder):
         os.makedirs(train_ant_xml_folder)
@@ -70,7 +70,7 @@ def train_ant():
         create_plot(df, folder_run_data)
 
         pop_best_params: torch.Tensor = searcher.status["pop_best"].values
-        individuals[0].setup_ant_hills(pop_best_params, "hills", 0.001) # TODO: Change this to setup_default when that is fully implemented
+        individuals[0].setup_ant_hills(pop_best_params, 0.001) # TODO: Change this to setup_default when that is fully implemented
         individuals[0].make_screenshot(f"{folder_run_data}/screenshots/ant_{i}.png")
         torch.save(pop_best_params, f"{folder_run_data}/tensors/pop_best_{i}.pt")
 
@@ -79,7 +79,6 @@ def train_ant():
         pop_best_params_df.to_csv(f"{folder_run_data}/tensors_csv/pop_best_{i}.csv", index=False)
 
 def test_ant(tensor_path: str):
-    print()
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
     ind.setup_ant_rough(params, 0.1)

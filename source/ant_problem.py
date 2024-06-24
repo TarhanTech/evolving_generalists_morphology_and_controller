@@ -1,5 +1,7 @@
 from source.individual import Individual
-from typing import List, Tuple
+from source.mj_env import *
+from typing import List
+from source.globals import *
 
 from evotorch import Problem
 import torch
@@ -7,22 +9,11 @@ import evotorch
 import joblib
 
 class AntProblem(Problem):
-    def __init__(self, individuals: List[Individual]):
-        initial_leg_length_range: Tuple[float, float] = individuals[0].mjEnv.morphology.generate_initial_leg_length_range()
-
-        nn_lower_bounds = [-0.00001] * individuals[0].controller.total_weigths
-        morph_leg_length_lower_bounds = [initial_leg_length_range[0]] * 8
-
-        nn_upper_bounds = [0.00001] * individuals[0].controller.total_weigths
-        morph_leg_length_upper_bounds = [initial_leg_length_range[1]] * 8
-
-        lower_bounds = nn_lower_bounds + morph_leg_length_lower_bounds
-        upper_bounds = nn_upper_bounds + morph_leg_length_upper_bounds
-        
+    def __init__(self, individuals: List[Individual]):        
         super().__init__(
             "max", 
             solution_length=individuals[0].params_size, 
-            initial_bounds=(lower_bounds, upper_bounds), 
+            initial_bounds=(algo_params_range[0], algo_params_range[1]), 
             dtype=torch.float64, 
             eval_dtype=torch.float64, 
             device="cuda"

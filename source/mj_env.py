@@ -1,10 +1,9 @@
 import torch
 from torch import Tensor
 import numpy as np
-from typing import Tuple
-import random 
 import os
 
+from source.globals import *
 from PIL import Image
 from noise import pnoise2
 
@@ -43,7 +42,9 @@ class MJEnv:
         self.morphology.set_morph_params(morph_params)
         self.xml_str = self._create_xml_with_morph_params() # TODO: pass in the template for default env
 
-    
+    def has_invalid_parameters(self) -> bool:
+        return any(param < 0 for param in self.morphology.morph_params_map.values())
+
     def _create_xml_with_morph_params(self, template_xml: str):
         with open(template_xml, 'r') as file:
             xml_str = file.read()
@@ -132,35 +133,22 @@ class TerrainEnv:
         return rough_terrain_str
 
 class Morphology:
+    leg_length_range = (0.1, 1.5)
+    leg_width_range = (0.05, 0.5)
+    total_params = 8 # TODO: If using also width of the legs then use 16
+    
     def __init__(self, id, morph_params: Tensor = None):
         self.id = id
-        self.leg_length_range = (0.3, 1.5)
-        self.initial_leg_length_range_size = 1.2
-
-        # self.leg_width_range = (0.05, 0.5)
         
-        self.total_params = 8 # If using also width of the legs then use 16
-        self.morph_params_tensor: Tensor = None
+        self.morph_params_tensor: Tensor = morph_params
         self.morph_params_map = None 
-
-
-        if(morph_params is None):
-            self.set_morph_params(self.generate_random_morph_params())
-        else:
-            self.set_morph_params(morph_params)
-
-    def generate_random_morph_params(self):
-        random_leg_lengths = torch.FloatTensor(8).uniform_(self.leg_length_range[0], self.leg_length_range[1])
-        # random_leg_widths = torch.FloatTensor(8).uniform_(self.leg_width_range[0], self.leg_width_range[1])
-
-        return random_leg_lengths # torch.cat((random_leg_lengths, random_leg_widths), dim=0)
 
     def set_morph_params(self, morph_params: Tensor):
         assert morph_params.size(0) == self.total_params, (
             f"Expected {self.total_params} parameters, but got {morph_params.size(0)}."
         )
 
-        self.morph_params_tensor = morph_params.clone()
+        self.morph_params_tensor = self._decode_morph_params(morph_params.clone())
         self.morph_params_map = {
             "aux_1_length": self.morph_params_tensor[0].item(),
             "ankle_1_length": self.morph_params_tensor[1].item(),
@@ -179,20 +167,15 @@ class Morphology:
             # "ankle_3_width": self.morph_params_tensor[13].item(),
             # "aux_4_width": self.morph_params_tensor[14].item(),
             # "ankle_4_width": self.morph_params_tensor[15].item(),
-        } 
+        }
+
         assert len(self.morph_params_map) == self.total_params, (
             f"Expected self.morph_params_map to have {self.total_params} elements, but has {len(self.morph_params_map)}."
         )
+    
+    def _decode_morph_params(self, morph_params: Tensor) -> Tensor:
+        # TODO: If using width of length modify this to conform
+        a = (self.leg_length_range[1] - self.leg_length_range[0]) / (algo_params_range[1] - algo_params_range[0])
+        b = self.leg_length_range[0] - (a * algo_params_range[0])
 
-    def generate_initial_leg_length_range(self) -> Tuple[float, float]:
-        assert self.initial_leg_length_range_size <= (self.leg_length_range[1] - self.leg_length_range[0]), (
-            f"The sample range {self.initial_leg_length_range_size} is bigger then the range it samples from."
-        )
-        min_start: float = self.leg_length_range[0]
-        max_start: float = self.leg_length_range[1] - self.initial_leg_length_range_size
-
-        start: float = random.uniform(min_start, max_start)
-        end: float = start + self.initial_leg_length_range_size
-        print(f"Generated bounds for the leg lengths are ({start}, {end})")
-
-        return (start, end)
+        return (a * morph_params) + b

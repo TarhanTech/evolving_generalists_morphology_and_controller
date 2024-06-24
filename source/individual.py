@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium.envs.mujoco.ant_v4 import AntEnv
 from source.neural_network import NeuralNetwork
-from source.mj_env import MJEnv
+from source.mj_env import *
 import pprint
 from source.globals import *
 import os
@@ -34,7 +34,10 @@ class Individual:
         self.controller.set_nn_params(nn_params)
         self.mjEnv.setup_ant_default(morph_params=morph_params)
 
-    def evaluate_fitness(self, render_mode: str = None):
+    def evaluate_fitness(self, render_mode: str = None) -> float:
+        if self.mjEnv.has_invalid_parameters(): 
+            return -self._penalty_function(penalty_scale_factor_err)
+
         generated_ant_xml: str = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
@@ -65,9 +68,11 @@ class Individual:
         
         # if os.path.exists(generated_ant_xml):
         #     os.remove(generated_ant_xml)
-        return total_reward / episodes
-
+        return (total_reward / episodes) - self._penalty_function(penalty_scale_factor)
+    
     def make_screenshot(self, path: str):
+        if self.mjEnv.has_invalid_parameters(): return
+        
         generated_ant_xml = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
@@ -82,7 +87,17 @@ class Individual:
         env.close
         if os.path.exists(generated_ant_xml):
             os.remove(generated_ant_xml)
-            
+
+    def print_controller_info(self):
+        print("Controller Parameters:")
+        print(f"{self.controller.input_size} Inp (+1 bias) -> {self.controller.hidden_size} Hid (+1 bias) -> {self.controller.output_size} Out")
+        print(f"Total Weights: {self.controller.total_weigths}")
+    
+    def print_mjenv_info(self):
+        print("Morphology Parameters:")
+        pprint.pprint(self.mjEnv.morphology.morph_params_map)
+        print("\n")
+
     def _print_env_info(self, env: AntEnv):
         print(f"Action Space:\n{env.action_space}\n")
         print(f"Observation Space:\n{env.observation_space}\n")
@@ -97,12 +112,14 @@ class Individual:
 
         return up_vector[2] < -0.75
 
-    def print_mjenv_info(self):
-        print("Morphology Parameters:")
-        pprint.pprint(self.mjEnv.morphology.morph_params_map)
-        print("\n")
+    def _penalty_function(self, scalar: int) -> float:
+        morph_params: Tensor = self.mjEnv.morphology.morph_params_tensor
 
-    def print_controller_info(self):
-        print("Controller Parameters:")
-        print(f"{self.controller.input_size} Inp (+1 bias) -> {self.controller.hidden_size} Hid (+1 bias) -> {self.controller.output_size} Out")
-        print(f"Total Weights: {self.controller.total_weigths}")
+        lower_diff = Morphology.leg_length_range[0] - morph_params[morph_params < Morphology.leg_length_range[0]]
+        upper_diff = morph_params[morph_params > Morphology.leg_length_range[1]] - Morphology.leg_length_range[1]
+
+        sum_lower = lower_diff.sum().item()
+        sum_upper = upper_diff.sum().item()
+        penalty = scalar * (sum_lower + sum_upper)
+
+        return penalty 
