@@ -21,7 +21,7 @@ class AntProblem(Problem):
         self.individuals: List[Individual] = individuals
     
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
-        ind.setup_ant_rough(params, 0.1)
+        ind.setup_ant_rough(params, 0.2)
         return ind.evaluate_fitness()
 
     def _evaluate_batch(self, solutions: evotorch.SolutionBatch):

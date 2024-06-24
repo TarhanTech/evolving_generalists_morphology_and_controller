@@ -2,7 +2,6 @@ import gymnasium as gym
 from gymnasium.envs.mujoco.ant_v4 import AntEnv
 from source.neural_network import NeuralNetwork
 from source.mj_env import *
-import pprint
 from source.globals import *
 import os
 import math
@@ -92,11 +91,6 @@ class Individual:
         print("Controller Parameters:")
         print(f"{self.controller.input_size} Inp (+1 bias) -> {self.controller.hidden_size} Hid (+1 bias) -> {self.controller.output_size} Out")
         print(f"Total Weights: {self.controller.total_weigths}")
-    
-    def print_mjenv_info(self):
-        print("Morphology Parameters:")
-        pprint.pprint(self.mjEnv.morphology.morph_params_map)
-        print("\n")
 
     def _print_env_info(self, env: AntEnv):
         print(f"Action Space:\n{env.action_space}\n")
@@ -114,12 +108,18 @@ class Individual:
 
     def _penalty_function(self, scalar: int) -> float:
         morph_params: Tensor = self.mjEnv.morphology.morph_params_tensor
+        length_params, width_params = torch.split(morph_params, (Morphology.total_leg_length_params, Morphology.total_leg_width_params))
 
-        lower_diff = Morphology.leg_length_range[0] - morph_params[morph_params < Morphology.leg_length_range[0]]
-        upper_diff = morph_params[morph_params > Morphology.leg_length_range[1]] - Morphology.leg_length_range[1]
+        sum_leg_length_diff = self._get_total_difference(length_params, Morphology.leg_length_range)
+        sum_leg_width_diff = self._get_total_difference(width_params, Morphology.leg_width_range)
 
-        sum_lower = lower_diff.sum().item()
-        sum_upper = upper_diff.sum().item()
-        penalty = scalar * (sum_lower + sum_upper)
-
+        penalty = scalar * (sum_leg_length_diff + sum_leg_width_diff)
         return penalty 
+
+    def _get_total_difference(self, params: Tensor, range) -> float:
+        leg_length_lower_diff: Tensor = range[0] - params[params < range[0]]
+        leg_length_upper_diff: Tensor = params[params > range[1]] - range[1]
+        sum_leg_length_diff: float = leg_length_lower_diff.sum().item() + leg_length_upper_diff.sum().item()
+
+        return sum_leg_length_diff
+    
