@@ -38,7 +38,7 @@ def train_ant():
     individuals[0].print_controller_info()
 
     problem : AntProblem = AntProblem(individuals)
-    searcher: XNES = XNES(problem, stdev_init=0.1, popsize=24)
+    searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
     print(f"Pop size: {searcher._popsize}")
 
     stdout_logger: StdOutLogger = StdOutLogger(searcher)
