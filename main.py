@@ -70,7 +70,7 @@ def train_ant():
         create_plot(df, folder_run_data)
 
         pop_best_params: torch.Tensor = searcher.status["pop_best"].values
-        individuals[0].setup_ant_hills(pop_best_params, "hills", 0.001) # TODO: Change this to setup_default when that is fully implemented
+        individuals[0].setup_ant_hills(pop_best_params, 0.001) # TODO: Change this to setup_default when that is fully implemented
         individuals[0].make_screenshot(f"{folder_run_data}/screenshots/ant_{i}.png")
         torch.save(pop_best_params, f"{folder_run_data}/tensors/pop_best_{i}.pt")
 

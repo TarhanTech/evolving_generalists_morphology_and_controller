@@ -10,10 +10,10 @@ class AntProblem(Problem):
     def __init__(self, individuals: List[Individual]):
         initial_leg_length_range: Tuple[float, float] = individuals[0].mjEnv.morphology.generate_initial_leg_length_range()
 
-        nn_lower_bounds = [-0.00001] * individuals[0].controller.total_weigths
+        nn_lower_bounds = [-1] * individuals[0].controller.total_weigths
         morph_leg_length_lower_bounds = [initial_leg_length_range[0]] * 8
 
-        nn_upper_bounds = [0.00001] * individuals[0].controller.total_weigths
+        nn_upper_bounds = [1] * individuals[0].controller.total_weigths
         morph_leg_length_upper_bounds = [initial_leg_length_range[1]] * 8
 
         lower_bounds = nn_lower_bounds + morph_leg_length_lower_bounds
