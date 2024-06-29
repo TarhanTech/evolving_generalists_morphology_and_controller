@@ -1,0 +1,22 @@
+\section{Method}
+    For the evolution of our MC-pair, we adopted the same algorithm initially proposed by Triebold et al. \cite{Corinna_Triebold} with some minor modifications. Consider the set of training environments $E = \{e_1, e_2, \ldots, e_n\}$ and the validation set $V = \{v_1, v_2, \ldots, v_n\}$, where in our study $E = V$. Both $E$ and $V$ were established prior to training. Triebold et al. explored different training schedules, which determined in what order the training set was used during the evolutionary process. They found that using an incremental training schedule, which means that the environment will be modified incrementally after every generation, yields the best results. Therefore, we will only consider the incremental training schedule in our analysis. Lastly, we initialize an empty generalist set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process.
+
+    The evolutionary process starts by initializing the first generation of MC-pairs, comprising both the ANN weights $\overrightarrow{W} = \{w_1, w_2, \ldots, w_n\}$ and the morphology parameters $\overrightarrow{M} = \{m_1, m_2, \ldots, m_n\}$. For the optimization process, $\overrightarrow{W}$ and $\overrightarrow{M}$ are concatenated into a singular vector $\overrightarrow{P} = \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$ and fed to the XNES optimizer. Because the order of magnitude of the ANN and morphology parameters are very different we encode the morphology parameters to the same order of magnitude as the ANN parameters.
+
+    After every generation $i$, each MC-pair of the population is evaluated on the current training environment $e_i$ and the MC-pair with the highest fitness score, denoted as $MC_{\text{best}}$, undergoes further evaluation on the entire validation set $V$, producing a generalist score $g_{\text{best}}$. If this generalist score is an improvement compared to the last added MC-pair to the generalist set $G$, then $MC_{\text{best}}$ is added to $G$. Upon completion of the evolutionary process, the last $MC$ in the set $G$ possesses the highest generalist score on the environments in $V$.
+
+    We integrated a penalty function within the fitness evaluation to ensure adherence to the constraints set for the morphological parameters. This function considers the decoded morphological parameters $\overrightarrow{M}$, alongside the lower and upper bound of the constraints, $C_\text{lb}$ $C_\text{ub}$ respectively, and a scalar $\alpha$. The penalty function is defined as:
+    \textbf{CHANGE THE PENALTY FUNCTION TO A EXPONENTIALLY INCREASING PENALTY LIKE THE CODE}
+    \begin{equation}
+        Penalty = \alpha \cdot \sum(
+            \max(0, C_\text{lb} - \overrightarrow{M}) + 
+            \max(0, \overrightarrow{M} - C_\text{ub})
+        )
+    \end{equation}
+    The generalist fitness function then becomes:
+    \begin{equation}
+        g_{\text{best}} = \frac{1}{|V|} \sum_{i=1}^{|V|}(
+            evaluate(MC_{\text{best}}, v_i) - Penalty
+        ) 
+    \end{equation}
+    Here $evaluate(MC_{\text{best}}, v_i)$ represents the evaluation function, returning the score of the best MC-pair of that generation on the validation environment $v_i$.

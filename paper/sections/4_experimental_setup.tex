@@ -1,8 +1,11 @@
 \section{Experimental Setup}
     \subsection{Environment}
+        We use the Farama Gymnasium's Ant-v4 environment \cite{Gymnasium2023} to evolve generalist MC-pairs. This environment consists of a flat plane for the ant to walk on. The ant's morphology comprises of four legs, each composed of an upper and a lower leg, with the upper leg attached to the torso. To evolve a generalist MC-pair, we have to enable the ant to modify its morphology. Each leg part is parameterized into two atttributes: length and width, resulting in a total of 16 distinct morphological parameters. The leg lengths are constrained between 0.1 and 1.5, while the widths are limited from 0.08 to 0.2. 
 
-    \subsection{Algorithm}
+        To ensure a fast and succesfull experiment, it was necessary to implement additional modifications to the ant's environment. We set the $terminate\_when\_unhealthy$ flag to false, because it would terminate the run when the ant's torso of the ant ascends to a specific height. Disabling this allowed for the ant to become larger due to its capability to grow long leg lengths. Furthermore, we introduced additional settings to terminate the run whenever a no significant movement forward was detected, suggesting that the ant froze into place. Another custom rule was implemented to detect if the ant flipped upsidedown by monitoring its z-vector. These two additional implementations reduced evaluation times significantly lower, especially at the start of the evolutionary process. 
 
+    \subsection{Experimental parameters}
+        For the controller, a fully connected feedforward ANN is evolved, based on the topology used by Triebold et al. \cite{Corinna_Triebold}, which consists of a single hidden layer with 20 neurons. The input layer corresponds to the ant's continuous observation space, which includes observations such as the angles between the torso and leg connections or velocity values, being in total 27 observations and thus 27 input nodes. The output layer corresponds to the ant's action space, where actions are values ranging from -1 to 1, representing the torque applied to the rotors, totaling 8 actions and thus 8 output nodes. Each layer also includes a bias node.
     \subsection{Training data}
-
+        The MC-pairs are training consist of different simulated environments, where the terrain is algorithmically generated based on the inputs. In this experiment, we consider three different environments. The first environment, referred to as the default environment, is a single static environment where the surface is flat. The two remaining environments are dynamically generated, named the rough terrain environment and the hill terrain environment. 
     \subsection{Testing and evaluation}
