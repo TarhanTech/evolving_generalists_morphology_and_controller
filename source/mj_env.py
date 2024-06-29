@@ -28,11 +28,11 @@ class MJEnv:
         
         self.xml_str = temp_xml_str
 
-    def setup_ant_rough(self, morph_params: Tensor, floor_height: float):
+    def setup_ant_rough(self, morph_params: Tensor, floor_height: float, block_size: int):
         self.morphology.set_morph_params(morph_params)
         temp_xml_str = self._create_xml_with_morph_params(template_xml=self.file_path_template_rough)
 
-        self.terrain_env.setup_rough(floor_height)
+        self.terrain_env.setup_rough(floor_height, block_size)
         for key, value in self.terrain_env.rough_params.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
         
@@ -112,14 +112,14 @@ class TerrainEnv:
         # normalized_noise_image = (normalized_img > 127).astype(np.uint8) * 255
         return normalized_noise_image
     
-    def setup_rough(self, floor_heigth: float):
+    def setup_rough(self, floor_heigth: float, block_size: int):
         self.rough_params["floor_heigth"] = floor_heigth
         # TODO: Make the rough terrain generation based on the floor height. 
 
-        rough_terrain_str: str = self._generate_rough_terrain(self.rough_params["hfield_nrow"], self.rough_params["hfield_ncol"], 1)
+        rough_terrain_str: str = self._generate_rough_terrain(self.rough_params["hfield_nrow"], self.rough_params["hfield_ncol"], floor_heigth, block_size)
         self.rough_params["hfield_elevation"] = rough_terrain_str
 
-    def _generate_rough_terrain(self, row, col, block_size):
+    def _generate_rough_terrain(self, row: int, col: int, floor_height: float, block_size: int):
         terrain = np.zeros((row, col), dtype=int)
         
         num_blocks_vertical = row // block_size

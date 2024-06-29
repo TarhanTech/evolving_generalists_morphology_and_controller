@@ -27,10 +27,10 @@ class Individual:
         self.controller.set_nn_params(nn_params)
         self.mjEnv.setup_ant_hills(morph_params=morph_params, floor_height=floor_height)
 
-    def setup_ant_rough(self, params: Tensor, floor_height: float):
+    def setup_ant_rough(self, params: Tensor, floor_height: float, block_size: int):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
         self.controller.set_nn_params(nn_params)
-        self.mjEnv.setup_ant_rough(morph_params=morph_params, floor_height=floor_height)
+        self.mjEnv.setup_ant_rough(morph_params, floor_height, block_size)
 
     def setup_ant_default(self, params: Tensor):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))

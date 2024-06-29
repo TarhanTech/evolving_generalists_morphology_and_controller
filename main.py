@@ -82,7 +82,7 @@ def train_ant():
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_rough(params, 0.2)
+    ind.setup_ant_rough(params, 0.2, 1)
     total_reward: float = ind.evaluate_fitness(render_mode="human")
     print(f"Total Rewards: {total_reward}")
 
