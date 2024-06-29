@@ -59,6 +59,8 @@ def train_ant():
     for i in range(save_generation_rate, max_generations + 1, save_generation_rate):
         for _ in range(save_generation_rate):
             searcher.step()
+            for ind in individuals: ind.increment_generation()
+            # TODO: Asses the best individual of the generation on all the environments
 
         end_time = time.time()
         elapsed_time = end_time - start_time
