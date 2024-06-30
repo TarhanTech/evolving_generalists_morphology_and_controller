@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 import numpy as np
 import os
+import math
 
 from source.globals import *
 from PIL import Image
@@ -18,11 +19,11 @@ class MJEnv:
         self.file_path_template_default = "./xml_models/ant_plain_with_keys.xml"
         self.xml_str = ""
 
-    def setup_ant_hills(self, morph_params: Tensor, floor_height: float):
+    def setup_ant_hills(self, morph_params: Tensor, floor_height: float, scale: int):
         self.morphology.set_morph_params(morph_params)
         temp_xml_str = self._create_xml_with_morph_params(template_xml=self.file_path_template_hills)
 
-        self.terrain_env.setup_hills(floor_height)
+        self.terrain_env.setup_hills(floor_height, scale)
         for key, value in self.terrain_env.hills_params.items():
             temp_xml_str = temp_xml_str.replace(f'{{{key}}}', str(value))
         
@@ -62,7 +63,7 @@ class TerrainEnv:
         self.hills_params = {
             "terrain_noise": None,
             "floor_width": 150,
-            "floor_length": 20,
+            "floor_length": 80,
             "floor_height": 1,
             "floor_pos": None
         }
@@ -74,29 +75,29 @@ class TerrainEnv:
             "hfield_nrow": None,
             "hfield_elevation": None,
             "floor_width": 150,
-            "floor_length": 40,
-            "floor_heigth": 0.1,
+            "floor_length": 80,
+            "floor_height": 0.1,
             "floor_pos": None
         }
         self.rough_params["hfield_ncol"] = self.rough_params["floor_width"] * 5
         self.rough_params["hfield_nrow"] = self.rough_params["floor_length"] * 5
         self.rough_params["floor_pos"] = f"{self.rough_params['floor_width'] - 5} 0 0"
 
-    def setup_hills(self, floor_height: float):
+    def setup_hills(self, floor_height: float, scale: int):
         self.hills_params["floor_height"] = floor_height
-        if self.hills_params["terrain_noise"] is not None and os.path.exists(self.hills_params["terrain_noise"]):
-            os.remove(self.hills_params["terrain_noise"])
-
+        # if self.hills_params["terrain_noise"] is not None and os.path.exists(self.hills_params["terrain_noise"]):
+        #     os.remove(self.hills_params["terrain_noise"])
+        
         width: int = self.hills_params["floor_width"] * 2
         height: int = self.hills_params["floor_length"] * 2
-        noise_image = self._generate_noise_image(width, height)
+        noise_image = self._generate_noise_image(width, height, scale)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
         terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.id}.png"
         image.save(terrain_noise_file)
         self.hills_params["terrain_noise"] = os.path.abspath(terrain_noise_file)
 
-    def _generate_noise_image(self, width, height, scale=5, octaves=6, persistence=0.5, lacunarity=2.0):
+    def _generate_noise_image(self, width, height, scale, octaves=6, persistence=0.5, lacunarity=2.0):
         noise_array = np.zeros((height, width))
         for i in range(height):
             for j in range(width):
@@ -112,11 +113,10 @@ class TerrainEnv:
         # normalized_noise_image = (normalized_img > 127).astype(np.uint8) * 255
         return normalized_noise_image
     
-    def setup_rough(self, floor_heigth: float, block_size: int):
-        self.rough_params["floor_heigth"] = floor_heigth
-        # TODO: Make the rough terrain generation based on the floor height. 
+    def setup_rough(self, floor_height: float, block_size: int):
+        self.rough_params["floor_height"] = floor_height
 
-        rough_terrain_str: str = self._generate_rough_terrain(self.rough_params["hfield_nrow"], self.rough_params["hfield_ncol"], floor_heigth, block_size)
+        rough_terrain_str: str = self._generate_rough_terrain(self.rough_params["hfield_nrow"], self.rough_params["hfield_ncol"], floor_height, block_size)
         self.rough_params["hfield_elevation"] = rough_terrain_str
 
     def _generate_rough_terrain(self, row: int, col: int, floor_height: float, block_size: int):
@@ -124,12 +124,12 @@ class TerrainEnv:
         
         num_blocks_vertical = row // block_size
         num_blocks_horizontal = col // block_size
-        
+        num_heights: int = math.ceil((floor_height / 0.1) + 1)
+
         for i in range(num_blocks_vertical):
             for j in range(num_blocks_horizontal):
                 # Randomly decide if this block should be raised (1) or not (0)
-                if np.random.rand() > 0.5:
-                    terrain[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size] = 1
+                terrain[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size] = np.random.randint(0, num_heights)
 
         rough_terrain_str = " ".join(" ".join(str(cell) for cell in row) for row in terrain)            
         return rough_terrain_str

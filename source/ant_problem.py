@@ -2,6 +2,7 @@ from source.individual import Individual
 from source.mj_env import *
 from typing import List
 from source.globals import *
+from source.training_env import *
 
 from evotorch import Problem
 import torch
@@ -19,9 +20,20 @@ class AntProblem(Problem):
             device="cuda"
         )
         self.individuals: List[Individual] = individuals
+        self.tr_schedule = TrainingSchedule()
     
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
-        ind.setup_ant_rough(params, 0.2)
+        training_env = self.tr_schedule.get_training_env(ind.generation)
+
+        if isinstance(training_env, RoughTerrain):
+            ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)
+        elif isinstance(training_env, HillsTerrain):
+            ind.setup_ant_hills(params, training_env.floor_height, training_env.scale)
+        elif isinstance(training_env, DefaultTerrain):
+            ind.setup_ant_default(params)
+        else:
+            assert False, "Class type not supported"
+
         return ind.evaluate_fitness()
 
     def _evaluate_batch(self, solutions: evotorch.SolutionBatch):

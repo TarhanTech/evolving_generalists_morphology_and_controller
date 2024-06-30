@@ -22,10 +22,10 @@ class Individual:
     def increment_generation(self):
         self.generation += 1
 
-    def setup_ant_hills(self, params: Tensor, floor_height: float):
+    def setup_ant_hills(self, params: Tensor, floor_height: float, scale: int):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
         self.controller.set_nn_params(nn_params)
-        self.mjEnv.setup_ant_hills(morph_params=morph_params, floor_height=floor_height)
+        self.mjEnv.setup_ant_hills(morph_params, floor_height, scale)
 
     def setup_ant_rough(self, params: Tensor, floor_height: float, block_size: int):
         nn_params, morph_params = torch.split(params, (self.controller.total_weigths, self.mjEnv.morphology.total_params))
@@ -73,14 +73,32 @@ class Individual:
         #     os.remove(generated_ant_xml)
         return (total_reward / episodes) - self._penalty_function(penalty_scale_factor)
     
-    def make_screenshot(self, path: str):
+    def make_screenshot_ant(self, path: str):
         if self.mjEnv.has_invalid_parameters(): return
         
         generated_ant_xml = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4), camera_name="track_1")
+        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4), camera_name="topdown")
+
+        env.reset()
+        frame = env.render()
+        image = Image.fromarray(frame)
+        image.save(f"{path}")
+
+        env.close
+        if os.path.exists(generated_ant_xml):
+            os.remove(generated_ant_xml)
+    
+    def make_screenshot_env(self, path: str):
+        if self.mjEnv.has_invalid_parameters(): return
+        
+        generated_ant_xml = f"./{train_ant_xml_folder}/generated_ant_xml_{self.id}.xml"
+        with open(generated_ant_xml, 'w') as file:
+            file.write(self.mjEnv.xml_str)
+
+        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4), camera_name="env")
 
         env.reset()
         frame = env.render()

@@ -1,7 +1,7 @@
 from source.individual import Individual
-from source.mj_env import Morphology
 from source.ant_problem import AntProblem
 from source.globals import *
+from source.training_env import *
 from typing import List
 import time
 import pandas as pd
@@ -12,6 +12,9 @@ import os
 import torch
 from evotorch.algorithms import XNES
 from evotorch.logging import StdOutLogger, PandasLogger
+
+def validate_best_individual(individuals: List[Individual], ind_best: torch.Tensor):
+    pass
 
 def create_plot(df: pd.DataFrame, save_path: str):
     plt.figure(figsize=(10, 6))
@@ -30,8 +33,6 @@ def create_plot(df: pd.DataFrame, save_path: str):
     plt.savefig(f"{save_path}/evaluation_metrics_plot.png", dpi=300, bbox_inches="tight")
 
 def train_ant():
-    start_time = time.time()
-
     parallel_jobs: int = 12
     individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
     individuals[0].print_controller_info()
@@ -48,7 +49,7 @@ def train_ant():
     if not os.path.exists(train_terrain_noise_folder):
         os.makedirs(train_terrain_noise_folder)
 
-    folder_run_data: str = f"./runs/run_{start_time}"
+    folder_run_data: str = f"./runs/run_{time.time()}"
     os.makedirs(folder_run_data, exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors", exist_ok=True)
     os.makedirs(f"{folder_run_data}/tensors_csv", exist_ok=True)
@@ -60,11 +61,7 @@ def train_ant():
         for _ in range(save_generation_rate):
             searcher.step()
             for ind in individuals: ind.increment_generation()
-            # TODO: Asses the best individual of the generation on all the environments
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Elapsed time: {elapsed_time} seconds")
+            validate_best_individual(individuals, searcher.status["pop_best"].values)
 
         df = pandas_logger.to_dataframe()
         df.to_csv(f"{folder_run_data}/evo_pandas_df.csv", index=False)
@@ -72,7 +69,7 @@ def train_ant():
 
         pop_best_params: torch.Tensor = searcher.status["pop_best"].values
         individuals[0].setup_ant_default(pop_best_params)
-        individuals[0].make_screenshot(f"{folder_run_data}/screenshots/ant_{i}.png")
+        individuals[0].make_screenshot_ant(f"{folder_run_data}/screenshots/ant_{i}.png")
         torch.save(pop_best_params, f"{folder_run_data}/tensors/pop_best_{i}.pt")
 
         pop_best_params_np = pop_best_params.to("cpu").detach().numpy()
@@ -82,7 +79,7 @@ def train_ant():
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_rough(params, 0.2, 1)
+    ind.setup_ant_hills(params, 4, 5)
     total_reward: float = ind.evaluate_fitness(render_mode="human")
     print(f"Total Rewards: {total_reward}")
 
@@ -95,7 +92,5 @@ def main():
         train_ant()
     else:
         test_ant(args.tensor)
-
-    
 
 if __name__ == "__main__": main()
