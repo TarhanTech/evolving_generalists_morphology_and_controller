@@ -42,7 +42,7 @@ class AntProblem(Problem):
         
         for i in range(0, len(solutions.values), batch_size):
             batch = solutions.values[i:i + batch_size]
-            tasks = (joblib.delayed(self.evals)(nn_params, nn) for nn_params, nn in zip(batch, self.individuals))
+            tasks = (joblib.delayed(self.evals)(params, ind) for params, ind in zip(batch, self.individuals))
             batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
             all_fitness.extend(batch_fitness)
         solutions.set_evals(torch.tensor(all_fitness, dtype=torch.float64))

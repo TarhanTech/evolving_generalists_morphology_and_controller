@@ -25,10 +25,9 @@ class TrainingSchedule:
         return cls._instance
     
     def initialize(self):
-        self.training_schedule = self.create_training_schedule()
-        self.total_env = len(self.training_schedule)
+        self.training_schedule = self._create_training_schedule()
 
-    def create_training_schedule(self):
+    def _create_training_schedule(self):
         schedule = []
         schedule.append(DefaultTerrain())
 
@@ -45,4 +44,7 @@ class TrainingSchedule:
         return schedule
     
     def get_training_env(self, generation: int):
-        return self.training_schedule[generation % self.total_env]
+        return self.training_schedule[generation % len(self.training_schedule)]
+    
+    def remove_training_env(self, index: int):
+        return self.training_schedule.pop(index)

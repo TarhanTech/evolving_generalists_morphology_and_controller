@@ -138,7 +138,7 @@ class Morphology:
     leg_length_range = (0.1, 1.5)
     total_leg_length_params: int = 8
 
-    leg_width_range = (0.08, 0.2)
+    leg_width_range = (0.05, 0.2)
     total_leg_width_params: int = 8
 
     total_params: int = total_leg_length_params + total_leg_width_params
