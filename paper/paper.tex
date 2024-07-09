@@ -1,17 +1,17 @@
 \documentclass[11pt]{article}
+\usepackage{caption}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{seqsplit}
 \usepackage[
         backend=biber,
         sorting=none,
         style=numeric-comp,
     ]{biblatex}
 
-      \textwidth 15cm
-      \textheight 22cm
-      \parindent 10pt
-      \oddsidemargin 0.85cm
-      \evensidemargin 0.37cm
+% Page Layout
+\usepackage[a4paper, left=1.75cm, right=1.75cm, top=2.5cm, bottom=2.5cm]{geometry}
+\setlength{\columnsep}{0.5cm}
 
 % Bibliography file
 \addbibresource{references.bib}
@@ -64,6 +64,7 @@
 
 \end{center}
 
+\twocolumn
 \input{./sections/abstract.tex}
 \input{./sections/1_introduction.tex}
 \input{./sections/2_background_information.tex}
