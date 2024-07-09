@@ -19,14 +19,18 @@ tr_schedule: TrainingSchedule = TrainingSchedule()
 G = []
 E = []
 
-def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], ind: Individual):
+def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], individuals: List[Individual]):
     best_params = best_generalist_ind[0]
-    all_fitness_scores = best_generalist_ind[1]
-    mean_fitness = np.mean(all_fitness_scores)
-    std_fitness = np.std(all_fitness_scores)
+
+    all_fitness_scores_1 = validate_as_generalist(individuals, best_params)
+    all_fitness_scores_2 = validate_as_generalist(individuals, best_params)
+    all_fitness_scores_3 = validate_as_generalist(individuals, best_params)
+    all_fitness_scores_mean = np.mean(np.array([all_fitness_scores_1, all_fitness_scores_2, all_fitness_scores_3]), axis=0)
+    mean_fitness = np.mean(all_fitness_scores_mean)
+    std_fitness = np.std(all_fitness_scores_mean)
     envs = []
     for i in range(len(tr_schedule.training_schedule) - 1, -1, -1):
-        if all_fitness_scores[i] > (mean_fitness - std_fitness): # fitness > mean - std
+        if all_fitness_scores_mean[i] > (mean_fitness - std_fitness): # fitness > mean - std
             envs.append(tr_schedule.remove_training_env(i))
     G.append(best_params)
     E.append(envs)
@@ -85,7 +89,7 @@ def train_ant():
             os.makedirs(f"{folder_run_data}/partition_{partitions}/gen_tensors", exist_ok=True)
             print(f"The length of the training schedule is : {len(tr_schedule.training_schedule)}")
 
-            best_generalist_ind: Tuple[torch.Tensor, np.ndarray] = None
+            best_generalist_ind: Tuple[torch.Tensor, float] = None
             num_generations_no_improvement: int = 0
             for GEN in range(algo_max_generations + 1):
                 searcher.step()
@@ -98,8 +102,8 @@ def train_ant():
                 gen_scores = validate_as_generalist(individuals, pop_best_params)
                 mean_gen_score: float = np.mean(gen_scores)
 
-                if best_generalist_ind == None or mean_gen_score > np.mean(best_generalist_ind[1]):
-                    best_generalist_ind = (pop_best_params, gen_scores)
+                if best_generalist_ind == None or mean_gen_score > best_generalist_ind[1]:
+                    best_generalist_ind = (pop_best_params, mean_gen_score)
                     torch.save(pop_best_params, f"{folder_run_data}/partition_{partitions}/gen_tensors/generalist_best_{GEN}.pt")
                     print(f"Current best generalist score: {mean_gen_score}")
                     num_generations_no_improvement = 0
@@ -112,7 +116,7 @@ def train_ant():
                 if num_generations_no_improvement >= algo_gen_stagnation:
                     num_generations_no_improvement = 0
                     partitions = partitions + 1
-                    partition(best_generalist_ind, individuals[0])
+                    partition(best_generalist_ind, individuals)
                     with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
                         pickle.dump(G, file)
                     with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
