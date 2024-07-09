@@ -19,17 +19,16 @@ tr_schedule: TrainingSchedule = TrainingSchedule()
 G = []
 E = []
 
-def partition(best_generalist_ind, ind: Individual):
+def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], ind: Individual):
+    best_params = best_generalist_ind[0]
+    all_fitness_scores = best_generalist_ind[1]
+    mean_fitness = np.mean(all_fitness_scores)
+    std_fitness = np.std(all_fitness_scores)
     envs = []
-    print(f"Generalist Mean: {best_generalist_ind[1]}")
-    print(f"Generalist STD: {best_generalist_ind[2]}")
     for i in range(len(tr_schedule.training_schedule) - 1, -1, -1):
-        tr_env = tr_schedule.training_schedule[i]
-        fitness: float = validate(tr_env, ind, best_generalist_ind[0])
-        print(f"Fitness: {fitness}")
-        if fitness > (best_generalist_ind[1] - best_generalist_ind[2]): # fitness > mean - std
+        if all_fitness_scores[i] > (mean_fitness - std_fitness): # fitness > mean - std
             envs.append(tr_schedule.remove_training_env(i))
-    G.append(best_generalist_ind[0])
+    G.append(best_params)
     E.append(envs)
 
 def validate(training_env, ind: Individual, params: torch.Tensor):
@@ -86,19 +85,21 @@ def train_ant():
             os.makedirs(f"{folder_run_data}/partition_{partitions}/gen_tensors", exist_ok=True)
             print(f"The length of the training schedule is : {len(tr_schedule.training_schedule)}")
 
-            best_generalist_ind: Tuple[torch.Tensor, float, float] = None
+            best_generalist_ind: Tuple[torch.Tensor, np.ndarray] = None
             num_generations_no_improvement: int = 0
             for GEN in range(algo_max_generations + 1):
                 searcher.step()
                 for ind in individuals: ind.increment_generation()
                 pop_best_params = searcher.status["pop_best"].values
+                individuals[0].setup_ant_default(pop_best_params)
+                individuals[0].make_screenshot_ant(f"{folder_run_data}/partition_{partitions}/screenshots/ant_{GEN}.png")
+                if GEN < algo_init_training_generations: continue
 
                 gen_scores = validate_as_generalist(individuals, pop_best_params)
                 mean_gen_score: float = np.mean(gen_scores)
-                std_gen_score: float = np.std(gen_scores)
 
-                if best_generalist_ind == None or mean_gen_score > best_generalist_ind[1]:
-                    best_generalist_ind = (pop_best_params, mean_gen_score, std_gen_score)
+                if best_generalist_ind == None or mean_gen_score > np.mean(best_generalist_ind[1]):
+                    best_generalist_ind = (pop_best_params, gen_scores)
                     torch.save(pop_best_params, f"{folder_run_data}/partition_{partitions}/gen_tensors/generalist_best_{GEN}.pt")
                     print(f"Current best generalist score: {mean_gen_score}")
                     num_generations_no_improvement = 0
@@ -107,9 +108,6 @@ def train_ant():
                 print(f"Number of generations ago when an improvement was found: {num_generations_no_improvement}")
                 df_gen_scores["Generalist Score"].append(mean_gen_score)
                 pd.DataFrame(df_gen_scores).to_csv(f"{folder_run_data}/gen_score_pandas_df.csv", index=False)
-
-                individuals[0].setup_ant_default(pop_best_params)
-                individuals[0].make_screenshot_ant(f"{folder_run_data}/partition_{partitions}/screenshots/ant_{GEN}.png")
 
                 if num_generations_no_improvement >= algo_gen_stagnation:
                     num_generations_no_improvement = 0
@@ -120,6 +118,7 @@ def train_ant():
                     with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
                         pickle.dump(E, file)
                     break
+        print("All environments are included in a partition! Algorithm ends.")
     except KeyboardInterrupt:
         with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
             pickle.dump(G, file)
