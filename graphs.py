@@ -147,15 +147,25 @@ def evaluate(training_env, ind: Individual, params: torch.Tensor):
     fitness_mean = fitness_sum / count
     return (training_env, fitness_mean)
 
+def evaluate_G(individuals: List[Individual], params: torch.Tensor):
+    fitness_np = np.empty((0, 2), dtype=object)
+    batch_size: int = len(individuals)
+    tr_schedule = TrainingSchedule()
+    for j in range(0, len(tr_schedule.training_schedule), batch_size):
+        batch = tr_schedule.training_schedule[j:j + batch_size]
+        tasks = (joblib.delayed(evaluate)(env, ind, params) for env, ind in zip(batch, individuals))
+        batch_fitness = np.array(joblib.Parallel(n_jobs=batch_size)(tasks))
+        fitness_np = np.vstack((fitness_np, batch_fitness))
+    return fitness_np
+
 def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], E):
     fitness_np = np.empty((0, 2), dtype=object)
     for i in range(len(G)):
         params = G[i]
         env_partition = E[i]
-        print(f"env_partition: {env_partition}")
         batch_size: int = len(individuals)
-        for i in range(0, len(env_partition), batch_size):
-            batch = env_partition[i:i + batch_size]
+        for j in range(0, len(env_partition), batch_size):
+            batch = env_partition[j:j + batch_size]
             tasks = (joblib.delayed(evaluate)(env, ind, params) for env, ind in zip(batch, individuals))
             batch_fitness = np.array(joblib.Parallel(n_jobs=batch_size)(tasks))
             fitness_np = np.vstack((fitness_np, batch_fitness))
@@ -183,9 +193,15 @@ def main():
     individuals: List[Individual] = [Individual(id=i+20) for i in range(6)]
 
     env_fitnesses = evaluate_training_env(individuals, G, E)
-    fintess_only = np.array([x[1] for x in env_fitnesses])
-    print(f"Mean: {np.mean(fintess_only)}")
-    print(f"STD: {np.std(fintess_only)}")
+    fitness_only = np.array([x[1] for x in env_fitnesses])
+    print(f"Overall Mean: {np.mean(fitness_only)}")
+    print(f"Overall STD: {np.std(fitness_only)}")
+
+    # env_fitnesses = evaluate_G(individuals, G[0])
+    # fitness_only = np.array([x[1] for x in env_fitnesses])
+    # print(f"Overall Mean: {np.mean(fitness_only)}")
+    # print(f"Overall STD: {np.std(fitness_only)}")
+    
     create_fitness_heatmap(env_fitnesses, args.run_path)
 
     create_generalist_heatmap_partition(G, E, args.run_path)

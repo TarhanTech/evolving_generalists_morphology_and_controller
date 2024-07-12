@@ -29,8 +29,8 @@ def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], individuals:
         all_fitness_scores = all_fitness_scores + fitness_scores
 
     all_fitness_scores_mean = all_fitness_scores / count
-    mean_fitness = np.mean(all_fitness_scores)
-    std_fitness = np.std(all_fitness_scores)
+    mean_fitness = np.mean(all_fitness_scores_mean)
+    std_fitness = np.std(all_fitness_scores_mean)
     print(f"Mean Fitness: {mean_fitness}")
     print(f"STD Fitness: {std_fitness}")
     envs = []
@@ -65,8 +65,8 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_hills(params, 3.4, 5)
-    # ind.setup_ant_rough(params, 1, 4)
+    # ind.setup_ant_hills(params, 3.4, 5)
+    ind.setup_ant_rough(params, 0.9, 1)
     # ind.setup_ant_default(params)
     total_reward: float = ind.evaluate_fitness(render_mode="human")
     print(f"Total Rewards: {total_reward}")
