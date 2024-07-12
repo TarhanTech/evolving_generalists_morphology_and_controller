@@ -138,17 +138,27 @@ def evaluate(training_env, ind: Individual, params: torch.Tensor):
         ind.setup_ant_default(params)
     else:
         assert False, "Class type not supported"
-    return (training_env, ind.evaluate_fitness())
+    
+    count = 5
+    fitness_sum = 0
+    for i in range(count):
+        fitness_sum = fitness_sum + ind.evaluate_fitness()
 
-def evaluate_training_env(individuals: List[Individual], params: torch.Tensor):
-    batch_size: int = len(individuals)
+    fitness_mean = fitness_sum / count
+    return (training_env, fitness_mean)
+
+def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], E):
     fitness_np = np.empty((0, 2), dtype=object)
-    tr_schedule: TrainingSchedule = TrainingSchedule()
-    for i in range(0, len(tr_schedule.training_schedule), batch_size):
-        batch = tr_schedule.training_schedule[i:i + batch_size]
-        tasks = (joblib.delayed(evaluate)(training_env, ind, params) for training_env, ind in zip(batch, individuals))
-        batch_fitness = np.array(joblib.Parallel(n_jobs=batch_size)(tasks))
-        fitness_np = np.vstack((fitness_np, batch_fitness))
+    for i in range(len(G)):
+        params = G[i]
+        env_partition = E[i]
+        print(f"env_partition: {env_partition}")
+        batch_size: int = len(individuals)
+        for i in range(0, len(env_partition), batch_size):
+            batch = env_partition[i:i + batch_size]
+            tasks = (joblib.delayed(evaluate)(env, ind, params) for env, ind in zip(batch, individuals))
+            batch_fitness = np.array(joblib.Parallel(n_jobs=batch_size)(tasks))
+            fitness_np = np.vstack((fitness_np, batch_fitness))
     return fitness_np
 
 def main():
@@ -172,7 +182,10 @@ def main():
 
     individuals: List[Individual] = [Individual(id=i+20) for i in range(6)]
 
-    env_fitnesses = evaluate_training_env(individuals, G[0])
+    env_fitnesses = evaluate_training_env(individuals, G, E)
+    fintess_only = np.array([x[1] for x in env_fitnesses])
+    print(f"Mean: {np.mean(fintess_only)}")
+    print(f"STD: {np.std(fintess_only)}")
     create_fitness_heatmap(env_fitnesses, args.run_path)
 
     create_generalist_heatmap_partition(G, E, args.run_path)

@@ -45,7 +45,7 @@ class Individual:
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, terminate_when_unhealthy=False, render_mode=render_mode)
+        env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), render_mode=render_mode)
 
         total_reward: float = 0
         episodes: int = 1
@@ -80,7 +80,7 @@ class Individual:
         with open(generated_ant_xml, 'w') as file:
             file.write(self.mjEnv.xml_str)
 
-        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(0.26, 4), camera_name="topdown")
+        env: AntEnv = gym.make("Ant-v4", render_mode="rgb_array", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), camera_name="topdown")
 
         env.reset()
         frame = env.render()

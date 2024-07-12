@@ -22,12 +22,17 @@ E = []
 def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], individuals: List[Individual]):
     best_params = best_generalist_ind[0]
 
-    all_fitness_scores_1 = validate_as_generalist(individuals, best_params)
-    all_fitness_scores_2 = validate_as_generalist(individuals, best_params)
-    all_fitness_scores_3 = validate_as_generalist(individuals, best_params)
-    all_fitness_scores_mean = np.mean(np.array([all_fitness_scores_1, all_fitness_scores_2, all_fitness_scores_3]), axis=0)
-    mean_fitness = np.mean(all_fitness_scores_mean)
-    std_fitness = np.std(all_fitness_scores_mean)
+    count = 5
+    all_fitness_scores = validate_as_generalist(individuals, best_params)
+    for i in range(count - 1):
+        fitness_scores = validate_as_generalist(individuals, best_params)
+        all_fitness_scores = all_fitness_scores + fitness_scores
+
+    all_fitness_scores_mean = all_fitness_scores / count
+    mean_fitness = np.mean(all_fitness_scores)
+    std_fitness = np.std(all_fitness_scores)
+    print(f"Mean Fitness: {mean_fitness}")
+    print(f"STD Fitness: {std_fitness}")
     envs = []
     for i in range(len(tr_schedule.training_schedule) - 1, -1, -1):
         if all_fitness_scores_mean[i] > (mean_fitness - std_fitness): # fitness > mean - std
@@ -60,7 +65,7 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_hills(params, 2, 20)
+    ind.setup_ant_hills(params, 3.4, 5)
     # ind.setup_ant_rough(params, 1, 4)
     # ind.setup_ant_default(params)
     total_reward: float = ind.evaluate_fitness(render_mode="human")

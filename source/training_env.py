@@ -25,23 +25,32 @@ class TrainingSchedule:
         return cls._instance
     
     def initialize(self):
-        self.training_schedule = self._create_training_schedule()
+        self.floor_heights_for_testing_rough = [0.1, 0.5, 0.6, 1.0]
+        self.floor_heights_for_testing_hills = [2.0, 2.8, 3.0, 3.2, 4.0]
+        self.training_schedule = []
+        self.testing_schedule = []
+        self._init_schedules()
 
-    def _create_training_schedule(self):
-        schedule = []
-        schedule.append(DefaultTerrain())
+    def _init_schedules(self):
+        self.training_schedule.append(DefaultTerrain())
 
         # Create and insert rough terrain environments
         for block_size in np.arange(rt_block_start, rt_block_end + rt_block_step, rt_block_step): # (1, 2, 3, 4)
             for floor_height in np.arange(rt_floor_start, rt_floor_end + rt_floor_step, rt_floor_step):
-                schedule.append(RoughTerrain(floor_height, block_size))
+                floor_height_rounded = round(floor_height, 1)
+                if floor_height_rounded in self.floor_heights_for_testing_rough:
+                    self.testing_schedule.append(RoughTerrain(floor_height_rounded, block_size))
+                else:
+                    self.training_schedule.append(RoughTerrain(floor_height_rounded, block_size))
         
         # Create and insert hill terrain environments
         for scale in np.arange(hills_scale_start, hills_scale_end + hills_scale_step, hills_scale_step):
             for floor_height in np.arange(hills_floor_start, hills_floor_end + hills_floor_step, hills_floor_step):
-                schedule.append(HillsTerrain(floor_height, scale))
-
-        return schedule
+                floor_height_rounded = round(floor_height, 1)
+                if floor_height_rounded in self.floor_heights_for_testing_hills:
+                    self.testing_schedule.append(HillsTerrain(floor_height_rounded, scale))
+                else:
+                    self.training_schedule.append(HillsTerrain(floor_height_rounded, scale))
     
     def get_training_env(self, generation: int):
         return self.training_schedule[generation % len(self.training_schedule)]
