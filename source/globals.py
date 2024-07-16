@@ -5,9 +5,9 @@ train_terrain_noise_folder: str = "train_terrain_noise"
 # Algorithm Parameters
 algo_stdev_init = 0.01
 algo_params_range = (-0.1, 0.1)
-algo_max_generations: int = 10000
-algo_gen_stagnation: int = 200
-algo_init_training_generations: int = 3000
+algo_max_generations: int = 5000
+algo_gen_stagnation: int = 500
+algo_init_training_generations: int = 2500
 penalty_growth_rate = 1.03
 penalty_scale_factor: int = 100
 penalty_scale_factor_err: int = 1000

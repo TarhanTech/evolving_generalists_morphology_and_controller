@@ -65,8 +65,8 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    # ind.setup_ant_hills(params, 3.4, 5)
-    ind.setup_ant_rough(params, 0.9, 1)
+    ind.setup_ant_hills(params, 4, 5)
+    # ind.setup_ant_rough(params, 0.9, 1)
     # ind.setup_ant_default(params)
     total_reward: float = ind.evaluate_fitness(render_mode="human")
     print(f"Total Rewards: {total_reward}")
@@ -100,8 +100,11 @@ def train_ant():
                 searcher.step()
                 for ind in individuals: ind.increment_generation()
                 pop_best_params = searcher.status["pop_best"].values
-                individuals[0].setup_ant_default(pop_best_params)
-                individuals[0].make_screenshot_ant(f"{folder_run_data}/partition_{partitions}/screenshots/ant_{GEN}.png")
+
+                if GEN % 10 == 0:
+                    individuals[0].setup_ant_default(pop_best_params)
+                    individuals[0].make_screenshot_ant(f"{folder_run_data}/partition_{partitions}/screenshots/ant_{GEN}.png")
+                    torch.save(pop_best_params, f"{folder_run_data}/partition_{partitions}/gen_tensors/generalist_best_{GEN}.pt")
                 if GEN < algo_init_training_generations: continue
 
                 gen_scores = validate_as_generalist(individuals, pop_best_params)
@@ -127,7 +130,7 @@ def train_ant():
                     with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
                         pickle.dump(E, file)
                     break
-        print("All environments are included in a partition! Algorithm ends.")
+            print("All environments are included in a partition! Algorithm ends.")
     except KeyboardInterrupt:
         with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
             pickle.dump(G, file)

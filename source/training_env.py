@@ -29,6 +29,7 @@ class TrainingSchedule:
         self.floor_heights_for_testing_hills = [2.0, 2.8, 3.0, 3.2, 4.0]
         self.training_schedule = []
         self.testing_schedule = []
+        self.total_schedule = []
         self._init_schedules()
 
     def _init_schedules(self):
@@ -51,6 +52,8 @@ class TrainingSchedule:
                     self.testing_schedule.append(HillsTerrain(floor_height_rounded, scale))
                 else:
                     self.training_schedule.append(HillsTerrain(floor_height_rounded, scale))
+        
+        self.total_schedule = self.training_schedule + self.testing_schedule
     
     def get_training_env(self, generation: int):
         return self.training_schedule[generation % len(self.training_schedule)]

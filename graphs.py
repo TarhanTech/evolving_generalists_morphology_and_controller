@@ -9,10 +9,16 @@ from typing import List
 import joblib
 import pickle
 from matplotlib import gridspec
-from matplotlib.ticker import FormatStrFormatter
+from matplotlib.patches import Rectangle
 
 def create_plot_gen_score(df: pd.DataFrame, save_path: str):
-    plt.figure(figsize=(10, 6))
+    df["Generation"] = range(2000, 2000 + len(df))
+    df.set_index("Generation", inplace=True)
+
+    max_value = df.max()
+    print(f"Max value: {max_value}")
+
+    plt.figure(figsize=(12, 6))
 
     plt.plot(df.index, df["Generalist Score"], label="Generalist Score", marker="o")
 
@@ -21,7 +27,30 @@ def create_plot_gen_score(df: pd.DataFrame, save_path: str):
     plt.title("Generalist Scores During Evolution")
     plt.legend()
     plt.grid(True)
+    plt.xticks(rotation=45)  # Rotate x-axis labels for better visibility
+    plt.tight_layout()
+
     plt.savefig(f"{save_path}/generalist_score_metrics_plot.png", dpi=300, bbox_inches="tight")
+
+def create_fitness_boxplot(env_fitnesses, save_path: str):
+    fitness_values = [x[1] for x in env_fitnesses]
+    sns.set(style="whitegrid")
+
+    plt.figure(figsize=(6, 10))
+    boxplot = sns.boxplot(y=fitness_values, width=0.3, color="teal")
+    boxplot.set_title("Fitness Distribution", fontsize=16, fontweight="bold")
+    boxplot.set_ylabel("Fitness", fontsize=14)
+    boxplot.tick_params(labelsize=12) 
+
+    plt.savefig(f"{save_path}/fitness_boxplot.png", dpi=300, bbox_inches="tight")
+
+def highlight_columns(df, columns_to_highlight):
+    """ Create a mask for the columns to be highlighted """
+    mask = np.full(df.shape, False)  # Initialize mask of False
+    for col in columns_to_highlight:
+        if col in df.columns:
+            mask[:, df.columns.get_loc(col)] = True
+    return mask
 
 def create_fitness_heatmap(env_fitnesses, save_path: str):
     rt_rows = np.round(np.arange(rt_block_start, rt_block_end + rt_block_step, rt_block_step), 1)
@@ -46,7 +75,6 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
         else:
             assert False, "Class type not supported"
 
-
     plt.figure(figsize=(18, 6))
     gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.1])  # Adjust width ratios as needed
 
@@ -56,23 +84,36 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
     ax1 = plt.subplot(gs[1])
     ax2 = plt.subplot(gs[2])
 
+    tr_schedule = TrainingSchedule()
     # Hill Environment Heatmap
     sns.heatmap(hills_df, ax=ax0, annot=True, cbar=False, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
     ax0.set_title("Hill Environment")
     ax0.set_xlabel("Floor Height")
     ax0.set_ylabel("Scale")
+    for floor_height in tr_schedule.floor_heights_for_testing_hills:
+        col_index = hills_df.columns.get_loc(floor_height)
+        ax0.add_patch(Rectangle((col_index, 0), 1, len(hills_df), fill=False, edgecolor='red', lw=5))
 
     # Rough Environment Heatmap
     sns.heatmap(rt_df, ax=ax1, annot=True, cbar=False, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
     ax1.set_title("Rough Environment")
     ax1.set_xlabel("Floor Height")
     ax1.set_ylabel("Block Size")
+    for floor_height in tr_schedule.floor_heights_for_testing_rough:
+        col_index = rt_df.columns.get_loc(floor_height)
+        ax1.add_patch(Rectangle((col_index, 0), 1, len(rt_df), fill=False, edgecolor='red', lw=5))
 
     # Default Environment Heatmap
     heatmap = sns.heatmap(default_df, ax=ax2, annot=True, cbar=True, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
     heatmap.set_xticklabels([])
     heatmap.set_yticklabels([])
     ax2.set_title("Default Environment")
+
+    fitness_only = np.array([x[1] for x in env_fitnesses])
+    mean_fitness = np.mean(fitness_only)
+    std_fitness = np.std(fitness_only)
+
+    plt.figtext(0.5, -0.02, f"Mean Fitness: {mean_fitness:.2f}, STD: {std_fitness:.2f}", ha="center")
 
     plt.tight_layout()  # Adjust layout
     plt.savefig(f"{save_path}/fitness_heatmap.png", dpi=300, bbox_inches="tight")
@@ -139,7 +180,7 @@ def evaluate(training_env, ind: Individual, params: torch.Tensor):
     else:
         assert False, "Class type not supported"
     
-    count = 5
+    count = 30
     fitness_sum = 0
     for i in range(count):
         fitness_sum = fitness_sum + ind.evaluate_fitness()
@@ -151,8 +192,8 @@ def evaluate_G(individuals: List[Individual], params: torch.Tensor):
     fitness_np = np.empty((0, 2), dtype=object)
     batch_size: int = len(individuals)
     tr_schedule = TrainingSchedule()
-    for j in range(0, len(tr_schedule.training_schedule), batch_size):
-        batch = tr_schedule.training_schedule[j:j + batch_size]
+    for j in range(0, len(tr_schedule.total_schedule), batch_size):
+        batch = tr_schedule.total_schedule[j:j + batch_size]
         tasks = (joblib.delayed(evaluate)(env, ind, params) for env, ind in zip(batch, individuals))
         batch_fitness = np.array(joblib.Parallel(n_jobs=batch_size)(tasks))
         fitness_np = np.vstack((fitness_np, batch_fitness))
@@ -174,40 +215,49 @@ def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")
     parser.add_argument("--run_path", type=str, help="Path to the run that you want to create graphs for")
+    parser.add_argument("--tensor", type=str, help="Path to a tensor.pt file that should be tested")
     args = parser.parse_args()
 
-    assert args.run_path != None, "A --run_path must be specified."
-
-    # params: torch.Tensor = torch.load(f"{args.run_path}/gen_tensors/generalist_best.pt")
-    gen_evo_df = pd.read_csv(f"{args.run_path}/gen_score_pandas_df.csv")
-
-    with open(f"{args.run_path}/G_var.pkl", "rb") as file:
-        G = pickle.load(file)
-    with open(f"{args.run_path}/E_var.pkl", "rb") as file:
-        E = pickle.load(file)
-        
-    total_elements = sum(len(sublist) for sublist in E)
-    print(f"Total generalist controllers: {len(G)}")
-    print(f"Total number of elements in E: {total_elements}")  
-
+    assert args.run_path != None or args.tensor != None, "A --run_path or --tensor must be specified."
     individuals: List[Individual] = [Individual(id=i+20) for i in range(6)]
 
-    env_fitnesses = evaluate_training_env(individuals, G, E)
-    fitness_only = np.array([x[1] for x in env_fitnesses])
-    print(f"Overall Mean: {np.mean(fitness_only)}")
-    print(f"Overall STD: {np.std(fitness_only)}")
+    if args.tensor != None:
+        folder_data_path = "./graph_data"
+        os.makedirs(folder_data_path, exist_ok=True)
 
-    # env_fitnesses = evaluate_G(individuals, G[0])
-    # fitness_only = np.array([x[1] for x in env_fitnesses])
-    # print(f"Overall Mean: {np.mean(fitness_only)}")
-    # print(f"Overall STD: {np.std(fitness_only)}")
-    
-    create_fitness_heatmap(env_fitnesses, args.run_path)
+        params = torch.load(args.tensor)
 
-    create_generalist_heatmap_partition(G, E, args.run_path)
+        env_fitnesses = evaluate_G(individuals, params)
+        fitness_only = np.array([x[1] for x in env_fitnesses])
+        print(f"Overall Mean: {np.mean(fitness_only)}")
+        print(f"Overall STD: {np.std(fitness_only)}")
 
-    create_plot_gen_score(gen_evo_df, args.run_path)
+        create_fitness_boxplot(env_fitnesses, folder_data_path)
+        create_fitness_heatmap(env_fitnesses, folder_data_path)
+        plt.close()
+    else:
+        # params: torch.Tensor = torch.load(f"{args.run_path}/gen_tensors/generalist_best.pt")
+        gen_evo_df = pd.read_csv(f"{args.run_path}/gen_score_pandas_df.csv")
+        create_plot_gen_score(gen_evo_df, args.run_path)
 
-    plt.close()
+        with open(f"{args.run_path}/G_var.pkl", "rb") as file:
+            G = pickle.load(file)
+        with open(f"{args.run_path}/E_var.pkl", "rb") as file:
+            E = pickle.load(file)
+            
+        total_elements = sum(len(sublist) for sublist in E)
+        print(f"Total generalist controllers: {len(G)}")
+        print(f"Total number of elements in E: {total_elements}")  
+
+        # env_fitnesses = evaluate_training_env(individuals, G, E)
+        # fitness_only = np.array([x[1] for x in env_fitnesses])
+
+        env_fitnesses = evaluate_G(individuals, G[0])
+        fitness_only = np.array([x[1] for x in env_fitnesses])
+        
+        create_fitness_heatmap(env_fitnesses, args.run_path)
+        create_generalist_heatmap_partition(G, E, args.run_path)
+        create_fitness_boxplot(env_fitnesses, args.run_path)
+        plt.close()
 
 if __name__ == "__main__": main()
