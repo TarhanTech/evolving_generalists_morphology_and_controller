@@ -1,1 +1,15 @@
 \section{Discussion}
+
+\textbf{Interpretation of the result}
+
+\textbf{Implications of the results}
+
+In our experimental design, the starting position of the ant was set to one unit above the maximum floor height of the environment. This adjustment ensured that the ant would not spawn into the ground. However, this configuration introduced a minor delay in the ant's initial contact with the ground in environments with lower floor heights, thereby slightly disadvantaging them. However, this was not significantly noticable in the results, as the environments with lower floor heights are inherently easier than those with higher floor heights.
+
+Another notable aspect of our experiment was the symmetry in the ant's morphology, which rendered modifications to  specific legs arbitrary. For instance, altering the length of legs 1 and 2 while shortening legs 3 and 4 results in the exact morphology to its reverse. This symmetry significantly reduced the number of novel morphologies the ant could evolve in drastically, despite a relatively large search space. To enhance the potential for more novel morphologies in future experiments, we could create and evolve the legs during the evolutionary process and include variations in the attachment points on the ant's torso for the leg. 
+
+Given the diverse range of environments, each with unique challenges and complexities, employing TWEANNS might offer advantages over static ANN architectures. By using TWEANNS, it would be possible to evolve ANN structures specifically designed to generalize on all environments.
+
+The methodology employed in this paper does not have an explicit objective function for generalizability; however, it emerges as a side effect of the applied methods. A future approach could involve making generalizability the primary objective. This approach would require increased computational resources, because of the need to assign a generalist score across the entire population, as also highlighted by Triebold et al. \cite{Corinna_Triebold}.
+
+In our study, each type of environment was generated with just two dimensions. Adding additional dimensions will increase the variability of these environments, potentially further improving generalizability. Beyond solely structural modifications to the environment, incorporating variables such as changes in gravity or variations in the drag force of the ground could provide more insights into the evolution of MC-pairs, better mimicing real-world scenarios.
