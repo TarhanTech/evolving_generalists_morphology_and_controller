@@ -35,7 +35,7 @@ def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], individuals:
     print(f"STD Fitness: {std_fitness}")
     envs = []
     for i in range(len(tr_schedule.training_schedule) - 1, -1, -1):
-        if all_fitness_scores_mean[i] > (mean_fitness - std_fitness): # fitness > mean - std
+        if all_fitness_scores_mean[i] >= (mean_fitness - std_fitness): # fitness > mean - std
             envs.append(tr_schedule.remove_training_env(i))
     G.append(best_params)
     E.append(envs)
@@ -130,7 +130,7 @@ def train_ant():
                     with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
                         pickle.dump(E, file)
                     break
-            print("All environments are included in a partition! Algorithm ends.")
+        print("All environments are included in a partition! Algorithm ends.")
     except KeyboardInterrupt:
         with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
             pickle.dump(G, file)

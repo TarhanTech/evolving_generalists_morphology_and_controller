@@ -6,3 +6,4 @@ runs
 train_terrain_noise
 train_ant_xml
 env_images
+run_graphs

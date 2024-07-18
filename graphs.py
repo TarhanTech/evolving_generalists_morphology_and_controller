@@ -12,7 +12,7 @@ from matplotlib import gridspec
 from matplotlib.patches import Rectangle
 
 def create_plot_gen_score(df: pd.DataFrame, save_path: str):
-    df["Generation"] = range(2000, 2000 + len(df))
+    df["Generation"] = range(algo_init_training_generations, algo_init_training_generations + len(df))
     df.set_index("Generation", inplace=True)
 
     max_value = df.max()
@@ -222,7 +222,7 @@ def main():
     individuals: List[Individual] = [Individual(id=i+20) for i in range(6)]
 
     if args.tensor != None:
-        folder_data_path = "./graph_data"
+        folder_data_path = "./run_graphs"
         os.makedirs(folder_data_path, exist_ok=True)
 
         params = torch.load(args.tensor)
@@ -249,11 +249,11 @@ def main():
         print(f"Total generalist controllers: {len(G)}")
         print(f"Total number of elements in E: {total_elements}")  
 
-        # env_fitnesses = evaluate_training_env(individuals, G, E)
-        # fitness_only = np.array([x[1] for x in env_fitnesses])
-
-        env_fitnesses = evaluate_G(individuals, G[0])
+        env_fitnesses = evaluate_training_env(individuals, G, E)
         fitness_only = np.array([x[1] for x in env_fitnesses])
+
+        # env_fitnesses = evaluate_G(individuals, G[0])
+        # fitness_only = np.array([x[1] for x in env_fitnesses])
         
         create_fitness_heatmap(env_fitnesses, args.run_path)
         create_generalist_heatmap_partition(G, E, args.run_path)
