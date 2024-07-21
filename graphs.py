@@ -10,6 +10,7 @@ import joblib
 import pickle
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
+from source.globals import *
 
 def create_plot_gen_score(df: pd.DataFrame, save_path: str):
     df["Generation"] = range(algo_init_training_generations, algo_init_training_generations + len(df))
@@ -33,14 +34,19 @@ def create_plot_gen_score(df: pd.DataFrame, save_path: str):
     plt.savefig(f"{save_path}/generalist_score_metrics_plot.png", dpi=300, bbox_inches="tight")
 
 def create_fitness_boxplot(env_fitnesses, save_path: str):
-    fitness_values = [x[1] for x in env_fitnesses]
+    fitness_rough_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], RoughTerrain)]
+    fitness_hills_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], HillsTerrain)]
+    fitness_values = fitness_rough_terrain + fitness_hills_terrain
+    labels = ["Rough Terrain"] * len(fitness_rough_terrain) + ["Hills Terrain"] * len(fitness_hills_terrain)
+
     sns.set(style="whitegrid")
 
-    plt.figure(figsize=(6, 10))
-    boxplot = sns.boxplot(y=fitness_values, width=0.3, color="teal")
-    boxplot.set_title("Fitness Distribution", fontsize=16, fontweight="bold")
+    plt.figure(figsize=(10, 6))
+    boxplot = sns.boxplot(x=labels, y=fitness_values, width=0.3, palette=["magenta", "teal"], hue=labels)
+    boxplot.set_title("Fitness Distribution by Environment", fontsize=16, fontweight="bold")
     boxplot.set_ylabel("Fitness", fontsize=14)
-    boxplot.tick_params(labelsize=12) 
+    boxplot.set_xlabel("Environment", fontsize=14)
+    boxplot.tick_params(labelsize=12)
 
     plt.savefig(f"{save_path}/fitness_boxplot.png", dpi=300, bbox_inches="tight")
 
@@ -79,7 +85,7 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
     gs = gridspec.GridSpec(1, 3, width_ratios=[1, 1, 0.1])  # Adjust width ratios as needed
 
     vmin = 0
-    vmax = 2000
+    vmax = 2500
     ax0 = plt.subplot(gs[0])
     ax1 = plt.subplot(gs[1])
     ax2 = plt.subplot(gs[2])
@@ -180,7 +186,7 @@ def evaluate(training_env, ind: Individual, params: torch.Tensor):
     else:
         assert False, "Class type not supported"
     
-    count = 30
+    count = 50
     fitness_sum = 0
     for i in range(count):
         fitness_sum = fitness_sum + ind.evaluate_fitness()
@@ -199,7 +205,34 @@ def evaluate_G(individuals: List[Individual], params: torch.Tensor):
         fitness_np = np.vstack((fitness_np, batch_fitness))
     return fitness_np
 
+def decide_on_partition(E, test_env):
+    for i in range(len(E)):
+        partition = E[i]
+        for env in partition:
+            if type(env) == type(test_env):
+                # look to the right cell, if there is nothing to the right, look at the left
+                if isinstance(env, RoughTerrain):
+                    if test_env.block_size == env.block_size:
+                        if round((test_env.floor_height + rt_floor_step), 1) == env.floor_height:
+                            return i
+                        elif round((test_env.floor_height - rt_floor_step), 1) == env.floor_height:
+                            return i
+                elif isinstance(env, HillsTerrain):
+                    if test_env.scale == env.scale:
+                        if round((test_env.floor_height + hills_floor_step), 1) == env.floor_height:
+                            return i
+                        elif round((test_env.floor_height - hills_floor_step), 1) == env.floor_height:
+                            return i
+                else:
+                    assert False, "Class type not supported"
+
 def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], E):
+    schedule = TrainingSchedule()
+    for i in range(len(schedule.testing_schedule)):
+        test_env = schedule.testing_schedule[i]
+        index = decide_on_partition(E, test_env)
+        E[index].append(test_env)
+    
     fitness_np = np.empty((0, 2), dtype=object)
     for i in range(len(G)):
         params = G[i]
@@ -227,6 +260,9 @@ def main():
 
         params = torch.load(args.tensor)
 
+        individuals[0].setup_ant_default(params)
+        individuals[0].make_screenshot_ant(f"{folder_data_path}/ant.png")
+        
         env_fitnesses = evaluate_G(individuals, params)
         fitness_only = np.array([x[1] for x in env_fitnesses])
         print(f"Overall Mean: {np.mean(fitness_only)}")
@@ -249,14 +285,18 @@ def main():
         print(f"Total generalist controllers: {len(G)}")
         print(f"Total number of elements in E: {total_elements}")  
 
+        for i in range(len(G)): 
+            individuals[0].setup_ant_default(G[i])
+            individuals[0].make_screenshot_ant(f"{args.run_path}/ant_{i}.png")
+        create_generalist_heatmap_partition(G, E, args.run_path)
+
         env_fitnesses = evaluate_training_env(individuals, G, E)
         fitness_only = np.array([x[1] for x in env_fitnesses])
-
+        
         # env_fitnesses = evaluate_G(individuals, G[0])
         # fitness_only = np.array([x[1] for x in env_fitnesses])
         
         create_fitness_heatmap(env_fitnesses, args.run_path)
-        create_generalist_heatmap_partition(G, E, args.run_path)
         create_fitness_boxplot(env_fitnesses, args.run_path)
         plt.close()
 
