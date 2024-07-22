@@ -89,8 +89,8 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
     ax0 = plt.subplot(gs[0])
     ax1 = plt.subplot(gs[1])
     ax2 = plt.subplot(gs[2])
-
     tr_schedule = TrainingSchedule()
+
     # Hill Environment Heatmap
     sns.heatmap(hills_df, ax=ax0, annot=True, cbar=False, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
     ax0.set_title("Hill Environment")
@@ -100,6 +100,15 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
         col_index = hills_df.columns.get_loc(floor_height)
         ax0.add_patch(Rectangle((col_index, 0), 1, len(hills_df), fill=False, edgecolor='red', lw=5))
 
+    hills_mean_training = hills_df[[2.2, 2.4, 2.6, 3.4, 3.6, 3.8]].mean(axis=None)
+    hills_std_training = pd.Series(hills_df[[2.2, 2.4, 2.6, 3.4, 3.6, 3.8]].values.flatten()).std()
+    plt.figtext(0.25, 0, f"Overall Mean Training: {hills_mean_training:.2f}, Overall STD Training: {hills_std_training:.2f}", ha="center")
+    hills_mean_testing = hills_df[tr_schedule.floor_heights_for_testing_hills].mean(axis=None)
+    hills_std_testing= pd.Series(hills_df[tr_schedule.floor_heights_for_testing_hills].values.flatten()).std()
+    plt.figtext(0.25, -0.05, f"Overall Mean Testing: {hills_mean_testing:.2f}, Overall STD Testing: {hills_std_testing:.2f}", ha="center")
+    plt.figtext(0.25, -0.1, f"Overall Mean: {hills_df.values.mean():.2f}, Overall STD: {hills_df.values.std():.2f}", ha="center")
+
+
     # Rough Environment Heatmap
     sns.heatmap(rt_df, ax=ax1, annot=True, cbar=False, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
     ax1.set_title("Rough Environment")
@@ -108,6 +117,15 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
     for floor_height in tr_schedule.floor_heights_for_testing_rough:
         col_index = rt_df.columns.get_loc(floor_height)
         ax1.add_patch(Rectangle((col_index, 0), 1, len(rt_df), fill=False, edgecolor='red', lw=5))
+    
+    rt_mean_training = rt_df[[0.2, 0.3, 0.4, 0.7, 0.8, 0.9]].mean(axis=None)
+    rt_std_training = pd.Series(rt_df[[0.2, 0.3, 0.4, 0.7, 0.8, 0.9]].values.flatten()).std()
+    plt.figtext(0.7, 0, f"Overall Mean Training: {rt_mean_training:.2f}, Overall STD Training: {rt_std_training:.2f}", ha="center")
+    rt_mean_testing = rt_df[tr_schedule.floor_heights_for_testing_rough].mean(axis=None)
+    rt_std_testing= pd.Series(rt_df[tr_schedule.floor_heights_for_testing_rough].values.flatten()).std()
+    plt.figtext(0.7, -0.05, f"Overall Mean Testing: {rt_mean_testing:.2f}, Overall STD Testing: {rt_std_testing:.2f}", ha="center")
+    plt.figtext(0.7, -0.1, f"Overall Mean: {rt_df.values.mean():.2f}, Overall STD: {rt_df.values.std():.2f}", ha="center")
+
 
     # Default Environment Heatmap
     heatmap = sns.heatmap(default_df, ax=ax2, annot=True, cbar=True, cmap="gray", vmin=vmin, vmax=vmax, fmt=".1f")
@@ -118,8 +136,7 @@ def create_fitness_heatmap(env_fitnesses, save_path: str):
     fitness_only = np.array([x[1] for x in env_fitnesses])
     mean_fitness = np.mean(fitness_only)
     std_fitness = np.std(fitness_only)
-
-    plt.figtext(0.5, -0.02, f"Mean Fitness: {mean_fitness:.2f}, STD: {std_fitness:.2f}", ha="center")
+    plt.figtext(0.5, -0.2, f"Overall Mean: {mean_fitness:.2f}, Overall STD: {std_fitness:.2f}", ha="center")
 
     plt.tight_layout()  # Adjust layout
     plt.savefig(f"{save_path}/fitness_heatmap.png", dpi=300, bbox_inches="tight")
