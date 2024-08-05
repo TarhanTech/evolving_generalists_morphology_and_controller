@@ -34,11 +34,13 @@ def partition(best_generalist_ind: Tuple[torch.Tensor, np.ndarray], individuals:
     print(f"Mean Fitness: {mean_fitness}")
     print(f"STD Fitness: {std_fitness}")
     envs = []
-    for i in range(len(tr_schedule.training_schedule) - 1, -1, -1):
+    for i in range(len(tr_schedule.training_schedule_partition) - 1, -1, -1):
         if all_fitness_scores_mean[i] >= (mean_fitness - std_fitness): # fitness > mean - std
             envs.append(tr_schedule.remove_training_env(i))
-    G.append(best_params)
     E.append(envs)
+
+    tr_schedule.training_schedule_next_partition = tr_schedule.training_schedule_partition
+    tr_schedule.training_schedule_partition = E[-1]
 
 def validate(training_env, ind: Individual, params: torch.Tensor):
     if isinstance(training_env, RoughTerrain):
@@ -55,8 +57,8 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
     batch_size: int = len(individuals)
     all_fitness = []
     
-    for i in range(0, len(tr_schedule.training_schedule), batch_size):
-        batch = tr_schedule.training_schedule[i:i + batch_size]
+    for i in range(0, len(tr_schedule.training_schedule_partition), batch_size):
+        batch = tr_schedule.training_schedule_partition[i:i + batch_size]
         tasks = (joblib.delayed(validate)(training_env, ind, ind_best) for training_env, ind in zip(batch, individuals))
         batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
         all_fitness.extend(batch_fitness)
@@ -65,13 +67,13 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_hills(params, 4, 5)
+    ind.setup_ant_hills(params, 3.8, 5)
     # ind.setup_ant_rough(params, 0.9, 1)
     # ind.setup_ant_default(params)
-    total_reward: float = ind.evaluate_fitness(render_mode="human")
+    total_reward: float = ind.evaluate_fitness(render_mode="rgb_array")
     print(f"Total Rewards: {total_reward}")
 
-def train_ant():
+def train_generalist_ant():
     parallel_jobs: int = 6
     if not os.path.exists(train_ant_xml_folder):
         os.makedirs(train_ant_xml_folder)
@@ -84,18 +86,21 @@ def train_ant():
     df_gen_scores = {"Generalist Score": []}
     partitions = 1
     try:
-        while len(tr_schedule.training_schedule) != 0:
+        while len(tr_schedule.training_schedule_next_partition) != 0:
             individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
             problem : AntProblem = AntProblem(individuals)
             searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
             stdout_logger: StdOutLogger = StdOutLogger(searcher)
-
+            tr_schedule.training_schedule_partition = tr_schedule.training_schedule_next_partition
+            
             os.makedirs(f"{folder_run_data}/partition_{partitions}/screenshots", exist_ok=True)
             os.makedirs(f"{folder_run_data}/partition_{partitions}/gen_tensors", exist_ok=True)
-            print(f"The length of the training schedule is : {len(tr_schedule.training_schedule)}")
+            print(f"The length of the training schedule is : {len(tr_schedule.training_schedule_partition)}")
 
             best_generalist_ind: Tuple[torch.Tensor, float] = None
             num_generations_no_improvement: int = 0
+            pop_best_params = None
+            partitioned = False
             for GEN in range(algo_max_generations + 1):
                 searcher.step()
                 for ind in individuals: ind.increment_generation()
@@ -112,7 +117,7 @@ def train_ant():
 
                 if best_generalist_ind == None or mean_gen_score > best_generalist_ind[1]:
                     best_generalist_ind = (pop_best_params, mean_gen_score)
-                    torch.save(pop_best_params, f"{folder_run_data}/partition_{partitions}/gen_tensors/generalist_best_{GEN}.pt")
+                    torch.save(pop_best_params, f"{folder_run_data}/partition_{partitions}/gen_tensors/a_generalist_best_{GEN}.pt")
                     print(f"Current best generalist score: {mean_gen_score}")
                     num_generations_no_improvement = 0
                 else:
@@ -123,13 +128,21 @@ def train_ant():
 
                 if num_generations_no_improvement >= algo_gen_stagnation:
                     num_generations_no_improvement = 0
-                    partitions = partitions + 1
-                    partition(best_generalist_ind, individuals)
-                    with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
-                        pickle.dump(G, file)
-                    with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
-                        pickle.dump(E, file)
-                    break
+                    if partitioned == False:
+                        partition(best_generalist_ind, individuals)
+                        partitioned = True
+                    else: break
+            
+            partitions = partitions + 1
+            if partitioned == False:
+                partition(best_generalist_ind, individuals)
+                partitioned = True
+            G.append(best_generalist_ind[0])
+            with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
+                pickle.dump(G, file)
+            with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
+                pickle.dump(E, file)
+
         print("All environments are included in a partition! Algorithm ends.")
     except KeyboardInterrupt:
         with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
@@ -137,14 +150,76 @@ def train_ant():
         with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
             pickle.dump(E, file)
 
+def train_specialist_ants():
+    parallel_jobs: int = 6
+    if not os.path.exists(train_ant_xml_folder):
+        os.makedirs(train_ant_xml_folder)
+    if not os.path.exists(train_terrain_noise_folder):
+        os.makedirs(train_terrain_noise_folder)
+
+    folder_run_data: str = f"./runs/run_spec_{time.time()}"
+    os.makedirs(folder_run_data, exist_ok=True)
+    
+    for env in tr_schedule.total_schedule:
+        individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
+        problem : AntProblem = AntProblem(individuals)
+        searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
+        stdout_logger: StdOutLogger = StdOutLogger(searcher)
+
+        path_to_save: str = None
+        if isinstance(env, RoughTerrain):
+            path_to_save = f"{folder_run_data}/{type(env).__name__}_{env.block_size}_{env.floor_height}"
+        elif isinstance(env, HillsTerrain):
+            path_to_save = f"{folder_run_data}/{type(env).__name__}_{env.block_size}_{env.floor_height}"
+        elif isinstance(env, DefaultTerrain):
+            path_to_save = f"{folder_run_data}/{type(env).__name__}"
+        else:
+            assert False, "Class type not supported"
+
+        best_generalist_ind: Tuple[torch.Tensor, float] = None
+        num_generations_no_improvement: int = 0
+        for GEN in range(spec_algo_max_generations + 1):
+            searcher.step()
+            pop_best_params = searcher.status["pop_best"].values
+            pop_best_fitness = searcher.status["best_fitness"]
+
+            # Save screenshots and best parameters in this generation
+            if GEN % 50 == 0:
+                individuals[0].setup_ant_default(pop_best_params)
+                individuals[0].make_screenshot_ant(f"{path_to_save}/screenshots/ant_{GEN}.png")
+                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/generalist_best_{GEN}.pt")\
+                
+            if best_generalist_ind == None or pop_best_fitness > best_generalist_ind[1]:
+                best_generalist_ind = (pop_best_params, pop_best_fitness)
+                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/a_generalist_best_{GEN}.pt")
+                print(f"Current best fitness score: {pop_best_fitness}")
+                num_generations_no_improvement = 0
+            else:
+                num_generations_no_improvement = num_generations_no_improvement + 1
+            print(f"Number of generations ago when an improvement was found: {num_generations_no_improvement}")
+
+            if num_generations_no_improvement >= spec_algo_gen_stagnation:
+                num_generations_no_improvement = 0
+                G.append(best_generalist_ind[0])
+                E.append(env)
+                with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
+                    pickle.dump(G, file)
+                with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
+                    pickle.dump(E, file)
 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")
     parser.add_argument("--tensor", type=str, help="Path to a tensor.pt file that should be tested")
+    parser.add_argument("--specialist", type=bool, help="Pass in true to train a specialist controller foreach environment, leave empty for generalist.")
+
     args = parser.parse_args()
 
-    if args.tensor == None:
-        train_ant()
+    if args.specialist == True:
+        print("train specialist")
+        exit(1)
+        train_specialist_ants()
+    elif args.tensor == None:
+        train_generalist_ant()
     else:
         test_ant(args.tensor)
 

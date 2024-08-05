@@ -11,6 +11,7 @@ import pickle
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
 from source.globals import *
+from typing import List
 
 def create_plot_gen_score(df: pd.DataFrame, save_path: str):
     df["Generation"] = range(algo_init_training_generations, algo_init_training_generations + len(df))
@@ -33,7 +34,21 @@ def create_plot_gen_score(df: pd.DataFrame, save_path: str):
 
     plt.savefig(f"{save_path}/generalist_score_metrics_plot.png", dpi=300, bbox_inches="tight")
 
-def create_fitness_boxplot(env_fitnesses, save_path: str):
+def create_boxplot(values: List[List[float]], save_path: str):
+    labels = ["One Generalist"] * len(values[0]) + ["Partitioned Generalist"] * len(values[1]) + ["Specialized"] * len(values[2])
+    fitness_values = [item for sublist in values for item in sublist]
+    
+    sns.set(style="whitegrid")
+    
+    boxplot = sns.boxplot(x=labels, y=fitness_values, width=0.45, palette=["magenta", "teal", "red"], hue=labels)
+    boxplot.set_title("Fitness Distribution on all Environments by Experiment", fontsize=16, fontweight="bold")
+    boxplot.set_ylabel("Fitness", fontsize=14)
+    boxplot.set_xlabel("Experiment", fontsize=14)
+    boxplot.tick_params(labelsize=10)
+
+    plt.savefig(f"{save_path}/fitness_boxplot.png", dpi=300, bbox_inches="tight")
+
+def create_fitness_env_boxplot(env_fitnesses, save_path: str):
     fitness_rough_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], RoughTerrain)]
     fitness_hills_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], HillsTerrain)]
     fitness_values = fitness_rough_terrain + fitness_hills_terrain
@@ -248,7 +263,8 @@ def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], 
     for i in range(len(schedule.testing_schedule)):
         test_env = schedule.testing_schedule[i]
         index = decide_on_partition(E, test_env)
-        E[index].append(test_env)
+        if index != None:
+            E[index].append(test_env)
     
     fitness_np = np.empty((0, 2), dtype=object)
     for i in range(len(G)):
@@ -265,13 +281,14 @@ def evaluate_training_env(individuals: List[Individual], G: List[torch.Tensor], 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")
     parser.add_argument("--run_path", type=str, help="Path to the run that you want to create graphs for")
+    parser.add_argument("--run_path_2", type=str, help="Second path to the run that you want to create graphs for")
     parser.add_argument("--tensor", type=str, help="Path to a tensor.pt file that should be tested")
     args = parser.parse_args()
 
-    assert args.run_path != None or args.tensor != None, "A --run_path or --tensor must be specified."
+    assert args.run_path != None or args.tensor != None, "A --run_path or --tensor must at least be specified."
     individuals: List[Individual] = [Individual(id=i+20) for i in range(6)]
 
-    if args.tensor != None:
+    if args.tensor != None and args.run_path == None and args.run_path_2 == None:
         folder_data_path = "./run_graphs"
         os.makedirs(folder_data_path, exist_ok=True)
 
@@ -285,10 +302,10 @@ def main():
         print(f"Overall Mean: {np.mean(fitness_only)}")
         print(f"Overall STD: {np.std(fitness_only)}")
 
-        create_fitness_boxplot(env_fitnesses, folder_data_path)
+        create_fitness_env_boxplot(env_fitnesses, folder_data_path)
         create_fitness_heatmap(env_fitnesses, folder_data_path)
         plt.close()
-    else:
+    elif args.run_path != None and args.run_path_2 == None and args.tensor == None:
         # params: torch.Tensor = torch.load(f"{args.run_path}/gen_tensors/generalist_best.pt")
         gen_evo_df = pd.read_csv(f"{args.run_path}/gen_score_pandas_df.csv")
         create_plot_gen_score(gen_evo_df, args.run_path)
@@ -300,6 +317,7 @@ def main():
             
         total_elements = sum(len(sublist) for sublist in E)
         print(f"Total generalist controllers: {len(G)}")
+        print(f"Total environment partitions: {len(E)}")
         print(f"Total number of elements in E: {total_elements}")  
 
         for i in range(len(G)): 
@@ -314,7 +332,33 @@ def main():
         # fitness_only = np.array([x[1] for x in env_fitnesses])
         
         create_fitness_heatmap(env_fitnesses, args.run_path)
-        create_fitness_boxplot(env_fitnesses, args.run_path)
+        create_fitness_env_boxplot(env_fitnesses, args.run_path)
         plt.close()
+    elif args.run_path != None and args.run_path_2 != None and args.tensor != None:
+        folder_data_path = "./run_graphs"
+        os.makedirs(folder_data_path, exist_ok=True)
 
+        params = torch.load(args.tensor)
+        with open(f"{args.run_path}/G_var.pkl", "rb") as file:
+            G = pickle.load(file)
+        with open(f"{args.run_path}/E_var.pkl", "rb") as file:
+            E = pickle.load(file)
+
+        with open(f"{args.run_path_2}/G_var.pkl", "rb") as file:
+            G_2 = pickle.load(file)
+        with open(f"{args.run_path_2}/E_var.pkl", "rb") as file:
+            E_2 = pickle.load(file)
+
+        env_fitnesses_0 = evaluate_G(individuals, params)
+        fitness_only_0 = np.array([x[1] for x in env_fitnesses_0])
+
+        env_fitnesses_1 = evaluate_training_env(individuals, G, E)
+        fitness_only_1 = np.array([x[1] for x in env_fitnesses_1])
+
+        env_fitnesses_2 = evaluate_training_env(individuals, G_2, E_2)
+        fitness_only_2 = np.array([x[1] for x in env_fitnesses_2])
+
+        create_boxplot([fitness_only_0, fitness_only_1, fitness_only_2], f"{folder_data_path}")
+    else:
+        assert True, "This combination of parameters passing is not supported"
 if __name__ == "__main__": main()

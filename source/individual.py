@@ -9,6 +9,7 @@ from PIL import Image
 import torch
 from torch import Tensor
 from scipy.spatial.transform import Rotation
+from gymnasium.wrappers import RecordEpisodeStatistics, RecordVideo
 
 class Individual:
 
@@ -46,7 +47,8 @@ class Individual:
             file.write(self.mjEnv.xml_str)
 
         env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), render_mode=render_mode)
-
+        if render_mode == "rgb_array":
+            env = RecordVideo(env, video_folder="./ant_vid", name_prefix="eval", episode_trigger=lambda x: True)
         total_reward: float = 0
         episodes: int = 1
         for _ in range(episodes):

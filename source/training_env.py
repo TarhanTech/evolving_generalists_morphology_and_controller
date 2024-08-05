@@ -31,6 +31,8 @@ class TrainingSchedule:
         self.testing_schedule = []
         self.total_schedule = []
         self._init_schedules()
+        self.training_schedule_partition = []
+        self.training_schedule_next_partition = self.training_schedule
 
     def _init_schedules(self):
         self.training_schedule.append(DefaultTerrain())
@@ -56,7 +58,7 @@ class TrainingSchedule:
         self.total_schedule = self.training_schedule + self.testing_schedule
     
     def get_training_env(self, generation: int):
-        return self.training_schedule[generation % len(self.training_schedule)]
+        return self.training_schedule_partition[generation % len(self.training_schedule_partition)]
     
     def remove_training_env(self, index: int):
-        return self.training_schedule.pop(index)
+        return self.training_schedule_partition.pop(index)

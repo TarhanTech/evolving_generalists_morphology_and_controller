@@ -20,7 +20,7 @@
         
         For the evolutionary process, we decided to evaluate the generalist scores after 2500 generations, instead of at every generation from the start. The reason for this is to decrease computational cost, but primarly because at the start of the evolutionary process, it is difficult to achieve high fitness scores due to the search for an effective morphology to exploit. After 2500 generations, a generalist score will be computed from the fittest individual in each generation. If there is no improvement found after 500 generations, the process is either terminated or a partition will occur.
 
-        Additionaly, we conducted an alternative evolutionary run in which partitioning was disabled, allowing the run to extend to 5000 generations. The reason for this is because the of the unpredictability of discovering a generalist MC-pair, due to it not being the objective function, but a secondary outcome of the method used. The exclusion of paritioning in this scenario will provide a valuable basis for comparison with the partitioned approach.
+        Additionally, we conducted an alternative evolutionary run in which partitioning was disabled, allowing the run to extend to 5000 generations. The reason for this is because the of the unpredictability of discovering a generalist MC-pair, due to it not being the objective function, but a secondary outcome of the method used. The exclusion of paritioning in this scenario will provide a valuable basis for comparison with the partitioned approach.
     \subsection{Training, evaluation and testing}
         The MC-pair's training consists of different simulated environments, where the terrain is algorithmically generated based on the inputs. In this experiment, we consider three different environments. The first environment, referred to as the default environment, is a single static environment with a flat surface. The two remaining environments are dynamically generated, named the rough terrain environment and the hill terrain environment (see Figure~\ref{fig:rough_terrain} and Figure~\ref{fig:hills_terrain}, respectively). The rough terrain environment is generated based on the block size and floor height. The block size determines the size of a block that can be elevated, and the floor height determines the range at which this block can be elevated. For the hill terrain environment, we utilize a Perlin noise map to determine the elevations of the terrain. The scale parameter determines the smoothness of the terrain, meaning that the terrain heights have smaller and subtler changes in height, leading to a more hilly terrain, with the floor height serving as the range at which these heights can be set. 
         \begin{figure}[ht]
@@ -36,13 +36,8 @@
             \label{fig:hills_terrain}
         \end{figure}
 
-        In total, we have 40 variations of the rough terrain environment, 44 variations of the hill terrain environment, and the default environment, totaling up to a set of 85 different environments. We will split this set into training, validation, and testing sets. In our case, for the validation set, we will use the same set as for the training set. The training set contains the default environment, 24 hill environments, and 24 rough terrain environments, totaling to 49 environments. The testing set contains 20 hill environments and 16 rough terrain environments, totaling to 36 environments. The exact splits are shown in Table~\ref{tab:split_table}.
-
-        To test the generalizability of the MC-pair, we run two separate tests. The first test is to evaluate the performance on environments similar to those of training, with both the testing and training environment parameters drawn from the same distribution, which we call interpolation. The second test is to evaluate the performance on environments different from those of training, with the testing and training environment parameters drawn from separate distributions, which we call extrapolation. In summary, to test interpolation, we will utilize the training set, and to test extrapolation, we will use the testing set described in Table~\ref{tab:split_table}.
-
         \begin{table*}[ht]
             \centering
-            \caption{This table shows the environment set splits and used ranges for the hill and rough environments.}
             \begin{tabular}{|c|c|c|c|c|}
             \hline
             \textbf{Environment} & \textbf{Parameters} & \textbf{Training Set} & \textbf{Testing Set} & \textbf{Step} \\ \hline
@@ -59,5 +54,11 @@
                 \makecell{5 \\ 0.2}
             \\ \hline
         \end{tabular}
+        \caption{This table shows the environment set splits and used ranges for the hill and rough environments.}
         \label{tab:split_table}
         \end{table*}
+
+        In total, we have 40 variations of the rough terrain environment, 44 variations of the hill terrain environment, and the default environment, totaling up to a set of 85 different environments. We will split this set into training, validation, and testing sets. In our case, for the validation set, we will use the same set as for the training set. The training set contains the default environment, 24 hill environments, and 24 rough terrain environments, totaling to 49 environments. The testing set contains 20 hill environments and 16 rough terrain environments, totaling to 36 environments. The exact splits are shown in Table~\ref{tab:split_table}.
+
+        To test the generalizability of the MC-pair, we run two separate tests. The first test is to evaluate the performance on environments similar to those of training, with both the testing and training environment parameters drawn from the same distribution, which we call interpolation. The second test is to evaluate the performance on environments different from those of training, with the testing and training environment parameters drawn from separate distributions, which we call extrapolation. In summary, to test interpolation, we will utilize the training set, and to test extrapolation, we will use the testing set described in Table~\ref{tab:split_table}. For each evolutionary run, all its data is derived by taking the median from five independant runs. 
+
