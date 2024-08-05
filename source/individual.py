@@ -18,7 +18,7 @@ class Individual:
         self.mjEnv = MJEnv(id=id, morph_params=morph_params)
         self.controller = NeuralNetwork(id=id, nn_params=nn_params).to("cuda")
         self.params_size =  self.mjEnv.morphology.total_params + self.controller.total_weigths
-        self.generation: int = 1
+        self.generation: int = 0
     
     def increment_generation(self):
         self.generation += 1

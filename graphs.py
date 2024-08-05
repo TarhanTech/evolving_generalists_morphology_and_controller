@@ -306,9 +306,9 @@ def main():
         create_fitness_heatmap(env_fitnesses, folder_data_path)
         plt.close()
     elif args.run_path != None and args.run_path_2 == None and args.tensor == None:
-        # params: torch.Tensor = torch.load(f"{args.run_path}/gen_tensors/generalist_best.pt")
-        gen_evo_df = pd.read_csv(f"{args.run_path}/gen_score_pandas_df.csv")
-        create_plot_gen_score(gen_evo_df, args.run_path)
+        if os.path.exists(f"{args.run_path}/gen_score_pandas_df.csv"):
+            gen_evo_df = pd.read_csv(f"{args.run_path}/gen_score_pandas_df.csv")
+            create_plot_gen_score(gen_evo_df, args.run_path)
 
         with open(f"{args.run_path}/G_var.pkl", "rb") as file:
             G = pickle.load(file)

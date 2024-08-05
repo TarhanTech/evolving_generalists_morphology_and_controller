@@ -160,7 +160,8 @@ def train_specialist_ants():
     folder_run_data: str = f"./runs/run_spec_{time.time()}"
     os.makedirs(folder_run_data, exist_ok=True)
     
-    for env in tr_schedule.total_schedule:
+    tr_schedule.training_schedule_partition = tr_schedule.total_schedule
+    for env in tr_schedule.training_schedule_partition:
         individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
         problem : AntProblem = AntProblem(individuals)
         searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
@@ -169,10 +170,16 @@ def train_specialist_ants():
         path_to_save: str = None
         if isinstance(env, RoughTerrain):
             path_to_save = f"{folder_run_data}/{type(env).__name__}_{env.block_size}_{env.floor_height}"
+            os.makedirs(f"{path_to_save}/screenshots", exist_ok=True)
+            os.makedirs(f"{path_to_save}/gen_tensors", exist_ok=True)
         elif isinstance(env, HillsTerrain):
-            path_to_save = f"{folder_run_data}/{type(env).__name__}_{env.block_size}_{env.floor_height}"
+            path_to_save = f"{folder_run_data}/{type(env).__name__}_{env.scale}_{env.floor_height}"
+            os.makedirs(f"{path_to_save}/screenshots", exist_ok=True)
+            os.makedirs(f"{path_to_save}/gen_tensors", exist_ok=True)
         elif isinstance(env, DefaultTerrain):
             path_to_save = f"{folder_run_data}/{type(env).__name__}"
+            os.makedirs(f"{path_to_save}/screenshots", exist_ok=True)
+            os.makedirs(f"{path_to_save}/gen_tensors", exist_ok=True)          
         else:
             assert False, "Class type not supported"
 
@@ -181,13 +188,12 @@ def train_specialist_ants():
         for GEN in range(spec_algo_max_generations + 1):
             searcher.step()
             pop_best_params = searcher.status["pop_best"].values
-            pop_best_fitness = searcher.status["best_fitness"]
+            pop_best_fitness = searcher.status["pop_best_eval"]
 
-            # Save screenshots and best parameters in this generation
-            if GEN % 50 == 0:
+            # Save screenshots
+            if GEN % 10 == 0:
                 individuals[0].setup_ant_default(pop_best_params)
                 individuals[0].make_screenshot_ant(f"{path_to_save}/screenshots/ant_{GEN}.png")
-                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/generalist_best_{GEN}.pt")\
                 
             if best_generalist_ind == None or pop_best_fitness > best_generalist_ind[1]:
                 best_generalist_ind = (pop_best_params, pop_best_fitness)
@@ -199,13 +205,16 @@ def train_specialist_ants():
             print(f"Number of generations ago when an improvement was found: {num_generations_no_improvement}")
 
             if num_generations_no_improvement >= spec_algo_gen_stagnation:
-                num_generations_no_improvement = 0
-                G.append(best_generalist_ind[0])
-                E.append(env)
-                with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
-                    pickle.dump(G, file)
-                with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
-                    pickle.dump(E, file)
+                break
+
+        num_generations_no_improvement = 0
+        for ind in individuals: ind.increment_generation()
+        G.append(best_generalist_ind[0])
+        E.append([env])
+        with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
+            pickle.dump(G, file)
+        with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
+            pickle.dump(E, file)
 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")
@@ -216,7 +225,6 @@ def main():
 
     if args.specialist == True:
         print("train specialist")
-        exit(1)
         train_specialist_ants()
     elif args.tensor == None:
         train_generalist_ant()
