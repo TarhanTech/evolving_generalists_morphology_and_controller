@@ -13,8 +13,20 @@ import argparse
 import os
 import torch
 from evotorch.algorithms import XNES
-from evotorch.logging import StdOutLogger
+from evotorch.logging import StdOutLogger, PandasLogger
 tr_schedule: TrainingSchedule = TrainingSchedule()
+
+def create_plot(df: pd.DataFrame, save_path: str):
+    plt.figure(figsize=(10, 6))
+    plt.plot(df.index, df["pop_best_eval"], label="Population Best Evaluation", marker="s")
+    plt.xlabel("Generation")
+    plt.ylabel("Evaluation Values")
+    plt.title("Evaluation Metrics")
+    plt.legend()
+    plt.grid(True)
+    # Save the plot as a file
+    plt.savefig(f"{save_path}/evaluation_metrics_plot.png", dpi=300, bbox_inches="tight")
+
 
 G = []
 E = []
@@ -67,10 +79,10 @@ def validate_as_generalist(individuals: List[Individual], ind_best: torch.Tensor
 def test_ant(tensor_path: str):
     ind: Individual = Individual(id=99)
     params = torch.load(tensor_path)
-    ind.setup_ant_hills(params, 3.8, 5)
+    # ind.setup_ant_hills(params, 3.8, 5)
     # ind.setup_ant_rough(params, 0.9, 1)
-    # ind.setup_ant_default(params)
-    total_reward: float = ind.evaluate_fitness(render_mode="rgb_array")
+    ind.setup_ant_default(params)
+    total_reward: float = ind.evaluate_fitness(render_mode="rgb_array", video_save_path="./evo_vid")
     print(f"Total Rewards: {total_reward}")
 
 def train_generalist_ant():
@@ -160,12 +172,12 @@ def train_specialist_ants():
     folder_run_data: str = f"./runs/run_spec_{time.time()}"
     os.makedirs(folder_run_data, exist_ok=True)
     
-    tr_schedule.training_schedule_partition = tr_schedule.total_schedule
-    for env in tr_schedule.training_schedule_partition:
+    for env in tr_schedule.total_schedule[3:]:
         individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
         problem : AntProblem = AntProblem(individuals)
         searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
         stdout_logger: StdOutLogger = StdOutLogger(searcher)
+        pandas_logger = PandasLogger(searcher)
 
         path_to_save: str = None
         if isinstance(env, RoughTerrain):
@@ -183,10 +195,12 @@ def train_specialist_ants():
         else:
             assert False, "Class type not supported"
 
+        tr_schedule.training_schedule_partition = [env]
         best_generalist_ind: Tuple[torch.Tensor, float] = None
         num_generations_no_improvement: int = 0
         for GEN in range(spec_algo_max_generations + 1):
             searcher.step()
+            for ind in individuals: ind.increment_generation()
             pop_best_params = searcher.status["pop_best"].values
             pop_best_fitness = searcher.status["pop_best_eval"]
 
@@ -194,10 +208,11 @@ def train_specialist_ants():
             if GEN % 10 == 0:
                 individuals[0].setup_ant_default(pop_best_params)
                 individuals[0].make_screenshot_ant(f"{path_to_save}/screenshots/ant_{GEN}.png")
-                
+            if GEN < spec_algo_init_training_generations: continue
+
             if best_generalist_ind == None or pop_best_fitness > best_generalist_ind[1]:
                 best_generalist_ind = (pop_best_params, pop_best_fitness)
-                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/a_generalist_best_{GEN}.pt")
+                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/generalist_best_{GEN}_{pop_best_fitness}.pt")
                 print(f"Current best fitness score: {pop_best_fitness}")
                 num_generations_no_improvement = 0
             else:
@@ -208,13 +223,15 @@ def train_specialist_ants():
                 break
 
         num_generations_no_improvement = 0
-        for ind in individuals: ind.increment_generation()
         G.append(best_generalist_ind[0])
         E.append([env])
         with open(f"{folder_run_data}/G_var.pkl", "wb") as file:
             pickle.dump(G, file)
         with open(f"{folder_run_data}/E_var.pkl", "wb") as file:
             pickle.dump(E, file)
+        df = pandas_logger.to_dataframe()
+        df.to_csv(f"{path_to_save}/gen_score_pandas_df.csv", index=False)
+        create_plot(df, path_to_save)
 
 def main():
     parser = argparse.ArgumentParser(description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch")

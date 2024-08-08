@@ -38,7 +38,7 @@ class Individual:
         self.controller.set_nn_params(nn_params)
         self.mjEnv.setup_ant_default(morph_params=morph_params)
 
-    def evaluate_fitness(self, render_mode: str = None) -> float:
+    def evaluate_fitness(self, render_mode: str = None, video_save_path: str = None) -> float:
         if self.mjEnv.has_invalid_parameters(): 
             return -self._penalty_function(penalty_scale_factor_err)
 
@@ -48,7 +48,8 @@ class Individual:
 
         env: AntEnv = gym.make("Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), render_mode=render_mode)
         if render_mode == "rgb_array":
-            env = RecordVideo(env, video_folder="./ant_vid", name_prefix="eval", episode_trigger=lambda x: True)
+            assert video_save_path is not None, "Specify video_save_path if render_mode is set to 'rgb_array'"
+            env = RecordVideo(env, video_folder=video_save_path, name_prefix="eval", episode_trigger=lambda x: True)
         total_reward: float = 0
         episodes: int = 1
         for _ in range(episodes):

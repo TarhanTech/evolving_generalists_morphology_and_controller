@@ -211,17 +211,23 @@ def create_generalist_heatmap_partition(G, E, save_path: str):
 def evaluate(training_env, ind: Individual, params: torch.Tensor):
     if isinstance(training_env, RoughTerrain):
         ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)
+        video_save_path = f"./videos_env/{type(training_env).__name__}_{training_env.block_size}_{training_env.floor_height}"
     elif isinstance(training_env, HillsTerrain):
         ind.setup_ant_hills(params, training_env.floor_height, training_env.scale)
+        video_save_path = f"./videos_env/{type(training_env).__name__}_{training_env.scale}_{training_env.floor_height}"
     elif isinstance(training_env, DefaultTerrain):
         ind.setup_ant_default(params)
+        video_save_path = f"./videos_env/{type(training_env).__name__}"
     else:
         assert False, "Class type not supported"
     
     count = 50
     fitness_sum = 0
     for i in range(count):
-        fitness_sum = fitness_sum + ind.evaluate_fitness()
+        if(i == -1):
+            fitness_sum = fitness_sum + ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
+        else:
+            fitness_sum = fitness_sum + ind.evaluate_fitness()
 
     fitness_mean = fitness_sum / count
     return (training_env, fitness_mean)

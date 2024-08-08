@@ -1,21 +1,36 @@
+
 \section{Method}
-    For the evolution of our MC-pair, we adopted the same algorithm initially proposed by Triebold et al. \cite{Corinna_Triebold} with some minor modifications. Consider the set of training environments $E = \{e_1, e_2, \ldots, e_n\}$ and the validation set $V = \{v_1, v_2, \ldots, v_n\}$, where in our study $E = V$. Both $E$ and $V$ were established prior to training. Triebold et al. explored different training schedules, which determined in what order the training set was used during the evolutionary process. They found that using an incremental training schedule, where the environment is modified incrementally after every generation, yields the best results. Therefore, we will only consider the incremental training schedule in our analysis. Lastly, we initialize an empty generalist MC-pair set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process, and an empty environment partition set $P = \{\}$, which will store partitions of the set $V$ that correspond to the a generalist MC-pair in $G$. The algorithm will partition the environments and train a generalist MC-pair for that partition. This occurs when the environments differ significantly from one another and a single generalist MC-pair is not feasible. 
+    \subsection{Algorithm}
+        For the evolution of our MC-pair, we adopted the same algorithm initially proposed by Triebold et al. \cite{Corinna_Triebold} with some minor modifications. Consider the set of training environments $E = \{e_1, e_2, \ldots, e_n\}$ and the validation set $V = \{v_1, v_2, \ldots, v_n\}$, where in our study $E = V$. Both $E$ and $V$ were established prior to training. Triebold et al. explored different training schedules, which determined in what order the training set was used during the evolutionary process. They found that using an incremental training schedule, where the environment is modified incrementally after every generation, yields the best results. Therefore, we will only consider the incremental training schedule in our analysis. Lastly, we initialize an empty generalist MC-pair set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process, and an empty environment partition set $P = \{\}$, which will store partitions of the set $E$ that correspond to the a generalist MC-pair in $G$. The algorithm will partition the environments and train a generalist MC-pair for that partition. This occurs when the environments differ significantly from one another and a single generalist MC-pair is not feasible. 
 
-    The evolutionary process starts by initializing the first generation of MC-pairs, comprising both the ANN weights $\overrightarrow{W} = \{w_1, w_2, \ldots, w_n\}$ and the morphology parameters $\overrightarrow{M} = \{m_1, m_2, \ldots, m_n\}$. For the optimization process, $\overrightarrow{W}$ and $\overrightarrow{M}$ are concatenated into a singular vector \newline $\overrightarrow{I} = \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$ and fed to the XNES optimizer. Because the order of magnitude of the ANN and morphology parameters are very different, we encode the morphology parameters to the same order of magnitude as the ANN parameters.
+        The evolutionary process starts by initializing the first generation of MC-pairs, comprising both the ANN weights $\overrightarrow{W} = \{w_1, w_2, \ldots, w_n\}$ and the morphology parameters $\overrightarrow{M} = \{m_1, m_2, \ldots, m_n\}$. For the optimization process, $\overrightarrow{W}$ and $\overrightarrow{M}$ are concatenated into a singular vector \newline $\overrightarrow{I} = \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$ and fed to the XNES optimizer. Because the order of magnitude of the ANN and morphology parameters are very different, we encode the morphology parameters to the same order of magnitude as the ANN parameters.
 
-    After every generation $i$, each MC-pair of the population is evaluated on the current training environment $e_i$, and the MC-pair with the highest fitness score, denoted as $I_{\text{i, best}}$, undergoes further evaluation on the entire validation set $V$, producing a generalist score $g_{\text{best}}$. If this generalist score is an improvement over $MC_{\text{best}}$, it is stored in the variable $MC_{\text{best}}$. After $h$ number of generation, when no improvement is found, the evolutionary process is stagnated and the current $MC_{\text{best}}$ is evaluated on the validation set, giving a $MC_{\text{best, mean}}$ and $MC_{\text{best, std}}$. Each environment in $V$, where $MC_{\text{best}}$ scored higher than $MC_{\text{best, mean}} - MC_{\text{best, std}}$ will be added as a partition to $P$ and removed from $E$ and $V$. This process will repeat until $E$ and $V$ are empty, and thus every partition corresponds to a generalist MC-pair. 
+        After every generation $i$, each MC-pair of the population is evaluated on the current training environment $e_i$, and the MC-pair with the highest fitness score, denoted as $I_{\text{i, best}}$, undergoes further evaluation on the entire validation set $V$, producing a generalist score $g_{\text{best}}$. If this generalist score is an improvement over $MC_{\text{best}}$, it is stored in the variable $MC_{\text{best}}$. After $h$ number of generation, when no improvement is found, the evolutionary process is stagnated and the current $MC_{\text{best}}$ is evaluated on the validation set, giving a $MC_{\text{best, mean}}$ and $MC_{\text{best, std}}$. Each environment in $V$, where $MC_{\text{best}}$ scored higher than $MC_{\text{best, mean}} - MC_{\text{best, std}}$ will be added as a partition to $P$ and removed from $E$ and $V$. This process will repeat until $E$ and $V$ are empty, and thus every partition corresponds to a generalist MC-pair. 
 
-    We integrated a penalty function within the fitness evaluation to ensure adherence to the constraints set for the morphological parameters. This function considers the decoded morphological parameters $\overrightarrow{M}$, alongside the lower and upper bounds of the constraints, $C_\text{lb}$ and $C_\text{ub}$ respectively, a scalar $\alpha$, and a growth rate $r^i$, where $i$ is the number of generations. The penalty function is defined as:
-    \begin{equation}
-        Penalty = \alpha r^i \cdot \sum(
-            \max(0, C_\text{lb} - \overrightarrow{M}) + 
-            \max(0, \overrightarrow{M} - C_\text{ub})
-        )
-    \end{equation}
-    Thus the generalist fitness function then becomes:
-    \begin{equation}
-        g_{\text{best}} = \frac{1}{|V|} \sum_{i=1}^{|V|}(
-            evaluate(MC_{\text{best}}, v_i) - Penalty
-        ) 
-    \end{equation}
-    Here $evaluate(MC_{\text{best}}, v_i)$ represents the evaluation function, returning the score of the best MC-pair of that generation on the validation environment $v_i$.
+        We integrated a penalty function within the fitness evaluation to ensure adherence to the constraints set for the morphological parameters. This function considers the decoded morphological parameters $\overrightarrow{M}$, alongside the lower and upper bounds of the constraints, $C_\text{lb}$ and $C_\text{ub}$ respectively, a scalar $\alpha$, and a growth rate $r^i$, where $i$ is the number of generations. The penalty function is defined as:
+        {\small
+            \begin{equation}
+                Penalty = \alpha r^i \cdot \sum(
+                    \max(0, C_\text{lb} - \overrightarrow{M}) + 
+                    \max(0, \overrightarrow{M} - C_\text{ub})
+                )
+            \end{equation}
+        }
+        Thus the generalist fitness function then becomes:
+        {\small
+            \begin{equation}
+                g_{\text{best}} = \frac{1}{|V|} \sum_{i=1}^{|V|}(
+                    evaluate(MC_{\text{best}}, v_i) - Penalty
+                ) 
+            \end{equation}
+        }
+        Here $evaluate(MC_{\text{best}}, v_i)$ represents the evaluation function, returning the score of the best MC-pair of that generation on the validation environment $v_i$.
+
+    \subsection{Experiments}
+        A total of three different experiments where done for this paper. These different experiments will provide a valuable basis for comparison with the partitioned approach explained previously.
+        \subsubsection{Experiment 1: One generalist}
+            The first experiment is similar to the algorithm described previously, but where the partitioning is disabled. This will result in only one generalist MC-pair that should handle all the environments. The reason for this is because the of the unpredictability of discovering a generalist MC-pair, due to it not being the objective function, but a secondary outcome of the method used.
+        \subsubsection{Experiment 2: Partitioned generalist}
+            The second experiment is the same as the algorithm described previously. In here, we will try to find a set of generalist MC-pairs where each can handle a partition of all the environments. 
+        \subsubsection{Experiment 3: Specialist for each environment}
+            The third experiment is done to see how much the other two experiments are losing on possible fitness for each environment. For this, we will evolve a specialist MC-pair for each environment.
