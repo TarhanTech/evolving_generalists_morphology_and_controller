@@ -1,5 +1,6 @@
 from source.globals import *
 import numpy as np
+from typing import Union
 
 class RoughTerrain:
     def __init__(self, floor_height: float, block_size: int):
@@ -14,6 +15,8 @@ class HillsTerrain:
 class DefaultTerrain: 
     def __init__(self):
         pass
+
+TerrainType = Union[RoughTerrain, HillsTerrain, DefaultTerrain]
 
 class TrainingSchedule:
     _instance = None
