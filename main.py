@@ -172,7 +172,7 @@ def train_specialist_ants():
     folder_run_data: str = f"./runs/run_spec_{time.time()}"
     os.makedirs(folder_run_data, exist_ok=True)
     
-    for env in tr_schedule.total_schedule[3:]:
+    for env in tr_schedule.total_schedule[12:]:
         individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
         problem : AntProblem = AntProblem(individuals)
         searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)
@@ -208,11 +208,12 @@ def train_specialist_ants():
             if GEN % 10 == 0:
                 individuals[0].setup_ant_default(pop_best_params)
                 individuals[0].make_screenshot_ant(f"{path_to_save}/screenshots/ant_{GEN}.png")
+                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/{GEN}_population_best.pt")
             if GEN < spec_algo_init_training_generations: continue
 
             if best_generalist_ind == None or pop_best_fitness > best_generalist_ind[1]:
                 best_generalist_ind = (pop_best_params, pop_best_fitness)
-                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/generalist_best_{GEN}_{pop_best_fitness}.pt")
+                torch.save(pop_best_params, f"{path_to_save}/gen_tensors/{GEN}_generalist_best_{pop_best_fitness}.pt")
                 print(f"Current best fitness score: {pop_best_fitness}")
                 num_generations_no_improvement = 0
             else:

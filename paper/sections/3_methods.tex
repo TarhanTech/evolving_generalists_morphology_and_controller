@@ -3,10 +3,55 @@
     In this section, we describe the algorithm used to promote generalizability and the conducted experiments. All the code used for these experiments are publicly accessible\footnote{The code used for our experiments: \url{https://github.com/TarhanTech/evolving_generalists_morphology_and_controller}}.
     
     \subsection{Algorithm}
+        \begin{algorithm}
+        \caption{Creating Generalist MC-pairs}
+        \begin{algorithmic}[1] % The [1] ensures lines are numbered
+            \State $T \gets \{t_1, t_2, \ldots, t_n\}$
+            \State $G \gets \{\}$
+            \State $E \gets \{\}$
+            \While{$T$ is non-empty}
+                \State $\overrightarrow{MC}_{\text{best}} \gets \{\}$
+                \State $g_{\text{best}} \gets -\infty$
+                \State $partitioned \gets False$
+                \State Initialize search algorithm
+                \State
+                \While{$partitioned$ is $False$}
+                    \State $t_i \gets$ \text{get next training environment} 
+                    \State $pop \gets$ \text{generate population of MC-pairs and evaluate to $t_i$} 
+                    \State $\overrightarrow{MC}_{\text{pop,best}} \gets \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$
+                    \State $g_{\text{pop,best}} \gets$ \text{evaluate generalist score for} $\overrightarrow{MC}_{\text{pop,best}}$
+                    
+                    \If{$g_{\text{pop,best}} > g_{\text{best}}$}
+                        \State $\overrightarrow{MC}_{\text{best}} \gets \overrightarrow{MC}_{\text{pop,best}}$
+                        \State $g_{\text{best}} \gets g_{\text{pop,best}}$
+                    \EndIf
+                    \State \text{update search parameters}
+                    \State
+                    \If{$g_{\text{best}}$ has not improved for $h$ generations or $maxGenerations$ is reached}
+                        \State $f_{\text{scores}} \gets \{\text{evaluate } \overrightarrow{MC}_{\text{best}} \text{ on all environments in } $T$\}$
+                        \State $f_{\mu} \gets$ \text{mean fitness on all environments}
+                        \State $f_{\sigma} \gets$ \text{standard deviation of fitness scores}
+                        \State $P \gets \{\}$
+                        \For{\textbf{each} $fitness$ in $f_{\text{scores}}$}
+                            \If{$fitness >= (f_{\mu} - f_{\sigma})$}
+                                \State add $t$ of $T$ corresponding to $fitness$ to $P$ and remove from $T$
+                            \EndIf
+                        \EndFor
+                        \State append $\overrightarrow{MC}_{\text{best}}$ to $G$
+                        \State append $P$ to $E$
+                        \State $partitioned \gets True$
+                        \State (async) Finish training of the partition
+                    \EndIf
+                \EndWhile
+            \EndWhile
+            \State {} % Adds a blank line before the final return
+            \State \textbf{return} $G,E$
+        \end{algorithmic}
+        \end{algorithm}
         
-        For the evolution of our MC-pair, we adopted the same algorithm initially proposed by Triebold et al. \cite{Corinna_Triebold} with some minor modifications. Consider the set of training environments $T = \{t_1, t_2, \ldots, t_n\}$ and the validation set $V = \{v_1, v_2, \ldots, v_n\}$, where in our study $T = V$. Both $T$ and $V$ were established prior to training. Triebold et al. explored different training schedules, which determined in what order the training set was used during the evolutionary process. They found that using an incremental training schedule, where the environment is modified incrementally after every generation, yields the best results. Therefore, we will only consider the incremental training schedule in our analysis. Lastly, we initialize an empty generalist MC-pair set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process, and an empty environment partition set $P = \{\}$, which will store partitions of the set $T$ that correspond to the a generalist MC-pair in $G$. The algorithm will partition the environments and train a generalist MC-pair for that partition. This occurs when the environments differ significantly from one another and a single generalist MC-pair is not feasible. 
+        For the evolution of our MC-pair, we adopted the same algorithm initially proposed by Triebold et al. \cite{Corinna_Triebold} with some minor modifications. Consider the set of training environments $T = \{t_1, t_2, \ldots, t_n\}$ and the validation set $V = \{v_1, v_2, \ldots, v_n\}$, where in our study $T = V$. Both $T$ and $V$ were established prior to training. Triebold et al. explored different training schedules, which determined in what order the training set was used during the evolutionary process. They found that using an incremental training schedule, where the environment is modified incrementally after every generation, yields the best results. Therefore, we will only consider the incremental training schedule in our analysis. Lastly, we initialize an empty generalist MC-pair set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process, and an empty environment partition set $E = \{\}$, which will store partitions of the set $T$ that correspond to the a generalist MC-pair in $G$. The algorithm will partition the environments and train a generalist MC-pair for that partition. This occurs when the environments differ significantly from one another and a single generalist MC-pair is not feasible. 
 
-        The evolutionary process starts by initializing the first generation of MC-pairs, comprising both the ANN weights $\overrightarrow{W} = \{w_1, w_2, \ldots, w_n\}$ and the morphology parameters $\overrightarrow{M} = \{m_1, m_2, \ldots, m_n\}$. For the optimization process, $\overrightarrow{W}$ and $\overrightarrow{M}$ are concatenated into a singular vector \newline $\overrightarrow{I} = \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$ and fed to the XNES optimizer. Because the order of magnitude of the ANN and morphology parameters are very different, we encode the morphology parameters to the same order of magnitude as the ANN parameters.
+        The evolutionary process starts by initializing the first generation of MC-pairs, comprising both the ANN weights $\overrightarrow{W} = \{w_1, w_2, \ldots, w_n\}$ and the morphology parameters $\overrightarrow{M} = \{m_1, m_2, \ldots, m_n\}$. For the optimization process, $\overrightarrow{W}$ and $\overrightarrow{M}$ are concatenated into a singular vector \newline $\overrightarrow{MC} = \{w_1, w_2, \ldots, w_n, m_1, m_2 \ldots, m_m\}$ and fed to the XNES optimizer. Because the order of magnitude of the ANN and morphology parameters are very different, we encode the morphology parameters to the same order of magnitude as the ANN parameters.
 
         After every generation $i$, each MC-pair of the population is evaluated on the current training environment $t_i$, and the MC-pair with the highest fitness score, denoted as $I_{\text{i, best}}$, undergoes further evaluation on the entire validation set $V$, producing a generalist score $g_{\text{best}}$. If this generalist score is an improvement over $MC_{\text{best}}$, it is stored in the variable $MC_{\text{best}}$. After $h$ number of generation, when no improvement is found, the evolutionary process is stagnated and the current $MC_{\text{best}}$ is evaluated on the validation set, giving a $MC_{\text{best, mean}}$ and $MC_{\text{best, std}}$. Each environment in $V$, where $MC_{\text{best}}$ scored higher than $MC_{\text{best, mean}} - MC_{\text{best, std}}$ will be added as a partition to $P$ and removed from $T$ and $V$. This process will repeat until $T$ and $V$ are empty, and thus every partition corresponds to a generalist MC-pair. 
 
@@ -22,8 +67,8 @@
         Thus the generalist fitness function then becomes:
         {\small
             \begin{equation}
-                g_{\text{best}} = \frac{1}{|V|} \sum_{i=1}^{|V|}(
-                    evaluate(MC_{\text{best}}, v_i) - Penalty
+                g_{\text{best}} = \frac{1}{|T|} \sum_{i=1}^{|T|}(
+                    evaluate(MC_{\text{best}}, t_i) - Penalty
                 ) 
             \end{equation}
         }
