@@ -1,3 +1,5 @@
+import torch
+
 # Folders
 train_ant_xml_folder: str = "train_ant_xml"
 train_terrain_noise_folder: str = "train_terrain_noise"
@@ -34,3 +36,5 @@ hills_scale_step: int = 5
 hills_floor_start: float = 2
 hills_floor_end: float = 4
 hills_floor_step: float = 0.2
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

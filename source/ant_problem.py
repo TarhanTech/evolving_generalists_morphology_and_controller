@@ -17,7 +17,7 @@ class AntProblem(Problem):
             initial_bounds=(algo_params_range[0], algo_params_range[1]), 
             dtype=torch.float64, 
             eval_dtype=torch.float64, 
-            device="cuda"
+            device=device
         )
         self.individuals: List[Individual] = individuals
         self.tr_schedule = TrainingSchedule()

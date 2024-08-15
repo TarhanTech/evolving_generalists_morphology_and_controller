@@ -16,7 +16,7 @@ class Individual:
     def __init__(self, id, morph_params = None, nn_params = None):
         self.id = id
         self.mjEnv = MJEnv(id=id, morph_params=morph_params)
-        self.controller = NeuralNetwork(id=id, nn_params=nn_params).to("cuda")
+        self.controller = NeuralNetwork(id=id, nn_params=nn_params).to(device)
         self.params_size =  self.mjEnv.morphology.total_params + self.controller.total_weigths
         self.generation: int = 0
     
@@ -58,7 +58,7 @@ class Individual:
             distance_counter: int = 0
             done: bool = False
             while not done:
-                obs_tensor: Tensor = torch.from_numpy(obs).to("cuda")
+                obs_tensor: Tensor = torch.from_numpy(obs).to(device)
                 action = self.controller(obs_tensor)
                 obs, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
