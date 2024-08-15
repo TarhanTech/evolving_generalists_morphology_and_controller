@@ -172,7 +172,7 @@ def train_specialist_ants():
     folder_run_data: str = f"./runs/run_spec_{time.time()}"
     os.makedirs(folder_run_data, exist_ok=True)
     
-    for env in tr_schedule.total_schedule[12:]:
+    for env in tr_schedule.total_schedule[18:]:
         individuals: List[Individual] = [Individual(id=i) for i in range(parallel_jobs)]
         problem : AntProblem = AntProblem(individuals)
         searcher: XNES = XNES(problem, stdev_init=algo_stdev_init, popsize=24)

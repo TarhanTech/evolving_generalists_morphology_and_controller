@@ -76,15 +76,16 @@ class GraphBuilder:
                 dpi=300,
                 bbox_inches="tight",
             )
+            plt.close()
 
     def create_ant_screenshots(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             for j in range(len(self.g[i])):
                 self.inds[0].setup_ant_default(self.g[i][j])
-                self.inds[0].make_screenshot_ant(self.run_paths[i] / f"partition_{j+1}" / "ant.png")
+                self.inds[0].make_screenshot_ant(self.run_paths[i] / f"ant_{j}.png")
 
     def create_generalist_heatmap_partition(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             g = self.g[i]
             e = self.e[i]
             rt_rows = np.round(
@@ -185,9 +186,10 @@ class GraphBuilder:
                 dpi=300,
                 bbox_inches="tight",
             )
+            plt.close()
 
     def create_fitness_heatmap(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             env_fitnesses = self.env_fitnesses[i]
             rt_rows = np.round(
                 np.arange(rt_block_start, rt_block_end + rt_block_step, rt_block_step),
@@ -359,9 +361,10 @@ class GraphBuilder:
 
             plt.tight_layout()  # Adjust layout
             plt.savefig(self.run_paths[i] / "fitness_heatmap.png", dpi=300, bbox_inches="tight")
+            plt.close()
 
     def create_fitness_env_boxplot(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             env_fitnesses = self.env_fitnesses[i]
             fitness_rough_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], RoughTerrain)]
             fitness_hills_terrain = [x[1] for x in env_fitnesses if isinstance(x[0], HillsTerrain)]
@@ -384,14 +387,15 @@ class GraphBuilder:
             boxplot.tick_params(labelsize=12)
 
             plt.savefig(self.run_paths[i] / "fitness_boxplot.png", dpi=300, bbox_inches="tight")
+            plt.close()
 
     def create_boxplot_experiments(self):
-        if self.path_numbers <= 1:
+        if self._path_numbers <= 1:
             return
 
         labels: List[str] = []
         fitness_values: List[float] = []
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             fitness_only: list[float] = [x[1] for x in self.env_fitnesses[i]]
             label: str = self.run_paths[i].name
             labels.extend([label] * len(fitness_only))
@@ -416,6 +420,7 @@ class GraphBuilder:
         boxplot.tick_params(labelsize=10)
 
         plt.savefig("./fitness_boxplot_experiments.png", dpi=300, bbox_inches="tight")
+        plt.close()
 
     def create_morph_params_plot(self):
         def _create_plot(df, generations, ylabel, save_path):
@@ -440,7 +445,7 @@ class GraphBuilder:
             plt.grid(True)  # Optional: adds grid lines for better readability
             plt.savefig(save_path)
 
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             for j, df in enumerate(self.morph_data_dfs[i]):
                 folder_save_path: Path = self.run_paths[i] / f"partition_{j+1}/morph_params_evolution_plots"
                 os.makedirs(folder_save_path, exist_ok=True)
@@ -483,9 +488,10 @@ class GraphBuilder:
                     "Ankle Leg Length",
                     folder_save_path / "ankle_leg_length_plot.png",
                 )
+        plt.close()
 
     def create_morph_params_pca_scatterplot(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             for j, df in enumerate(self.morph_data_dfs[i]):
                 folder_save_path: str = self.run_paths[i] / f"partition_{j+1}"
                 scaler: StandardScaler = StandardScaler()
@@ -515,14 +521,14 @@ class GraphBuilder:
                     dpi=300,
                     bbox_inches="tight",
                 )
-
+                plt.close()
+                
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
-        for i in range(self.path_numbers):
-            for j in range(len(self.g)):
+        for i in range(self._path_numbers):
+            for j in range(len(self.g[i])):
                 partition_folder: Path = self.run_paths[i] / f"partition_{j+1}"
                 images_folder: Path = partition_folder / "screenshots"
-
                 images = [img for img in os.listdir(images_folder)]
                 frame = cv2.imread(images_folder / images[0])
                 height, width, layers = frame.shape
@@ -538,21 +544,21 @@ class GraphBuilder:
 
     def _load_g(self):
         g = []
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             with open(self.run_paths[i] / "G_var.pkl", "rb") as file:
                 g.append(pickle.load(file))
         return g
 
     def _load_e(self):
         e = []
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             with open(self.run_paths[i] / "E_var.pkl", "rb") as file:
                 e.append(pickle.load(file))
         return e
 
     def _load_morph_data(self) -> list[list[pd.DataFrame]]:
         morph_data_dfs_runs: list[list[pd.DataFrame]] = []
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             morph_data_dfs: list[pd.DataFrame] = []
 
             for folder in os.listdir(self.run_paths[i]):
@@ -572,7 +578,7 @@ class GraphBuilder:
         return morph_data_dfs_runs
 
     def _print_run_data(self):
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             print(f"Data from run path: {self.run_paths[i]}")
             total_environments = sum(len(sublist) for sublist in self.e[i])
             print(f"Total generalist controllers: {len(self.g[i])}")
@@ -582,7 +588,7 @@ class GraphBuilder:
     def _evaluate_all_envs(self) -> List[List[Tuple[TerrainType, float]]]:
         schedule = TrainingSchedule()
         env_fitnesses: List[List[Tuple[TerrainType, float]]] = []
-        for i in range(self.path_numbers):
+        for i in range(self._path_numbers):
             g = self.g[i]
             e = self.e[i]
             for i in range(len(schedule.testing_schedule)):
@@ -645,7 +651,7 @@ class GraphBuilder:
 
         fitness_sum = 0
         for i in range(self._evaluation_count):
-            if i == -1:
+            if i == 0:
                 fitness_sum = fitness_sum + ind.evaluate_fitness(
                     render_mode="rgb_array", video_save_path=video_save_path
                 )
