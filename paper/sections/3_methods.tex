@@ -73,10 +73,10 @@
         Here $evaluate(\overrightarrow{MC}, t_i)$ represents the evaluation function, returning the score for the MC-pair of that generation on the training environment $t_i$ with the corresponding reward functions for Ant-v4 \cite{Gymnasium2023}.
 
     \subsection{Experiments}
-        A total of three different experiments where done for this paper. These different experiments will provide a valuable basis for comparison with the partitioned approach explained previously.
+        A total of three different experiments were done for this paper. These different experiments provide a valuable basis for comparison with the partitioned approach explained previously.
         \subsubsection{Experiment 1: One generalist}
-            The first experiment is similar to the algorithm described previously, but where the partitioning is disabled. This will result in only one generalist MC-pair that should handle all the environments. The reason for this is because the of the unpredictability of discovering a generalist MC-pair, due to it not being the objective function, but a secondary outcome of the method used.
+            The first experiment is similar to the algorithm described previously, but with partitioning disabled. This results in only one generalist MC-pair that should handle all the environments.
         \subsubsection{Experiment 2: Partitioned generalist}
-            The second experiment is the same as the algorithm described previously. In here, we will try to find a set of generalist MC-pairs where each can handle a partition of all the environments. 
+            The second experiment is the same as the algorithm described previously. Here, we attempt to find a set of generalist MC-pairs where each can handle a partition of all the environments. 
         \subsubsection{Experiment 3: Specialist for each environment}
-            The third experiment is executed to observe how much the other two experiments are losing on possible fitness for each environment. For this, we will evolve a specialist MC-pair for each environment.
+            The third experiment is executed to observe how much the other two experiments are losing on potential fitness for each environment. For this, we will evolve a specialist MC-pair for each environment.
