@@ -8,7 +8,7 @@
         
         Consider the set of training environments $T = \{t_1, t_2, \ldots, t_n\}$, which was established prior to training, and an empty generalist MC-pair set $G = \{\}$, which will store the evolved generalist MC-pairs throughout the evolutionary process, and an empty environment partition set $E = \{\}$, which will store partitions of the set $T$ that correspond to the a generalist MC-pair in $G$. The algorithm will partition the environments and train a generalist MC-pair for each partition. This is necessary when the environments differ significantly from one another and a single generalist MC-pair is not feasible. 
 
-            \begin{algorithm}[H]
+            \begin{algorithm}[!ht]
             \footnotesize % Reduce font size for the algorithm
             \caption{Creating Generalist MC-pairs}
             \begin{algorithmic}[1] % The [1] ensures lines are numbered

@@ -6,7 +6,7 @@ from typing import List
 import matplotlib.pyplot as plt
 
 from source.globals import *
-from source.graph_builder import Graphbuilder, GraphBuilderGeneralist, GraphBuilderSpecialist, GraphBuilderCombination
+from source.utils.graph_builder import Graphbuilder, GraphBuilderGeneralist, GraphBuilderSpecialist, GraphBuilderCombination
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -55,8 +55,8 @@ def main():
             graph_builder_spec.create_fitness_env_boxplot()
 
             graph_builder_spec.create_fitness_evaluation_graph()
-            graph_builder_spec.create_morph_params_plot()
-            graph_builder_spec.create_morph_params_pca_scatterplot()
+            # graph_builder_spec.create_morph_params_plot()
+            # graph_builder_spec.create_morph_params_pca_scatterplot()
             graph_builder_spec.create_evolution_video()
         elif args.specialist[0] is False:
             graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_paths[0])

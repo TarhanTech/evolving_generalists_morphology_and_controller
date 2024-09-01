@@ -32,7 +32,7 @@ class Graphbuilder:
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         self.run_path: Path = run_path
-        self.inds: List[Individual] = [Individual(id=i + 20) for i in range(6)]
+        self.inds: List[Individual] = [Individual(id=i + 20) for i in range(3)]
 
         self.g: List[torch.Tensor] = self._load_g()
         self.e: List[List[TerrainType]] = self._load_e()
@@ -46,6 +46,7 @@ class Graphbuilder:
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
             self.inds[0].make_screenshot_ant(self.run_path / f"ant_{i}.png")
+        print("Created Ant Screenshots")
 
     def create_generalist_heatmap_partition(self):
         """Method that creates heatmap to show which environments are being handled by which partition"""
@@ -627,7 +628,7 @@ class GraphBuilderSpecialist(Graphbuilder):
     def __init__(self, run_path: Path):
         super().__init__(run_path)
 
-        self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
+        # self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
 
     def create_fitness_evaluation_graph(self):
         for folder in os.listdir(self.run_path / "specialists"):
