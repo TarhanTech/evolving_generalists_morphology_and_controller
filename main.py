@@ -104,18 +104,19 @@ def train_specialist_ants():
 
 def experiment1():
     """Runs experiment 1"""
+    os.environ["MUJOCO_GL"] = "egl"
     algo: Experiment1 = Experiment1(23)
     algo.run()
 
 
 def experiment2():
     """Runs experiment 2"""
-    pass
+    os.environ["MUJOCO_GL"] = "egl"
 
 
 def experiment3():
     """Runs experiment 3"""
-    pass
+    os.environ["MUJOCO_GL"] = "egl"
 
 
 def test_ant(tensor_path: Path, terrain: str, params: str):

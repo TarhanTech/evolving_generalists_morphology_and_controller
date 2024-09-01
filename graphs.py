@@ -1,12 +1,14 @@
 """This executable creates graphs, images and videos for the experimental runs"""
 
+import os
 from pathlib import Path
 import argparse
 from typing import List
 import matplotlib.pyplot as plt
 
-from source.globals import *
-from source.utils.graph_builder import Graphbuilder, GraphBuilderGeneralist, GraphBuilderSpecialist, GraphBuilderCombination
+from source.graph_builder import Graphbuilder, GraphBuilderGeneralist, GraphBuilderSpecialist, GraphBuilderCombination
+
+os.environ["MUJOCO_GL"] = "egl"
 
 def str2bool(v):
     if isinstance(v, bool):
