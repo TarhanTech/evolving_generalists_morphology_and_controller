@@ -116,11 +116,12 @@ class Experiment1(Algo):
 
                 df_gen_scores["Generalist Score"].append(generalist_score)
 
+            self.ff_manager.save_generalist_score_df(partitions, df_gen_scores)
+
             p_env: List[TerrainType] = self._partition(best_generalist)
             self.e.append(p_env)
 
-            # Finish training using the splitted partition
-            self.ff_manager.save_generalist_score_df(df_gen_scores)
+            # TODO: Finish training using the splitted partition
             self.g.append(best_generalist)
 
         self.ff_manager.save_generalists(self.g)

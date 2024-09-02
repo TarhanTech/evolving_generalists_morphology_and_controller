@@ -40,9 +40,9 @@ class FFManagerGeneralist(FFManager):
         tensor_filename = f"tensor_{gen}_best.pt" if new_best else f"tensor_{gen}.pt"
         torch.save(params, self.root_folder / f"partition_{number}" / f"gen_tensors/{tensor_filename}")
 
-    def save_generalist_score_df(self, df_gen_scores: pd.DataFrame):
+    def save_generalist_score_df(self, number: int, df_gen_scores: pd.DataFrame):
         """Saves the DataFrame containing generalist scores to a CSV file."""
-        pd.DataFrame(df_gen_scores).to_csv(self.root_folder / "gen_score_pandas_df.csv", index=False)
+        pd.DataFrame(df_gen_scores).to_csv(self.root_folder / f"partition_{number}" / "gen_score_pandas_df.csv", index=False)
 
     def save_generalists(self, g: List[torch.Tensor]):
         """Saves a list of generalist tensors to a pickle file."""

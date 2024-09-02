@@ -107,6 +107,7 @@ def experiment1():
     os.environ["MUJOCO_GL"] = "egl"
     algo: Experiment1 = Experiment1(23)
     algo.run()
+    print("Experiment 1 has finished!!")
 
 
 def experiment2():
