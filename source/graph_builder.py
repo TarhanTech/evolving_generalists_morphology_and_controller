@@ -663,7 +663,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path)
                     self.inds[0].setup_ant_default(params)
-                    morph_data.append(self.inds[0].mjEnv.morphology.morph_params_map)
+                    morph_data.append(self.inds[0].mj_env.morphology.morph_params_map)
                 morph_data_dfs.append(pd.DataFrame(morph_data))
         return morph_data_dfs
 
@@ -838,7 +838,7 @@ class GraphBuilderSpecialist(Graphbuilder):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path)
                     self.inds[0].setup_ant_default(params)
-                    morph_data.append(self.inds[0].mjEnv.morphology.morph_params_map)
+                    morph_data.append(self.inds[0].mj_env.morphology.morph_params_map)
                 morph_data_dfs.append(pd.DataFrame(morph_data))
         return morph_data_dfs
 
