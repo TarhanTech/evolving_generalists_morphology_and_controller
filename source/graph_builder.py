@@ -453,6 +453,7 @@ class Graphbuilder(ABC):
             batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
             env_fitnesses.extend(batch_fitness)
 
+        return env_fitnesses
     def _evaluate(self, terrain, ind: Individual, create_videos: bool):
         params: torch.Tensor = None
         for i, terrains in enumerate(self.e):
