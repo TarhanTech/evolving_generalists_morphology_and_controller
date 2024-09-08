@@ -108,16 +108,45 @@ class Experiment1(Algo):
 
                 df_gen_scores["Generalist Score"].append(generalist_score)
 
-            self.ff_manager.save_generalist_score_df(partitions, df_gen_scores)
+            self.ff_manager.save_generalist_score_df(partitions, df_gen_scores, best_generalist)
 
             p_env: List[TerrainType] = self._partition(best_generalist)
-            self.e.append(p_env)
 
-            # TODO: Finish training using the splitted partition
-            self.g.append(best_generalist)
+            self._finish_training_using_splitted_partition(p_env, df_gen_scores, partitions)
 
         self.ff_manager.save_generalists(self.g)
         self.ff_manager.save_environments(self.e)
+
+    def _finish_training_using_splitted_partition(
+        self, terrain_partition: List[TerrainType], df_gen_scores, partitions, best_generalist, best_generalist_score
+    ):
+        self.t.setup_train_on_terrain_partition(terrain_partition)
+        num_generations_no_improvement: int = 0
+
+        while self._continue_search(num_generations_no_improvement, self.searcher.step_count) is True:
+            self.searcher.step()
+            self._set_individuals_generation(self.searcher.step_count)
+            pop_best: torch.Tensor = self.searcher.status["pop_best"].values
+
+            self.ff_manager.save_screenshot_ant(partitions, self.searcher.step_count, pop_best, self.individuals[0])
+
+            fitness_scores: List[float] = self._validate_as_generalist(pop_best)
+            generalist_score: float = np.mean(fitness_scores)
+            if generalist_score > best_generalist_score:
+                best_generalist = pop_best
+                best_generalist_score = generalist_score
+                self.ff_manager.save_generalist_tensor(partitions, self.searcher.step_count, pop_best, True)
+                num_generations_no_improvement = 0
+            else:
+                self.ff_manager.save_generalist_tensor(partitions, self.searcher.step_count, pop_best, False)
+                if self.algo_params.init_training_generations < self.searcher.step_count:
+                    num_generations_no_improvement += 1
+
+            df_gen_scores["Generalist Score"].append(generalist_score)
+
+        self.e.append(terrain_partition)
+        self.g.append(best_generalist)
+        self.t.restore_training_terrains()
 
     def _continue_search(self, num_generations_no_improvement: int, gen: int) -> bool:
         cond1: bool = num_generations_no_improvement < self.algo_params.gen_stagnation

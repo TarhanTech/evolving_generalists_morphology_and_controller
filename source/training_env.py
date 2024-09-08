@@ -50,6 +50,8 @@ class TrainingSchedule:
         self.testing_terrains = self._init_testing_terrains()
         self.all_terrains = self.training_terrains + self.testing_terrains
 
+        self.store_training_terrains: List[TerrainType] = []
+
     def get_training_terrain(self, generation: int) -> TerrainType:
         """Retrieves a training terrain based on the generation number."""
         return self.training_terrains[generation % len(self.training_terrains)]
@@ -58,34 +60,65 @@ class TrainingSchedule:
         """Removes and returns a training terrain from the list based on its index."""
         return self.training_terrains.pop(index)
 
+    def setup_train_on_terrain_partition(self, p_terrains: List[TerrainType]):
+        self.store_training_terrains = self.training_terrains
+        self.training_terrains = p_terrains
+
+    def restore_training_terrains(self):
+        self.training_terrains = self.store_training_terrains
+
     def _init_training_terrains(self) -> List[TerrainType]:
         training_terrains_hills: List[HillsTerrain] = [
+            HillsTerrain(2.4, 5),
             HillsTerrain(2.4, 10),
             HillsTerrain(2.4, 15),
+            HillsTerrain(2.4, 20),
+            HillsTerrain(2.6, 5),
             HillsTerrain(2.6, 10),
             HillsTerrain(2.6, 15),
+            HillsTerrain(2.6, 20),
+            HillsTerrain(3.2, 5),
             HillsTerrain(3.2, 10),
             HillsTerrain(3.2, 15),
+            HillsTerrain(3.2, 20),
+            HillsTerrain(3.4, 5),
             HillsTerrain(3.4, 10),
             HillsTerrain(3.4, 15),
+            HillsTerrain(3.4, 20),
+            HillsTerrain(4.0, 5),
             HillsTerrain(4.0, 10),
             HillsTerrain(4.0, 15),
+            HillsTerrain(4.0, 20),
+            HillsTerrain(4.2, 5),
             HillsTerrain(4.2, 10),
             HillsTerrain(4.2, 15),
+            HillsTerrain(4.2, 20),
         ]
         training_terrains_rough: List[RoughTerrain] = [
+            RoughTerrain(0.3, 1),
             RoughTerrain(0.3, 2),
             RoughTerrain(0.3, 3),
+            RoughTerrain(0.3, 4),
+            RoughTerrain(0.4, 1),
             RoughTerrain(0.4, 2),
             RoughTerrain(0.4, 3),
+            RoughTerrain(0.4, 4),
+            RoughTerrain(0.7, 1),
             RoughTerrain(0.7, 2),
             RoughTerrain(0.7, 3),
+            RoughTerrain(0.7, 4),
+            RoughTerrain(0.8, 1),
             RoughTerrain(0.8, 2),
             RoughTerrain(0.8, 3),
+            RoughTerrain(0.8, 4),
+            RoughTerrain(1.1, 1),
             RoughTerrain(1.1, 2),
             RoughTerrain(1.1, 3),
+            RoughTerrain(1.1, 4),
+            RoughTerrain(1.2, 1),
             RoughTerrain(1.2, 2),
             RoughTerrain(1.2, 3),
+            RoughTerrain(1.2, 4),
         ]
 
         return training_terrains_hills + training_terrains_rough + [DefaultTerrain()]
