@@ -13,7 +13,7 @@ from source.graph_builder import (
     GraphBuilderCombination,
 )
 
-# os.environ["MUJOCO_GL"] = "egl" # This line is to ensure that the script also works on a server.
+os.environ["MUJOCO_GL"] = "egl" # This line is to ensure that the script also works on a server.
 
 def main():
     """
