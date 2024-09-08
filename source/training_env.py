@@ -98,7 +98,7 @@ class TrainingSchedule:
                 self.hills_floor_range[0],
                 self.hills_floor_range[1] + self.hills_floor_step,
                 self.hills_floor_step,
-            )
+            ), 1
         ):
             for scale in np.arange(
                 self.hills_scale_range[0],
@@ -114,7 +114,7 @@ class TrainingSchedule:
                 self.rt_floor_range[0],
                 self.rt_floor_range[1] + self.rt_floor_step,
                 self.rt_floor_step,
-            )
+            ), 1
         ):
             for block_size in np.arange(
                 self.rt_block_range[0],

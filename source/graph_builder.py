@@ -341,6 +341,8 @@ class Graphbuilder(ABC):
     def _load_e(self):
         with open(self.run_path / "E_var.pkl", "rb") as file:
             e = pickle.load(file)
+        # TODO: Remove this line 
+        e[0].append(DefaultTerrain())
         return e
 
     def _print_run_data(self):
@@ -444,8 +446,6 @@ class Graphbuilder(ABC):
     def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
-        self._evaluate(terrains[0], self.inds[0], False)
-
         batch_size: int = len(self.inds)
         for i in range(0, len(terrains), batch_size):
             batch = terrains[i : i + batch_size]
@@ -459,6 +459,8 @@ class Graphbuilder(ABC):
             if terrain in terrains:
                 params = self.g[i]
                 break
+        
+        assert params is not None, f"params variable is set to None, something went wrong. {terrain}"
 
         if isinstance(terrain, RoughTerrain):
             ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
