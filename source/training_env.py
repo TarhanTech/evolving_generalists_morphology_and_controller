@@ -34,16 +34,17 @@ TerrainType = Union[RoughTerrain, HillsTerrain, DefaultTerrain]
 class TrainingSchedule:
     """Manages the training and testing schedules for different terrain types."""
 
-    def __init__(self):
-        self.hills_scale_range: tuple[int, int] = (5, 20)
-        self.hills_scale_step: int = 5
-        self.hills_floor_range: tuple[float, float] = (2.0, 4.6)
-        self.hills_floor_step: float = 0.2
+    hills_scale_range: tuple[int, int] = (5, 20)
+    hills_scale_step: int = 5
+    hills_floor_range: tuple[float, float] = (2.0, 4.6)
+    hills_floor_step: float = 0.2
 
-        self.rt_block_range: tuple[int, int] = (1, 4)
-        self.rt_block_step: int = 1
-        self.rt_floor_range: tuple[float, float] = (0.1, 1.4)
-        self.rt_floor_step: float = 0.1
+    rt_block_range: tuple[int, int] = (1, 4)
+    rt_block_step: int = 1
+    rt_floor_range: tuple[float, float] = (0.1, 1.4)
+    rt_floor_step: float = 0.1
+
+    def __init__(self):
 
         self.training_terrains: List[TerrainType] = self._init_training_terrains()
         self.testing_terrains = self._init_testing_terrains()
@@ -87,11 +88,10 @@ class TrainingSchedule:
             RoughTerrain(1.2, 3),
         ]
 
-        return training_terrains_hills + training_terrains_rough
+        return training_terrains_hills + training_terrains_rough + [DefaultTerrain()]
 
     def _init_testing_terrains(self) -> List[TerrainType]:
         testing_terrains: List[TerrainType] = []
-        testing_terrains.append(DefaultTerrain())
 
         for floor_height in np.round(
             np.arange(

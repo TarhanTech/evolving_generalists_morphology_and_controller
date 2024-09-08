@@ -6,81 +6,92 @@ import argparse
 from typing import List
 import matplotlib.pyplot as plt
 
-from source.graph_builder import Graphbuilder, GraphBuilderGeneralist, GraphBuilderSpecialist, GraphBuilderCombination
+from source.graph_builder import (
+    Graphbuilder,
+    GraphBuilderGeneralist,
+    GraphBuilderSpecialist,
+    GraphBuilderCombination,
+)
 
-os.environ["MUJOCO_GL"] = "egl"
-
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+# os.environ["MUJOCO_GL"] = "egl" # This line is to ensure that the script also works on a server.
 
 def main():
     """
     Initial entry point of the executable.
-    Execute:
-    python graph.py --run_paths path1 path2 path3
     """
     parser = argparse.ArgumentParser(
         description="Evolving generalist controller and morphology to handle wide range of environments. Run script without arguments to train an ant from scratch"
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        dest="type", required=True, help="Choose what type of MC-pair was created for the run."
+    )
+
+    parser_generalist = subparsers.add_parser(
+        "generalist", help="Create graphs meant for a run path of generalist."
+    )
+    parser_generalist.add_argument(
+        "--run_path",
+        type=Path,
+        required=True,
+        help="A path to the run of a generalist experimental run.",
+    )
+    parser_generalist.add_argument(
+        "--videos",
+        action="store_true",
+        default=False,
+        help="Enable verbose output."
+    )
+
+    parser_specialist = subparsers.add_parser(
+        "specialist", help="Create graphs meant for a run path of specialist."
+    )
+    parser_specialist.add_argument(
+        "--run_path",
+        type=Path,
+        required=True,
+        help="A path to the run of a specialist experimental run.",
+    )
+    parser_specialist.add_argument(
+        "--videos",
+        action="store_true",
+        default=False,
+        help="Enable verbose output."
+    )
+
+    parser_combined = subparsers.add_parser("combined", help="Create combined graphs to compare results from different experiments.")
+    parser_combined.add_argument(
         "--run_paths",
         nargs="+",
         type=Path,
         required=True,
-        help="A list of paths to the run that you want to create combined graphs for.",
+        help="A list of paths to multiple experimental runs to create combined graphs to compare the results.",
     )
-    parser.add_argument(
-        "--specialist",
-        nargs="+",
-        type=str2bool,
-        default=[False],
-        help="Pass in true to create graphs for a specialist run, leave empty for generalist",
-    )
+    
     args = parser.parse_args()
-    print(args.specialist)
-    if len(args.run_paths) != len(args.specialist):
-        parser.error("run_paths and specialist must have the same number of elements.")
+    if args.type == "generalist":
+        graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos)
+        graph_builder_gen.create_ant_screenshots()
+        graph_builder_gen.create_generalist_heatmap_partition()
+        graph_builder_gen.create_fitness_heatmap()
+        graph_builder_gen.create_fitness_env_boxplot()
 
-    if len(args.run_paths) == 1:
-        if args.specialist[0] is True:
-            graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_paths[0])
-            graph_builder_spec.create_ant_screenshots()
-            graph_builder_spec.create_generalist_heatmap_partition()
-            graph_builder_spec.create_fitness_heatmap()
-            graph_builder_spec.create_fitness_env_boxplot()
+        graph_builder_gen.create_generalist_evaluation_graph()
+        graph_builder_gen.create_morph_params_plot()
+        graph_builder_gen.create_morph_params_pca_scatterplot()
+        graph_builder_gen.create_evolution_video()
+    elif args.type == "specialist":
+        graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos)
+        graph_builder_spec.create_ant_screenshots()
+        graph_builder_spec.create_generalist_heatmap_partition()
+        graph_builder_spec.create_fitness_heatmap()
+        graph_builder_spec.create_fitness_env_boxplot()
 
-            graph_builder_spec.create_fitness_evaluation_graph()
-            # graph_builder_spec.create_morph_params_plot()
-            # graph_builder_spec.create_morph_params_pca_scatterplot()
-            graph_builder_spec.create_evolution_video()
-        elif args.specialist[0] is False:
-            graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_paths[0])
-            graph_builder_gen.create_ant_screenshots()
-            graph_builder_gen.create_generalist_heatmap_partition()
-            graph_builder_gen.create_fitness_heatmap()
-            graph_builder_gen.create_fitness_env_boxplot()
-
-            graph_builder_gen.create_generalist_evaluation_graph()
-            graph_builder_gen.create_morph_params_plot()
-            graph_builder_gen.create_morph_params_pca_scatterplot()
-            graph_builder_gen.create_evolution_video()
-        else:
-            assert False, "Unknown error has occurred"
-    else:
-        gbs: List[Graphbuilder] = []
-        for run_path in args.run_paths:
-            gb: Graphbuilder = Graphbuilder(run_path)
-            gbs.append(gb)
-
-        graph_builder_comb = GraphBuilderCombination(gbs)
-        graph_builder_comb.create_boxplot_experiments()
+        graph_builder_spec.create_fitness_evaluation_graph()
+        # graph_builder_spec.create_morph_params_plot()
+        # graph_builder_spec.create_morph_params_pca_scatterplot()
+        graph_builder_spec.create_evolution_video()
+    elif args.type == "combined":
+        raise NotImplementedError
 
     plt.close()
 

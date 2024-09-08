@@ -15,6 +15,8 @@ import torch
 import cv2
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from abc import ABC, abstractmethod
+from scipy.stats import mode
 
 from source.training_env import (
     TrainingSchedule,
@@ -24,61 +26,47 @@ from source.training_env import (
     TerrainType,
 )
 from source.individual import Individual
-from source.globals import *
+from source.algo import Algo
 
 
-class Graphbuilder:
+class Graphbuilder(ABC):
     """Superclass used to create graphs for an experimental run, images and videos for the experimental runs"""
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         self.run_path: Path = run_path
-        self.inds: List[Individual] = [Individual(id=i + 20) for i in range(3)]
+        self.device = "cpu"# torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.inds: List[Individual] = [
+            Individual(
+                self.device,
+                Algo.morph_params_bounds_enc,
+                Algo.penalty_growth_rate,
+                Algo.penalty_scale_factor,
+                Algo.penalty_scale_factor_err,
+            )
+            for i in range(6)
+        ]
+
+        self.ts: TrainingSchedule = TrainingSchedule()
 
         self.g: List[torch.Tensor] = self._load_g()
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
+        self._assign_testing_terrains_to_partitions()
         self._evaluation_count: int = 50
-        self.env_fitnesses: List[Tuple[TerrainType, float]] = self._evaluate_all_envs(create_videos)
 
+        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
+        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+
+    @abstractmethod
     def create_ant_screenshots(self):
         """Method that creates photos of the ants morphology in the environment"""
-        for i, g in enumerate(self.g):
-            self.inds[0].setup_ant_default(g)
-            self.inds[0].make_screenshot_ant(self.run_path / f"ant_{i}.png")
-        print("Created Ant Screenshots")
+        pass
 
     def create_generalist_heatmap_partition(self):
         """Method that creates heatmap to show which environments are being handled by which partition"""
-        rt_rows = np.round(
-            np.arange(rt_block_start, rt_block_end + rt_block_step, rt_block_step),
-            1,
-        )
-        rt_columns = np.round(
-            np.arange(rt_floor_start, rt_floor_end + rt_floor_step, rt_floor_step),
-            1,
-        )
-        rt_df = pd.DataFrame(index=rt_rows, columns=rt_columns, dtype=float)
-
-        hills_rows = np.round(
-            np.arange(
-                hills_scale_start,
-                hills_scale_end + hills_scale_step,
-                hills_scale_step,
-            ),
-            1,
-        )
-        hills_columns = np.round(
-            np.arange(
-                hills_floor_start,
-                hills_floor_end + hills_floor_step,
-                hills_floor_step,
-            ),
-            1,
-        )
-        hills_df = pd.DataFrame(index=hills_rows, columns=hills_columns, dtype=float)
-
-        default_df = pd.DataFrame(np.random.random(), index=[0], columns=[0])
+        default_df, hills_df, rt_df = self._create_dataframe_terrains()
 
         for j in range(len(self.e)):
             for env in self.e[j]:
@@ -152,35 +140,7 @@ class Graphbuilder:
 
     def create_fitness_heatmap(self):
         """Method that creates heatmap to show what the fitness score is per environment"""
-        rt_rows = np.round(
-            np.arange(rt_block_start, rt_block_end + rt_block_step, rt_block_step),
-            1,
-        )
-        rt_columns = np.round(
-            np.arange(rt_floor_start, rt_floor_end + rt_floor_step, rt_floor_step),
-            1,
-        )
-        rt_df = pd.DataFrame(index=rt_rows, columns=rt_columns, dtype=float)
-
-        hills_rows = np.round(
-            np.arange(
-                hills_scale_start,
-                hills_scale_end + hills_scale_step,
-                hills_scale_step,
-            ),
-            1,
-        )
-        hills_columns = np.round(
-            np.arange(
-                hills_floor_start,
-                hills_floor_end + hills_floor_step,
-                hills_floor_step,
-            ),
-            1,
-        )
-        hills_df = pd.DataFrame(index=hills_rows, columns=hills_columns, dtype=float)
-
-        default_df = pd.DataFrame(np.random.random(), index=[0], columns=[0])
+        default_df, hills_df, rt_df = self._create_dataframe_terrains()
 
         for env_fitness in self.env_fitnesses:
             env = env_fitness[0]
@@ -202,7 +162,6 @@ class Graphbuilder:
         ax0 = plt.subplot(gs[0])
         ax1 = plt.subplot(gs[1])
         ax2 = plt.subplot(gs[2])
-        tr_schedule = TrainingSchedule()
 
         # Hill Environment Heatmap
         sns.heatmap(
@@ -218,11 +177,17 @@ class Graphbuilder:
         ax0.set_title("Hill Environment")
         ax0.set_xlabel("Floor Height")
         ax0.set_ylabel("Scale")
-        for floor_height in tr_schedule.floor_heights_for_testing_hills:
-            col_index = hills_df.columns.get_loc(floor_height)
+
+        # Add red rectangles
+        for test_terrain in self.ts.testing_terrains:
+            if not isinstance(test_terrain, HillsTerrain):
+                continue
+
+            col_index = hills_df.columns.get_loc(test_terrain.floor_height)
+            row_index = hills_df.index.get_loc(test_terrain.scale)
             ax0.add_patch(
                 Rectangle(
-                    (col_index, 0),
+                    (col_index, row_index),
                     1,
                     len(hills_df),
                     fill=False,
@@ -231,16 +196,18 @@ class Graphbuilder:
                 )
             )
 
-        hills_mean_training = hills_df[[2.2, 2.4, 2.6, 3.4, 3.6, 3.8]].mean(axis=None)
-        hills_std_training = pd.Series(hills_df[[2.2, 2.4, 2.6, 3.4, 3.6, 3.8]].values.flatten()).std()
+        hills_training_fitnesses = [fitness for terrain, fitness in self.env_fitnesses_training if isinstance(terrain, HillsTerrain)]
+        hills_mean_training = np.mean(hills_training_fitnesses)
+        hills_std_training = np.std(hills_training_fitnesses)
         plt.figtext(
             0.25,
             0,
             f"Overall Mean Training: {hills_mean_training:.2f}, Overall STD Training: {hills_std_training:.2f}",
             ha="center",
         )
-        hills_mean_testing = hills_df[tr_schedule.floor_heights_for_testing_hills].mean(axis=None)
-        hills_std_testing = pd.Series(hills_df[tr_schedule.floor_heights_for_testing_hills].values.flatten()).std()
+        hills_testing_fitnesses = [fitness for terrain, fitness in self.env_fitnesses_test if isinstance(terrain, HillsTerrain)]
+        hills_mean_testing = np.mean(hills_testing_fitnesses)
+        hills_std_testing = np.std(hills_testing_fitnesses)
         plt.figtext(
             0.25,
             -0.05,
@@ -268,20 +235,37 @@ class Graphbuilder:
         ax1.set_title("Rough Environment")
         ax1.set_xlabel("Floor Height")
         ax1.set_ylabel("Block Size")
-        for floor_height in tr_schedule.floor_heights_for_testing_rough:
-            col_index = rt_df.columns.get_loc(floor_height)
-            ax1.add_patch(Rectangle((col_index, 0), 1, len(rt_df), fill=False, edgecolor="red", lw=5))
 
-        rt_mean_training = rt_df[[0.2, 0.3, 0.4, 0.7, 0.8, 0.9]].mean(axis=None)
-        rt_std_training = pd.Series(rt_df[[0.2, 0.3, 0.4, 0.7, 0.8, 0.9]].values.flatten()).std()
+        # Add red rectangles
+        for test_terrain in self.ts.testing_terrains:
+            if not isinstance(test_terrain, RoughTerrain):
+                continue
+
+            col_index = rt_df.columns.get_loc(test_terrain.floor_height)
+            row_index = rt_df.index.get_loc(test_terrain.block_size)
+            ax1.add_patch(
+                Rectangle(
+                    (col_index, row_index),
+                    1,
+                    len(rt_df),
+                    fill=False,
+                    edgecolor="red",
+                    lw=5,
+                )
+            )
+
+        rt_training_fitnesses = [fitness for terrain, fitness in self.env_fitnesses_training if isinstance(terrain, RoughTerrain)]
+        rt_mean_training = np.mean(rt_training_fitnesses)
+        rt_std_training = np.std(rt_training_fitnesses)
         plt.figtext(
             0.7,
             0,
             f"Overall Mean Training: {rt_mean_training:.2f}, Overall STD Training: {rt_std_training:.2f}",
             ha="center",
         )
-        rt_mean_testing = rt_df[tr_schedule.floor_heights_for_testing_rough].mean(axis=None)
-        rt_std_testing = pd.Series(rt_df[tr_schedule.floor_heights_for_testing_rough].values.flatten()).std()
+        rt_testing_fitnesses = [fitness for terrain, fitness in self.env_fitnesses_test if isinstance(terrain, RoughTerrain)]
+        rt_mean_testing = np.mean(rt_testing_fitnesses)
+        rt_std_testing = np.std(rt_testing_fitnesses)
         plt.figtext(
             0.7,
             -0.05,
@@ -366,127 +350,188 @@ class Graphbuilder:
         print(f"Total environment partitions: {len(self.e)}")
         print(f"Total number of elements in E: {total_environments}\n")
 
-    def _evaluate_all_envs(self, create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
-        schedule = TrainingSchedule()
+    def _create_dataframe_terrains(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        rt_rows = np.round(
+            np.arange(
+                self.ts.rt_block_range[0],
+                self.ts.rt_block_range[1] + self.ts.rt_block_step,
+                self.ts.rt_block_step,
+            ),
+            1,
+        )
+        rt_columns = np.round(
+            np.arange(
+                self.ts.rt_floor_range[0],
+                self.ts.rt_floor_range[1] + self.ts.rt_floor_step,
+                self.ts.rt_floor_step,
+            ),
+            1,
+        )
+        rt_df = pd.DataFrame(index=rt_rows, columns=rt_columns, dtype=float)
+
+        hills_rows = np.round(
+            np.arange(
+                self.ts.hills_scale_range[0],
+                self.ts.hills_scale_range[1] + self.ts.hills_scale_step,
+                self.ts.hills_scale_step,
+            ),
+            1,
+        )
+        hills_columns = np.round(
+            np.arange(
+                self.ts.hills_floor_range[0],
+                self.ts.hills_floor_range[1] + self.ts.hills_floor_step,
+                self.ts.hills_floor_step,
+            ),
+            1,
+        )
+        hills_df = pd.DataFrame(index=hills_rows, columns=hills_columns, dtype=float)
+
+        default_df = pd.DataFrame(np.random.random(), index=[0], columns=[0])
+
+        return default_df, hills_df, rt_df
+
+    def _assign_testing_terrains_to_partitions(self):
+        def get_neighbors(df: pd.DataFrame, row: int, col: int, range_limit: int):
+            neighbors: List[int] = []
+            rows, cols = df.shape
+            for x in range(-range_limit, range_limit + 1):
+                for y in range(-range_limit, range_limit + 1):
+                    if x == 0 and y == 0:
+                        continue  # Skip the current cell
+                    if 0 <= row + x < rows and 0 <= col + y < cols:
+                        neighbor_value = df.iloc[row + x, col + y]
+                        if not pd.isna(neighbor_value):
+                            neighbors.append(int(neighbor_value))
+            return neighbors
+
+        def fill_based_on_neighbors(df: pd.DataFrame, terrain_class: TerrainType):
+            rows, cols = df.shape
+
+            for i in range(rows):
+                for j in range(cols):
+                    if pd.isna(df.iloc[i, j]):
+                        range_limit = 1
+                        neighbors: int = []
+
+                        while not neighbors and range_limit < 10:
+                            neighbors = get_neighbors(df, i, j, range_limit)
+                            range_limit += 1
+
+                        most_common_value: int = mode(neighbors).mode
+                        
+                        self.e[most_common_value].append(terrain_class(df.columns[j], df.index[i]))
+        
+        default_df, hills_df, rt_df = self._create_dataframe_terrains()
+
+        for j in range(len(self.e)):
+            for env in self.e[j]:
+                if isinstance(env, RoughTerrain):
+                    rt_df.loc[round(env.block_size, 1), round(env.floor_height, 1)] = j
+                elif isinstance(env, HillsTerrain):
+                    hills_df.loc[round(env.scale, 1), round(env.floor_height, 1)] = j
+                elif isinstance(env, DefaultTerrain):
+                    default_df.iloc[0, 0] = j
+                else:
+                    assert False, "Class type not supported"
+
+        fill_based_on_neighbors(hills_df, HillsTerrain)
+        fill_based_on_neighbors(rt_df, RoughTerrain)
+
+        print("Run data after assigning terrain to partition")
+        self._print_run_data()
+
+    def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
-        for i in range(len(schedule.testing_schedule)):
-            test_env = schedule.testing_schedule[i]
-            index = self._decide_on_partition(self.e, test_env)
-            if index != None:
-                self.e[index].append(test_env)
+        self._evaluate(terrains[0], self.inds[0], False)
 
-        for i in range(len(self.g)):
-            params = self.g[i]
-            env_partition = self.e[i]
-            batch_size: int = len(self.inds)
+        batch_size: int = len(self.inds)
+        for i in range(0, len(terrains), batch_size):
+            batch = terrains[i : i + batch_size]
+            tasks = (joblib.delayed(self._evaluate)(terrain, ind, create_videos) for terrain, ind in zip(batch, self.inds))
+            batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
+            env_fitnesses.extend(batch_fitness)
 
-            for j in range(0, len(env_partition), batch_size):
-                batch = env_partition[j : j + batch_size]
-                tasks = (
-                    joblib.delayed(self._evaluate)(env, ind, params, create_videos)
-                    for env, ind in zip(batch, self.inds)
-                )
-                batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
-                env_fitnesses.extend(batch_fitness)
-        return env_fitnesses
+    def _evaluate(self, terrain, ind: Individual, create_videos: bool):
+        params: torch.Tensor = None
+        for i, terrains in enumerate(self.e):
+            if terrain in terrains:
+                params = self.g[i]
+                break
 
-    def _decide_on_partition(self, e, test_env):
-        for i in range(len(e)):
-            partition = e[i]
-            for env in partition:
-                if type(env) == type(test_env):
-                    # look to the right cell, if there is nothing to the right, look at the left
-                    if isinstance(env, RoughTerrain):
-                        if test_env.block_size == env.block_size:
-                            if round((test_env.floor_height + rt_floor_step), 1) == env.floor_height:
-                                return i
-                            elif round((test_env.floor_height - rt_floor_step), 1) == env.floor_height:
-                                return i
-                    elif isinstance(env, HillsTerrain):
-                        if test_env.scale == env.scale:
-                            if round((test_env.floor_height + hills_floor_step), 1) == env.floor_height:
-                                return i
-                            elif round((test_env.floor_height - hills_floor_step), 1) == env.floor_height:
-                                return i
-                    else:
-                        assert False, "Class type not supported"
-
-    def _evaluate(self, training_env, ind: Individual, params: torch.Tensor, create_videos: bool):
-        if isinstance(training_env, RoughTerrain):
-            ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)
-            video_save_path = (
-                f"./videos_env/{type(training_env).__name__}_{training_env.block_size}_{training_env.floor_height}"
-            )
-        elif isinstance(training_env, HillsTerrain):
-            ind.setup_ant_hills(params, training_env.floor_height, training_env.scale)
-            video_save_path = (
-                f"./videos_env/{type(training_env).__name__}_{training_env.scale}_{training_env.floor_height}"
-            )
-        elif isinstance(training_env, DefaultTerrain):
+        if isinstance(terrain, RoughTerrain):
+            ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
+            video_save_path = f"./videos_env/{type(terrain).__name__}_{terrain.block_size}_{terrain.floor_height}"
+        elif isinstance(terrain, HillsTerrain):
+            ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
+            video_save_path = f"./videos_env/{type(terrain).__name__}_{terrain.scale}_{terrain.floor_height}"
+        elif isinstance(terrain, DefaultTerrain):
             ind.setup_ant_default(params)
-            video_save_path = f"./videos_env/{type(training_env).__name__}"
+            video_save_path = f"./videos_env/{type(terrain).__name__}"
         else:
             assert False, "Class type not supported"
 
         fitness_sum = 0
         for _ in range(self._evaluation_count):
             if create_videos is True:
-                fitness_sum = fitness_sum + ind.evaluate_fitness(
-                    render_mode="rgb_array", video_save_path=video_save_path
-                )
+                fitness_sum = fitness_sum + ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
                 create_videos = False
             else:
                 fitness_sum = fitness_sum + ind.evaluate_fitness()
 
         fitness_mean = fitness_sum / self._evaluation_count
-        return (training_env, fitness_mean)
+        return (terrain, fitness_mean)
 
 
 class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
 
-    def __init__(self, run_path: Path):
-        super().__init__(run_path)
+    def __init__(self, run_path: Path, create_videos: bool = False):
+        super().__init__(run_path, create_videos)
 
         self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
 
+    def create_ant_screenshots(self):
+        for i, g in enumerate(self.g):
+            self.inds[0].setup_ant_default(g)
+            self.inds[0].make_screenshot_ant(self.run_path / f"partition_{i+1}" / f"ant_{i+1}.png")
+        print("Created Ant Screenshots")
+
     def create_generalist_evaluation_graph(self):
         """Method that creates a graph showing the generalist score of the best MC-pair in the generation"""
-        gen_score_df = pd.read_csv(self.run_path / "gen_score_pandas_df.csv")
-        gen_score_df["Generation"] = range(
-            algo_init_training_generations,
-            algo_init_training_generations + len(gen_score_df),
-        )
-        gen_score_df.set_index("Generation", inplace=True)
-        plt.figure(figsize=(12, 6))
+        for i, _ in enumerate(self.g):
+            gen_score_df = pd.read_csv(self.run_path / f"partition_{i+1}" / "gen_score_pandas_df.csv")
+            gen_score_df["Generation"] = range(len(gen_score_df))
+            gen_score_df.set_index("Generation", inplace=True)
+            plt.figure(figsize=(12, 6))
 
-        plt.plot(
-            gen_score_df.index,
-            gen_score_df["Generalist Score"],
-            label="Generalist Score",
-            marker="o",
-        )
+            plt.plot(
+                gen_score_df.index,
+                gen_score_df["Generalist Score"],
+                label="Generalist Score",
+                marker="o",
+            )
 
-        plt.xlabel("Generation")
-        plt.ylabel("Generalist Scores")
-        plt.title("Generalist Scores During Evolution")
-        plt.legend()
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
+            plt.xlabel("Generation")
+            plt.ylabel("Generalist Scores")
+            plt.title("Generalist Scores During Evolution")
+            plt.legend()
+            plt.grid(True)
+            plt.xticks(rotation=45)
+            plt.tight_layout()
 
-        plt.savefig(
-            self.run_path / "generalist_score_metrics_plot.png",
-            dpi=300,
-            bbox_inches="tight",
-        )
-        plt.close()
+            plt.savefig(
+                self.run_path / "generalist_score_metrics_plot.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
+            plt.close()
 
     def create_morph_params_plot(self):
         """Method that creates graphs showing the change of morphological parameters over the generations"""
 
-        def _create_plot(df, generations, ylabel, save_path):
+        def _create_plot(df: pd.DataFrame, generations, ylabel, save_path):
             plt.figure(figsize=(20, 4))
             for column in df.columns:
                 plt.plot(generations, df[column], label=column)
@@ -496,9 +541,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.ylabel(ylabel)
             # Setting x-axis ticks to show every generation mark if needed or skip some for clarity
             if len(generations) > 10:
-                tick_spacing = int(
-                    len(generations) / 10
-                )  # Shows a tick at every 10th generation if there are many points
+                tick_spacing = int(len(generations) / 10)  # Shows a tick at every 10th generation if there are many points
                 plt.xticks(generations[::tick_spacing])
             else:
                 plt.xticks(generations)
@@ -625,8 +668,8 @@ class GraphBuilderGeneralist(Graphbuilder):
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
 
-    def __init__(self, run_path: Path):
-        super().__init__(run_path)
+    def __init__(self, run_path: Path, create_videos: bool = False):
+        super().__init__(run_path, create_videos)
 
         # self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
 
@@ -674,9 +717,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             plt.ylabel(ylabel)
             # Setting x-axis ticks to show every generation mark if needed or skip some for clarity
             if len(generations) > 10:
-                tick_spacing = int(
-                    len(generations) / 10
-                )  # Shows a tick at every 10th generation if there are many points
+                tick_spacing = int(len(generations) / 10)  # Shows a tick at every 10th generation if there are many points
                 plt.xticks(generations[::tick_spacing])
             else:
                 plt.xticks(generations)

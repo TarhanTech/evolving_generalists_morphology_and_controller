@@ -23,22 +23,22 @@ from source.algo_params import AlgoParamsGeneralist
 class Algo(ABC):
     """Parent class used as an interface for creating an experimental run"""
 
+    morph_params_bounds_enc: tuple[float, float] = (-0.1, 0.1)
+    penalty_growth_rate: float = 1.03
+    penalty_scale_factor: int = 100
+    penalty_scale_factor_err: int = 1000
+
     def __init__(self, parallel_jobs: int = 6):
         self.t: TrainingSchedule = TrainingSchedule()
         self.g: List[torch.Tensor] = []
         self.e: List[List[TerrainType]] = []
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.morph_params_bounds_enc: tuple[float, float] = (-0.1, 0.1)
-        self.penalty_growth_rate: float = 1.03
-        self.penalty_scale_factor: int = 100
-        self.penalty_scale_factor_err: int = 1000
         self.parallel_jobs = parallel_jobs
-        
+
         self.individuals: List[Individual] = self._initialize_individuals()
         self.searcher = None
         self.pandas_logger = None
-
 
     def _initialize_individuals(self) -> List[Individual]:
         """Initialize the list of individuals."""
@@ -87,32 +87,24 @@ class Experiment1(Algo):
             num_generations_no_improvement: int = 0
             self._initialize_searcher()
 
-            while (
-                self._continue_search(num_generations_no_improvement, self.searcher.step_count)
-                is True
-            ):
+            while self._continue_search(num_generations_no_improvement, self.searcher.step_count) is True:
                 self.searcher.step()
                 self._set_individuals_generation(self.searcher.step_count)
                 pop_best: torch.Tensor = self.searcher.status["pop_best"].values
 
-                self.ff_manager.save_screenshot_ant(
-                    partitions, self.searcher.step_count, pop_best, self.individuals[0]
-                )
+                self.ff_manager.save_screenshot_ant(partitions, self.searcher.step_count, pop_best, self.individuals[0])
 
                 fitness_scores: List[float] = self._validate_as_generalist(pop_best)
                 generalist_score: float = np.mean(fitness_scores)
                 if generalist_score > best_generalist_score:
                     best_generalist = pop_best
                     best_generalist_score = generalist_score
-                    self.ff_manager.save_generalist_tensor(
-                        partitions, self.searcher.step_count, pop_best, True
-                    )
+                    self.ff_manager.save_generalist_tensor(partitions, self.searcher.step_count, pop_best, True)
                     num_generations_no_improvement = 0
                 else:
-                    self.ff_manager.save_generalist_tensor(
-                        partitions, self.searcher.step_count, pop_best, False
-                    )
-                    num_generations_no_improvement += 1
+                    self.ff_manager.save_generalist_tensor(partitions, self.searcher.step_count, pop_best, False)
+                    if self.algo_params.init_training_generations < self.searcher.step_count:
+                        num_generations_no_improvement += 1
 
                 df_gen_scores["Generalist Score"].append(generalist_score)
 
@@ -137,17 +129,12 @@ class Experiment1(Algo):
 
         for i in range(0, len(self.t.training_terrains), self.parallel_jobs):
             batch = self.t.training_terrains[i : i + self.parallel_jobs]
-            tasks = (
-                joblib.delayed(self._validate)(training_env, ind, best_params)
-                for training_env, ind in zip(batch, self.individuals)
-            )
+            tasks = (joblib.delayed(self._validate)(training_env, ind, best_params) for training_env, ind in zip(batch, self.individuals))
             batch_fitness = joblib.Parallel(n_jobs=self.parallel_jobs)(tasks)
             all_fitness.extend(batch_fitness)
         return np.array(all_fitness)
 
-    def _validate(
-        self, training_env: TerrainType, ind: Individual, best_params: torch.Tensor
-    ) -> float:
+    def _validate(self, training_env: TerrainType, ind: Individual, best_params: torch.Tensor) -> float:
         if isinstance(training_env, RoughTerrain):
             ind.setup_ant_rough(best_params, training_env.floor_height, training_env.block_size)
         elif isinstance(training_env, HillsTerrain):
