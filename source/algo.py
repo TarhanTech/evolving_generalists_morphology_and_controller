@@ -94,7 +94,7 @@ class Experiment1(Algo):
 
             self.e.append(p_terrains)
             self.g.append(best_generalist)
-            self.ff_manager.save_generalist_score_df(partitions, self.df_gen_scores, best_generalist)
+            self.ff_manager.save_generalist_score_df(partitions, self.df_gen_scores)
 
         self.ff_manager.save_generalists(self.g)
         self.ff_manager.save_environments(self.e)
