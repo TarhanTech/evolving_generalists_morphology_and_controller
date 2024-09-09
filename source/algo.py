@@ -56,7 +56,7 @@ class Algo(ABC):
 
     def _initialize_searcher(self) -> XNES:
         """Initialize the XNES searcher."""
-        problem = AntProblem(self.device, self.individuals, self.morph_params_bounds_enc)
+        problem = AntProblem(self.device, self.t, self.individuals, self.morph_params_bounds_enc)
         self.searcher = XNES(problem, stdev_init=0.01)
         self.pandas_logger = PandasLogger(self.searcher)
         StdOutLogger(self.searcher)
