@@ -2,9 +2,9 @@
 
 from abc import ABC
 from pathlib import Path
-import time
 import os
 import pickle
+from datetime import datetime
 from typing import List
 import pandas as pd
 import torch
@@ -23,7 +23,8 @@ class FFManagerGeneralist(FFManager):
     """Manages folder creation and file saving specifically for generalist runs."""
 
     def __init__(self):
-        super().__init__(Path(f"runs/run_generalist_{time.time()}"))
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        super().__init__(Path(f"runs/run_generalist_{date_time}"))
 
     def create_partition_folder(self, number: int):
         """Creates folders for a specific partition, including 'screenshots' and 'gen_tensors'."""
