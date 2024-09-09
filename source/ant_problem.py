@@ -18,7 +18,7 @@ from source.training_env import (
 class AntProblem(Problem):
     """Definition of the custom optimization problem used for evotorch"""
 
-    def __init__(self, device, individuals: List[Individual], initial_bounds: tuple[float, float]):
+    def __init__(self, device, tr_schedule: TrainingSchedule, individuals: List[Individual], initial_bounds: tuple[float, float]):
         super().__init__(
             "max",
             solution_length=individuals[0].params_size,
@@ -28,7 +28,7 @@ class AntProblem(Problem):
             device=device,
         )
         self.individuals: List[Individual] = individuals
-        self.tr_schedule = TrainingSchedule()
+        self.tr_schedule = tr_schedule
 
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
         """Evaluate Individual on next training environment."""
