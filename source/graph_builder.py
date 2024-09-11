@@ -599,7 +599,6 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
-
         def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path):
             plt.figure(figsize=(8, 6))
 
@@ -624,6 +623,8 @@ class GraphBuilderGeneralist(Graphbuilder):
         for i, df in enumerate(self.morph_data_dfs):
             gen_score_df = pd.read_csv(self.run_path / f"partition_{i+1}" / "gen_score_pandas_df.csv")
             folder_save_path: str = self.run_path / f"partition_{i+1}" / "pca_plots"
+            os.makedirs(folder_save_path, exist_ok=True)
+            
             scaler: StandardScaler = StandardScaler()
             df_scaled = scaler.fit_transform(df)
 

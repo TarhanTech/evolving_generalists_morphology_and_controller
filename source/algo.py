@@ -82,6 +82,7 @@ class Experiment1(Algo):
         partitions: int = 0
         while len(self.t.training_terrains) != 0:
             partitions += 1
+            self.df_gen_scores = {"Generalist Score": []}
             self.ff_manager.create_partition_folder(partitions)
             self._initialize_searcher()
 
