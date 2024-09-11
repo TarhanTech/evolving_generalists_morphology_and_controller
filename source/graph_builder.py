@@ -603,9 +603,9 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.figure(figsize=(8, 6))
 
             scatter = plt.scatter(
-                x,
-                y,
-                c,
+                x=x,
+                y=y,
+                c=c,
                 cmap="viridis",
             )
             plt.colorbar(scatter, label=c_label)
@@ -624,7 +624,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             gen_score_df = pd.read_csv(self.run_path / f"partition_{i+1}" / "gen_score_pandas_df.csv")
             folder_save_path: str = self.run_path / f"partition_{i+1}" / "pca_plots"
             os.makedirs(folder_save_path, exist_ok=True)
-            
+
             scaler: StandardScaler = StandardScaler()
             df_scaled = scaler.fit_transform(df)
 
