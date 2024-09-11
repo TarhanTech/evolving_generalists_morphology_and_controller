@@ -34,7 +34,7 @@ class Graphbuilder(ABC):
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         self.run_path: Path = run_path
-        self.device = "cpu"# torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.inds: List[Individual] = [
             Individual(
                 self.device,
@@ -341,8 +341,6 @@ class Graphbuilder(ABC):
     def _load_e(self):
         with open(self.run_path / "E_var.pkl", "rb") as file:
             e = pickle.load(file)
-        # TODO: Remove this line 
-        e[0].append(DefaultTerrain())
         return e
 
     def _print_run_data(self):
@@ -421,9 +419,9 @@ class Graphbuilder(ABC):
                             range_limit += 1
 
                         most_common_value: int = mode(neighbors).mode
-                        
+
                         self.e[most_common_value].append(terrain_class(df.columns[j], df.index[i]))
-        
+
         default_df, hills_df, rt_df = self._create_dataframe_terrains()
 
         for j in range(len(self.e)):
@@ -454,13 +452,14 @@ class Graphbuilder(ABC):
             env_fitnesses.extend(batch_fitness)
 
         return env_fitnesses
+
     def _evaluate(self, terrain, ind: Individual, create_videos: bool):
         params: torch.Tensor = None
         for i, terrains in enumerate(self.e):
             if terrain in terrains:
                 params = self.g[i]
                 break
-        
+
         assert params is not None, f"params variable is set to None, something went wrong. {terrain}"
 
         if isinstance(terrain, RoughTerrain):
@@ -600,36 +599,72 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
-        for i, df in enumerate(self.morph_data_dfs):
-            folder_save_path: str = self.run_path / f"partition_{i+1}"
-            scaler: StandardScaler = StandardScaler()
-            df_scaled = scaler.fit_transform(df)
 
-            pca = PCA(n_components=2)
-            pca_components = pca.fit_transform(df_scaled)
-
-            df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
-            df_pca["generations"] = list(range(10, len(df_pca) * 10 + 10, 10))
-
+        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path):
             plt.figure(figsize=(8, 6))
 
             scatter = plt.scatter(
-                df_pca["PC1"],
-                df_pca["PC2"],
-                c=df_pca["generations"],
+                x,
+                y,
+                c,
                 cmap="viridis",
             )
-            plt.colorbar(scatter, label="Generation Year")
+            plt.colorbar(scatter, label=c_label)
 
-            plt.xlabel("First Principal Component")
-            plt.ylabel("Second Principal Component")
+            plt.xlabel(x_label)
+            plt.ylabel(y_label)
             plt.grid(True)
             plt.savefig(
-                folder_save_path / "pca_scatterplot.png",
+                save_path,
                 dpi=300,
                 bbox_inches="tight",
             )
             plt.close()
+
+        for i, df in enumerate(self.morph_data_dfs):
+            gen_score_df = pd.read_csv(self.run_path / f"partition_{i+1}" / "gen_score_pandas_df.csv")
+            folder_save_path: str = self.run_path / f"partition_{i+1}" / "pca_plots"
+            scaler: StandardScaler = StandardScaler()
+            df_scaled = scaler.fit_transform(df)
+
+            pca = PCA(n_components=1)
+            pca_components = pca.fit_transform(df_scaled)
+            df_pca = pd.DataFrame(pca_components, columns=["PC1"])
+            df_pca["generations"] = list(range(1, len(df_pca) + 1))
+            df_pca["Generalist Score"] = gen_score_df["Generalist Score"]
+            create_scatter_plot(
+                df_pca["Generalist Score"],
+                df_pca["PC1"],
+                df_pca["generations"],
+                "Generalist Score",
+                "Principal Component Morphology",
+                "Generations",
+                folder_save_path / "one_pca_scatterplot.png",
+            )
+
+            pca = PCA(n_components=2)
+            pca_components = pca.fit_transform(df_scaled)
+            df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
+            df_pca["generations"] = list(range(1, len(df_pca) + 1))
+            df_pca["Generalist Score"] = gen_score_df["Generalist Score"]
+            create_scatter_plot(
+                df_pca["PC2"],
+                df_pca["PC1"],
+                df_pca["generations"],
+                "2nd Principal Component Morphology",
+                "1st Principal Component Morphology",
+                "Generations",
+                folder_save_path / "two_pca_generation_scatterplot.png",
+            )
+            create_scatter_plot(
+                df_pca["PC2"],
+                df_pca["PC1"],
+                df_pca["Generalist Score"],
+                "2nd Principal Component Morphology",
+                "1st Principal Component Morphology",
+                "Generalist Score",
+                folder_save_path / "two_pca_gener_score_scatterplot.png",
+            )
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
