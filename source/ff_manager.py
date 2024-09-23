@@ -22,7 +22,7 @@ class FFManager(ABC):
 
     def __init__(self, subfolder: str):
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        self.root_folder: Path = Path(f"runs/{subfolder}_{date_time}")
+        self.root_folder: Path = Path(f"./runs/{subfolder}_{date_time}")
         self.root_folder.mkdir(parents=True, exist_ok=True)
 
     def save_pickle(self, filename: str, data: any):
@@ -65,9 +65,8 @@ class FFManagerGeneralist(FFManager):
 class FFManagerSpecialist(FFManager):
     """Manages folder creation and file saving specifically for specialist runs."""
 
-    def __init__(self):
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        super().__init__(Path(f"runs/run_generalist_{date_time}"))
+    def __init__(self, subfolder: str):
+        super().__init__(subfolder)
 
     def create_terrain_folder(self, terrain: TerrainType):
         """Creates folders for a specific partition, including 'screenshots' and 'gen_tensors'."""

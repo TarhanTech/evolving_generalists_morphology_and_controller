@@ -208,17 +208,17 @@ class Experiment3(Algo):
         self.max_generations: int = 10000
         self.gen_stagnation: int = 750
 
-        self.ff_manager: FFManagerSpecialist = FFManagerSpecialist("exp3_gen")
+        self.ff_manager: FFManagerSpecialist = FFManagerSpecialist("exp3_spec")
 
     def run(self):
         """run the third experiment where you create a specialist for each of the environments"""
-        terrains_to_create_specialist = [self.t.all_terrains for _ in range(0, len(self.t.all_terrains, 10))]
+        terrains_to_create_specialist = self.t.all_terrains[::10]
         for terrain in terrains_to_create_specialist:
             self.t.setup_train_on_terrain_partition([terrain])
             self.ff_manager.create_terrain_folder(terrain)
             self._initialize_searcher()
 
-            best_specialist = self._train()
+            best_specialist = self._train(terrain)
 
             self.e.append([terrain])
             self.g.append(best_specialist)
