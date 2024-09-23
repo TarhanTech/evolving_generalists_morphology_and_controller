@@ -493,7 +493,6 @@ class GraphBuilderGeneralist(Graphbuilder):
         super().__init__(run_path, create_videos)
 
         self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
-        pd.DataFrame(self.morph_data_dfs[0]).to_csv("gen_score_pandas_df.csv", index=False)
         
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):

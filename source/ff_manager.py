@@ -53,14 +53,14 @@ class FFManagerGeneralist(FFManager):
         tensor_filename = f"tensor_{gen}_best.pt" if new_best else f"tensor_{gen}.pt"
         torch.save(params, self.root_folder / f"partition_{number}" / f"gen_tensors/{tensor_filename}")
 
-    def save_generalist_score_df(self, number: int, df_gen_scores: pd.DataFrame):
-        """Saves the DataFrame containing generalist scores to a CSV file."""
-        pd.DataFrame(df_gen_scores).to_csv(self.root_folder / f"partition_{number}" / "gen_score_pandas_df.csv", index=False)
-
     def save_pandas_logger_df(self, number: int, pandas_logger: PandasLogger):
         """Saves the DataFrame of the pandas logger of evotorch containing mean, best and median scores to a CSV file."""
         df = pandas_logger.to_dataframe()
         pd.DataFrame(df).to_csv(self.root_folder / f"partition_{number}" / "pandas_logger_df.csv", index=False)
+
+    def save_df(self, number: int, df: pd.DataFrame, file_name: str):
+        """Saves the DataFrame. Filename must end with .csv"""
+        pd.DataFrame(df).to_csv(self.root_folder / f"partition_{number}" / file_name, index=False)
 
 class FFManagerSpecialist(FFManager):
     """Manages folder creation and file saving specifically for specialist runs."""

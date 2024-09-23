@@ -112,7 +112,9 @@ class Experiment1(Algo):
 
             self.e.append(p_terrains)
             self.g.append(best_generalist)
-            self.ff_manager.save_generalist_score_df(partitions, self.df_gen_scores)
+            
+            self.ff_manager.save_df(partitions, self.df_gen_scores, "gen_score_pandas_df.csv")
+            self.ff_manager.save_df(partitions, self.df_fitness_scores, "fitness_scores_df.csv")
             self.ff_manager.save_pandas_logger_df(partitions, self.pandas_logger)
 
         self.ff_manager.save_pickle("G_var.pkl", self.g)
