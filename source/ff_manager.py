@@ -67,6 +67,8 @@ class FFManagerSpecialist(FFManager):
 
     def __init__(self, subfolder: str):
         super().__init__(subfolder)
+        self.specialist_folder = self.root_folder / "specialist"
+        self.specialist_folder.mkdir(parents=True, exist_ok=True)
 
     def create_terrain_folder(self, terrain: TerrainType):
         """Creates folders for a specific partition, including 'screenshots' and 'gen_tensors'."""
@@ -89,15 +91,6 @@ class FFManagerSpecialist(FFManager):
         pd.DataFrame(df).to_csv(self._get_path_to_save(terrain) / "pandas_logger_df.csv", index=False)
 
     def _get_path_to_save(self, terrain: TerrainType):
-        path_to_save: Path = None
-        if isinstance(terrain, RoughTerrain):
-            path_to_save = self.root_folder / f"{type(terrain).__name__}_{terrain.block_size}_{terrain.floor_height}"
-        elif isinstance(terrain, HillsTerrain):
-            path_to_save = self.root_folder / f"{type(terrain).__name__}_{terrain.scale}_{terrain.floor_height}"
-        elif isinstance(terrain, DefaultTerrain):
-            path_to_save = self.root_folder / f"{type(terrain).__name__}"
-        else:
-            raise ValueError(f"Instance of 'terrain' is not a supported type.")
-        
+        path_to_save: Path = self.specialist_folder / terrain.__str__()
         return path_to_save
     

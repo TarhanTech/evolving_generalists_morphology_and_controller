@@ -1,5 +1,6 @@
 """This module defines the parent class used to initiate one of the experimental runs."""
 
+from collections import defaultdict
 from typing import List, Tuple
 from abc import ABC, abstractmethod
 import torch
@@ -89,6 +90,7 @@ class Experiment1(Algo):
         self.ff_manager: FFManagerGeneralist = FFManagerGeneralist("exp1_gen")
 
         self.df_gen_scores = {"Generalist Score": []}
+        self.df_fitness_scores = defaultdict(list)
 
     def run(self):
         """Run the experiment where you create a generalist for each partition of the environment."""
@@ -96,6 +98,8 @@ class Experiment1(Algo):
         while len(self.t.training_terrains) != 0:
             partitions += 1
             self.df_gen_scores = {"Generalist Score": []}
+            self.df_fitness_scores = defaultdict(list)
+
             self.ff_manager.create_partition_folder(partitions)
             self._initialize_searcher()
 
@@ -137,6 +141,7 @@ class Experiment1(Algo):
                     num_generations_no_improvement += 1
 
             self.df_gen_scores["Generalist Score"].append(generalist_score)
+            self.df_fitness_scores[self.t.get_current_training_terrain().__str__()].append(self.searcher.status["pop_best_eval"])
         return best_generalist, best_generalist_score
 
     def _validate_as_generalist(self, best_params: Tensor) -> np.ndarray[float]:
@@ -212,7 +217,7 @@ class Experiment3(Algo):
 
     def run(self):
         """run the third experiment where you create a specialist for each of the environments"""
-        terrains_to_create_specialist = self.t.all_terrains[::10]
+        terrains_to_create_specialist = self.t.all_terrains[0::10]
         for terrain in terrains_to_create_specialist:
             self.t.setup_train_on_terrain_partition([terrain])
             self.ff_manager.create_terrain_folder(terrain)
@@ -223,7 +228,7 @@ class Experiment3(Algo):
             self.e.append([terrain])
             self.g.append(best_specialist)
 
-            self.ff_manager.save_pandas_logger_df()
+            self.ff_manager.save_pandas_logger_df(terrain, self.pandas_logger)
 
         self.ff_manager.save_pickle("G_var.pkl", self.g)
         self.ff_manager.save_pickle("E_var.pkl", self.e)

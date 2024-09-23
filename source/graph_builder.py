@@ -36,7 +36,7 @@ class Graphbuilder(ABC):
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         self.run_path: Path = run_path
-        self.device = "cpu"  # torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.inds: List[Individual] = [
             Individual(
                 self.device,
@@ -57,9 +57,9 @@ class Graphbuilder(ABC):
         self._assign_testing_terrains_to_partitions()
         self._evaluation_count: int = 50
 
-        # self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
-        # self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
-        # self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
+        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
     @abstractmethod
     def create_ant_screenshots(self):
@@ -466,16 +466,14 @@ class Graphbuilder(ABC):
 
         if isinstance(terrain, RoughTerrain):
             ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
-            video_save_path = f"./videos_env/{type(terrain).__name__}_{terrain.block_size}_{terrain.floor_height}"
         elif isinstance(terrain, HillsTerrain):
             ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
-            video_save_path = f"./videos_env/{type(terrain).__name__}_{terrain.scale}_{terrain.floor_height}"
         elif isinstance(terrain, DefaultTerrain):
             ind.setup_ant_default(params)
-            video_save_path = f"./videos_env/{type(terrain).__name__}"
         else:
             assert False, "Class type not supported"
 
+        video_save_path = self.run_path / "videos_env" / terrain.__str__()
         fitness_sum = 0
         for _ in range(self._evaluation_count):
             if create_videos is True:
@@ -496,6 +494,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
         self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
         pd.DataFrame(self.morph_data_dfs[0]).to_csv("gen_score_pandas_df.csv", index=False)
+        
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
@@ -712,22 +711,26 @@ class GraphBuilderSpecialist(Graphbuilder):
     def __init__(self, run_path: Path, create_videos: bool = False):
         super().__init__(run_path, create_videos)
 
-        # self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
+        self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
 
+    def create_ant_screenshots(self):
+        for g, e in zip(self.g, self.e):
+            self.inds[0].setup_ant_default(g)
+            self.inds[0].make_screenshot_ant(self.run_path / "specialist" / e[0].__str__() / f"ant.png")
+        print("Created Ant Screenshots")
+        
     def create_fitness_evaluation_graph(self):
-        for folder in os.listdir(self.run_path / "specialists"):
-            full_folder_path: Path = self.run_path / "specialists" / folder
-            gen_score_df = pd.read_csv(full_folder_path / "gen_score_pandas_df.csv")
-            gen_score_df["Generation"] = range(
-                algo_init_training_generations,
-                algo_init_training_generations + len(gen_score_df),
-            )
-            gen_score_df.set_index("Generation", inplace=True)
+        for folder in os.listdir(self.run_path / "specialist"):
+            full_folder_path: Path = self.run_path / "specialist" / folder
+            df = pd.read_csv(full_folder_path / "pandas_logger_df.csv")
+            df["Generation"] = range(1, len(df) + 1)
+            df.set_index("Generation", inplace=True)
+
             plt.figure(figsize=(12, 6))
 
             plt.plot(
-                gen_score_df.index,
-                gen_score_df["pop_best_eval"],
+                df.index,
+                df["pop_best_eval"],
                 label="Fitness Score",
                 marker="o",
             )
@@ -822,7 +825,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             pca_components = pca.fit_transform(df_scaled)
 
             df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
-            df_pca["generations"] = list(range(10, len(df_pca) * 10 + 10, 10))
+            df_pca["generations"] = range(1, len(df_pca) + 1)
 
             plt.figure(figsize=(8, 6))
 
@@ -846,8 +849,8 @@ class GraphBuilderSpecialist(Graphbuilder):
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
-        for folder in os.listdir(self.run_path / "specialists"):
-            full_folder_path: Path = self.run_path / "specialists" / folder
+        for folder in os.listdir(self.run_path / "specialist"):
+            full_folder_path: Path = self.run_path / "specialist" / folder
             images_folder: Path = full_folder_path / "screenshots"
             images = [img for img in os.listdir(images_folder)]
             frame = cv2.imread(images_folder / images[0])
@@ -865,8 +868,8 @@ class GraphBuilderSpecialist(Graphbuilder):
     def _load_morph_data(self) -> list[list[pd.DataFrame]]:
         morph_data_dfs: list[pd.DataFrame] = []
 
-        for folder in os.listdir(self.run_path / "specialists"):
-            full_path = self.run_path / "specialists" / folder
+        for folder in os.listdir(self.run_path / "specialist"):
+            full_path = self.run_path / "specialist" / folder
 
             if full_path.is_dir():
                 tensors_path: Path = full_path / "gen_tensors"

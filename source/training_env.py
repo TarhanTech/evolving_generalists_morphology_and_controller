@@ -14,6 +14,9 @@ class RoughTerrain:
     floor_height: float
     block_size: int
 
+    def __str__(self):
+        return f"RoughTerrain(floor_height={self.floor_height}, block_size={self.block_size})"
+
 
 @dataclass(frozen=True)
 class HillsTerrain:
@@ -22,11 +25,16 @@ class HillsTerrain:
     floor_height: float
     scale: int
 
+    def __str__(self):
+        return f"HillsTerrain(floor_height={self.floor_height}, scale={self.scale})"
+
 
 @dataclass(frozen=True)
 class DefaultTerrain:
     """Represents a default terrain with no specific attributes."""
 
+    def __str__(self):
+        return f"DefaultTerrain"
 
 TerrainType = Union[RoughTerrain, HillsTerrain, DefaultTerrain]
 
@@ -54,7 +62,10 @@ class TrainingSchedule:
 
         self.training_index = -1
 
-    def get_training_terrain(self) -> TerrainType:
+    def get_current_training_terrain(self) -> TerrainType:
+        return self.training_terrains[self.training_index % len(self.training_terrains)]
+
+    def get_next_training_terrain(self) -> TerrainType:
         """Retrieves a training terrain based on the generation number."""
         self.training_index += 1
         return self.training_terrains[self.training_index % len(self.training_terrains)]
@@ -124,7 +135,7 @@ class TrainingSchedule:
             RoughTerrain(1.2, 4),
         ]
 
-        return training_terrains_hills + training_terrains_rough + [DefaultTerrain()]
+        return [DefaultTerrain()] + training_terrains_hills + training_terrains_rough
 
     def _init_testing_terrains(self) -> List[TerrainType]:
         testing_terrains: List[TerrainType] = []
@@ -134,7 +145,8 @@ class TrainingSchedule:
                 self.hills_floor_range[0],
                 self.hills_floor_range[1] + self.hills_floor_step,
                 self.hills_floor_step,
-            ), 1
+            ),
+            1,
         ):
             for scale in np.arange(
                 self.hills_scale_range[0],
@@ -150,7 +162,8 @@ class TrainingSchedule:
                 self.rt_floor_range[0],
                 self.rt_floor_range[1] + self.rt_floor_step,
                 self.rt_floor_step,
-            ), 1
+            ),
+            1,
         ):
             for block_size in np.arange(
                 self.rt_block_range[0],

@@ -32,7 +32,7 @@ class AntProblem(Problem):
 
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
         """Evaluate Individual on next training environment."""
-        training_env: TerrainType = self.tr_schedule.get_training_terrain()
+        training_env: TerrainType = self.tr_schedule.get_next_training_terrain()
 
         if isinstance(training_env, RoughTerrain):
             ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)
@@ -53,10 +53,7 @@ class AntProblem(Problem):
 
         for i in range(0, len(batch.values), batch_size):
             batch_vals = batch.values[i : i + batch_size]
-            tasks = (
-                joblib.delayed(self.evals)(params, ind)
-                for params, ind in zip(batch_vals, self.individuals)
-            )
+            tasks = (joblib.delayed(self.evals)(params, ind) for params, ind in zip(batch_vals, self.individuals))
             batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
             all_fitness.extend(batch_fitness)
         batch.set_evals(torch.tensor(all_fitness, dtype=torch.float64))
