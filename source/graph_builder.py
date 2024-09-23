@@ -17,6 +17,8 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from abc import ABC, abstractmethod
 from scipy.stats import mode
+from sklearn.metrics.pairwise import cosine_similarity
+import networkx as nx
 
 from source.training_env import (
     TrainingSchedule,
@@ -55,9 +57,9 @@ class Graphbuilder(ABC):
         self._assign_testing_terrains_to_partitions()
         self._evaluation_count: int = 50
 
-        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
-        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
-        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+        # self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
+        # self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        # self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
     @abstractmethod
     def create_ant_screenshots(self):
@@ -493,7 +495,7 @@ class GraphBuilderGeneralist(Graphbuilder):
         super().__init__(run_path, create_videos)
 
         self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
-
+        pd.DataFrame(self.morph_data_dfs[0]).to_csv("gen_score_pandas_df.csv", index=False)
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
@@ -541,16 +543,16 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.title(f"Ant {ylabel} Morphology Changes Over Generations")
             plt.xlabel("Generation")
             plt.ylabel(ylabel)
-            # Setting x-axis ticks to show every generation mark if needed or skip some for clarity
+
             if len(generations) > 10:
-                tick_spacing = int(len(generations) / 10)  # Shows a tick at every 10th generation if there are many points
+                tick_spacing = int(len(generations) / 10)
                 plt.xticks(generations[::tick_spacing])
             else:
                 plt.xticks(generations)
 
-            plt.xticks(rotation=45)  # Optional: rotate labels to improve readability
+            plt.xticks(rotation=45)
             plt.legend()
-            plt.grid(True)  # Optional: adds grid lines for better readability
+            plt.grid(True)
             plt.savefig(save_path)
 
         for i, df in enumerate(self.morph_data_dfs):
@@ -569,8 +571,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             df_aux_length = df[aux_length_columns]
             df_ankle_length = df[ankle_length_columns]
 
-            generations = np.arange(10, 10 * len(df) + 10, 10)
-
+            generations = np.arange(1, len(df) + 1)
             _create_plot(
                 df_aux_width,
                 generations,
@@ -599,6 +600,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
+
         def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path):
             plt.figure(figsize=(8, 6))
 
@@ -684,8 +686,8 @@ class GraphBuilderGeneralist(Graphbuilder):
 
             cv2.destroyAllWindows()
             video.release()
-
-    def _load_morph_data(self) -> list[list[pd.DataFrame]]:
+        
+    def _load_morph_data(self) -> list[pd.DataFrame]:
         morph_data_dfs: list[pd.DataFrame] = []
 
         for folder in os.listdir(self.run_path):

@@ -8,23 +8,35 @@ from datetime import datetime
 from typing import List
 import pandas as pd
 import torch
+from evotorch.logging import PandasLogger
 from source.individual import Individual
-from source.training_env import TerrainType
+from source.training_env import (
+    DefaultTerrain,
+    RoughTerrain,
+    HillsTerrain,
+    TerrainType,
+)
 
 class FFManager(ABC):
     """Base class for managing folder creation and file saving operations."""
 
-    def __init__(self, root_folder: Path):
-        self.root_folder: Path = root_folder
-        os.makedirs(self.root_folder, exist_ok=True)
+    def __init__(self, subfolder: str):
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        self.root_folder: Path = Path(f"runs/{subfolder}_{date_time}")
+        self.root_folder.mkdir(parents=True, exist_ok=True)
+
+    def save_pickle(self, filename: str, data: any):
+        """Saves data to a pickle"""
+        pickle_path: Path = self.root_folder / filename
+        with open(pickle_path, "wb") as file:
+            pickle.dump(data, file)
 
 
 class FFManagerGeneralist(FFManager):
     """Manages folder creation and file saving specifically for generalist runs."""
 
-    def __init__(self):
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        super().__init__(Path(f"runs/run_generalist_{date_time}"))
+    def __init__(self, subfolder: str):
+        super().__init__(subfolder)
 
     def create_partition_folder(self, number: int):
         """Creates folders for a specific partition, including 'screenshots' and 'gen_tensors'."""
@@ -45,12 +57,48 @@ class FFManagerGeneralist(FFManager):
         """Saves the DataFrame containing generalist scores to a CSV file."""
         pd.DataFrame(df_gen_scores).to_csv(self.root_folder / f"partition_{number}" / "gen_score_pandas_df.csv", index=False)
 
-    def save_generalists(self, g: List[torch.Tensor]):
-        """Saves a list of generalist tensors to a pickle file."""
-        with open(self.root_folder / "G_var.pkl", "wb") as file:
-            pickle.dump(g, file)
+    def save_pandas_logger_df(self, number: int, pandas_logger: PandasLogger):
+        """Saves the DataFrame of the pandas logger of evotorch containing mean, best and median scores to a CSV file."""
+        df = pandas_logger.to_dataframe()
+        pd.DataFrame(df).to_csv(self.root_folder / f"partition_{number}" / "pandas_logger_df.csv", index=False)
 
-    def save_environments(self, e: List[List[TerrainType]]):
-        """Saves a list of environments to a pickle file."""
-        with open(self.root_folder / "E_var.pkl", "wb") as file:
-            pickle.dump(e, file)
+class FFManagerSpecialist(FFManager):
+    """Manages folder creation and file saving specifically for specialist runs."""
+
+    def __init__(self):
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        super().__init__(Path(f"runs/run_generalist_{date_time}"))
+
+    def create_terrain_folder(self, terrain: TerrainType):
+        """Creates folders for a specific partition, including 'screenshots' and 'gen_tensors'."""
+        path_to_save: Path = self._get_path_to_save(terrain)
+        os.makedirs(path_to_save / "screenshots", exist_ok=True)
+        os.makedirs(path_to_save / "gen_tensors", exist_ok=True)
+
+    def save_screenshot_ant(self, terrain: TerrainType, gen: int, pop_best: torch.Tensor, ind: Individual):
+        """Saves a screenshot of the ant."""
+        ind.setup_ant_default(pop_best)
+        ind.make_screenshot_ant(self._get_path_to_save(terrain) / "screenshots" / f"ant_{gen}.png")
+
+    def save_specialist_tensor(self, terrain: TerrainType, gen: int, params: torch.Tensor):
+        """Saves a tensor representing the parameters of the generalist model."""
+        torch.save(params, self._get_path_to_save(terrain) / "gen_tensors" / f"tensor_{gen}.pt")
+
+    def save_pandas_logger_df(self, terrain: TerrainType, pandas_logger: PandasLogger):
+        """Saves the DataFrame of the pandas logger of evotorch containing mean, best and median scores to a CSV file."""
+        df = pandas_logger.to_dataframe()
+        pd.DataFrame(df).to_csv(self._get_path_to_save(terrain) / "pandas_logger_df.csv", index=False)
+
+    def _get_path_to_save(self, terrain: TerrainType):
+        path_to_save: Path = None
+        if isinstance(terrain, RoughTerrain):
+            path_to_save = self.root_folder / f"{type(terrain).__name__}_{terrain.block_size}_{terrain.floor_height}"
+        elif isinstance(terrain, HillsTerrain):
+            path_to_save = self.root_folder / f"{type(terrain).__name__}_{terrain.scale}_{terrain.floor_height}"
+        elif isinstance(terrain, DefaultTerrain):
+            path_to_save = self.root_folder / f"{type(terrain).__name__}"
+        else:
+            raise ValueError(f"Instance of 'terrain' is not a supported type.")
+        
+        return path_to_save
+    
