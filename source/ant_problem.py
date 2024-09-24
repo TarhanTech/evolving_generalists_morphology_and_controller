@@ -32,7 +32,7 @@ class AntProblem(Problem):
 
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
         """Evaluate Individual on next training environment."""
-        training_env: TerrainType = self.tr_schedule.get_next_training_terrain()
+        training_env: TerrainType = self.tr_schedule.get_training_terrain(ind.generation)
 
         if isinstance(training_env, RoughTerrain):
             ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)

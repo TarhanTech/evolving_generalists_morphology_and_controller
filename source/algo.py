@@ -29,7 +29,11 @@ class Algo(ABC):
     penalty_scale_factor: int = 100
     penalty_scale_factor_err: int = 1000
 
-    def __init__(self, parallel_jobs: int = 6):
+    def __init__(self, max_generations: int, gen_stagnation: int, init_training_generations: int, parallel_jobs: int = 6):
+        self.max_generations: int = max_generations
+        self.gen_stagnation: int = gen_stagnation
+        self.init_training_generations: int = init_training_generations
+
         self.t: TrainingSchedule = TrainingSchedule()
         self.g: List[Tensor] = []
         self.e: List[List[TerrainType]] = []
@@ -77,48 +81,14 @@ class Algo(ABC):
         return cond1 and cond2
 
 
-class Experiment1(Algo):
-    """Class used to run the first experiment where you create a generalist for each partition of the environments."""
+class GeneralistExperimentBase(Algo):
+    def __init__(self, max_generations: int, gen_stagnation: int, init_training_generations: int, exp_folder_name: str, parallel_jobs: int = 6):
+        super().__init__(max_generations, gen_stagnation, init_training_generations, parallel_jobs)
 
-    def __init__(self, parallel_jobs: int = 6):
-        super().__init__(parallel_jobs)
-
-        self.init_training_generations: int = 2500
-        self.max_generations: int = 5000
-        self.gen_stagnation: int = 500
-
-        self.ff_manager: FFManagerGeneralist = FFManagerGeneralist("exp1_gen")
+        self.ff_manager: FFManagerGeneralist = FFManagerGeneralist(exp_folder_name)
 
         self.df_gen_scores = {"Generalist Score": []}
-        self.df_fitness_scores = defaultdict(list)
-
-    def run(self):
-        """Run the experiment where you create a generalist for each partition of the environment."""
-        partitions: int = 0
-        while len(self.t.training_terrains) != 0:
-            partitions += 1
-            self.df_gen_scores = {"Generalist Score": []}
-            self.df_fitness_scores = defaultdict(list)
-
-            self.ff_manager.create_partition_folder(partitions)
-            self._initialize_searcher()
-
-            best_generalist, best_generalist_score = self._train(partitions)
-            p_terrains: List[TerrainType] = self._partition(best_generalist)
-
-            self.t.setup_train_on_terrain_partition(p_terrains)
-            best_generalist, _ = self._train(partitions, best_generalist, best_generalist_score)
-            self.t.restore_training_terrains()
-
-            self.e.append(p_terrains)
-            self.g.append(best_generalist)
-            
-            self.ff_manager.save_df(partitions, self.df_gen_scores, "gen_score_pandas_df.csv")
-            self.ff_manager.save_df(partitions, self.df_fitness_scores, "fitness_scores_df.csv")
-            self.ff_manager.save_pandas_logger_df(partitions, self.pandas_logger)
-
-        self.ff_manager.save_pickle("G_var.pkl", self.g)
-        self.ff_manager.save_pickle("E_var.pkl", self.e)
+        self.fitness_scores_dict = defaultdict(list)
 
     def _train(self, partitions, best_generalist: Tensor = None, best_generalist_score: float = float("-inf")) -> Tuple[Tensor, float]:
         num_generations_no_improvement: int = 0
@@ -143,7 +113,7 @@ class Experiment1(Algo):
                     num_generations_no_improvement += 1
 
             self.df_gen_scores["Generalist Score"].append(generalist_score)
-            self.df_fitness_scores[self.t.get_current_training_terrain().__str__()].append(self.searcher.status["pop_best_eval"])
+            self.fitness_scores_dict[self.t.get_training_terrain(self.searcher.step_count).__str__()].append(self.searcher.status["pop_best_eval"])
         return best_generalist, best_generalist_score
 
     def _validate_as_generalist(self, best_params: Tensor) -> np.ndarray[float]:
@@ -185,55 +155,20 @@ class Experiment1(Algo):
                 envs.append(self.t.remove_training_terrain(i))
         return envs
 
-
-class Experiment2(Algo):
-    """Class used to run the second experiment where you create one generalist for all the environments"""
-
-    def __init__(self, parallel_jobs: int = 6):
-        super().__init__(parallel_jobs)
-
-        self.init_training_generations: int = 10000
-        self.max_generations: int = 10000
-        self.gen_stagnation: int = 10000
-
-        self.ff_manager: FFManagerGeneralist = FFManagerGeneralist("exp2_gen")
+    def _dump_logs(self, partitions: int):
+        self.ff_manager.save_df(partitions, self.df_gen_scores, "gen_score_pandas_df.csv")
+        self.ff_manager.save_pandas_logger_df(partitions, self.pandas_logger)
+        self.ff_manager.save_json(partitions, self.fitness_scores_dict, "fitness_scores.json")
 
         self.df_gen_scores = {"Generalist Score": []}
-
-    def run(self):
-        """Run the experiment where you create one generalist for all the environments"""
-        pass
+        self.fitness_scores_dict = defaultdict(list)
 
 
-class Experiment3(Algo):
-    """Class used to run the third experiment where you create a specialist for each of the environments"""
+class SpecialistExperimentBase(Algo):
+    def __init__(self, max_generations: int, gen_stagnation: int, init_training_generations: int, exp_folder_name: str, parallel_jobs: int = 6):
+        super().__init__(max_generations, gen_stagnation, init_training_generations, parallel_jobs)
 
-    def __init__(self, parallel_jobs: int = 6):
-        super().__init__(parallel_jobs)
-
-        self.init_training_generations: int = 2500
-        self.max_generations: int = 10000
-        self.gen_stagnation: int = 750
-
-        self.ff_manager: FFManagerSpecialist = FFManagerSpecialist("exp3_spec")
-
-    def run(self):
-        """run the third experiment where you create a specialist for each of the environments"""
-        terrains_to_create_specialist = self.t.all_terrains[0::10]
-        for terrain in terrains_to_create_specialist:
-            self.t.setup_train_on_terrain_partition([terrain])
-            self.ff_manager.create_terrain_folder(terrain)
-            self._initialize_searcher()
-
-            best_specialist = self._train(terrain)
-
-            self.e.append([terrain])
-            self.g.append(best_specialist)
-
-            self.ff_manager.save_pandas_logger_df(terrain, self.pandas_logger)
-
-        self.ff_manager.save_pickle("G_var.pkl", self.g)
-        self.ff_manager.save_pickle("E_var.pkl", self.e)
+        self.ff_manager: FFManagerSpecialist = FFManagerSpecialist(exp_folder_name)
 
     def _train(self, terrain: TerrainType) -> Tensor:
         num_generations_no_improvement: int = 0
@@ -257,6 +192,79 @@ class Experiment3(Algo):
             self.ff_manager.save_specialist_tensor(terrain, self.searcher.step_count, pop_best)
 
         return self.searcher.status["pop_best"].values
+
+
+class Experiment1(GeneralistExperimentBase):
+    """Class used to run the first experiment where you create a generalist for each partition of the environments."""
+
+    def __init__(self, parallel_jobs: int = 6):
+        super().__init__(
+            max_generations=5000, gen_stagnation=500, init_training_generations=2500, exp_folder_name="exp1_gen", parallel_jobs=parallel_jobs
+        )
+
+    def run(self):
+        """Run the experiment where you create a generalist for each partition of the environment."""
+        partitions: int = 0
+        while len(self.t.training_terrains) != 0:
+            partitions += 1
+
+            self.ff_manager.create_partition_folder(partitions)
+            self._initialize_searcher()
+
+            best_generalist, best_generalist_score = self._train(partitions)
+            p_terrains: List[TerrainType] = self._partition(best_generalist)
+
+            self.t.setup_train_on_terrain_partition(p_terrains)
+            best_generalist, _ = self._train(partitions, best_generalist, best_generalist_score)
+            self.t.restore_training_terrains()
+
+            self.e.append(p_terrains)
+            self.g.append(best_generalist)
+
+            self._dump_logs(partitions)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
+
+
+class Experiment2(GeneralistExperimentBase):
+    """Class used to run the second experiment where you create one generalist for all the environments"""
+
+    def __init__(self, parallel_jobs: int = 6):
+        super().__init__(
+            max_generations=10000, gen_stagnation=10000, init_training_generations=10000, exp_folder_name="exp2_gen", parallel_jobs=parallel_jobs
+        )
+
+    def run(self):
+        """Run the experiment where you create one generalist for all the environments"""
+        pass
+
+
+class Experiment3(SpecialistExperimentBase):
+    """Class used to run the third experiment where you create a specialist for each of the environments"""
+
+    def __init__(self, parallel_jobs: int = 6):
+        super().__init__(
+            max_generations=10000, gen_stagnation=750, init_training_generations=2500, exp_folder_name="exp3_spec", parallel_jobs=parallel_jobs
+        )
+
+    def run(self):
+        """run the third experiment where you create a specialist for each of the environments"""
+        terrains_to_create_specialist = self.t.all_terrains[0::10]
+        for terrain in terrains_to_create_specialist:
+            self.t.setup_train_on_terrain_partition([terrain])
+            self.ff_manager.create_terrain_folder(terrain)
+            self._initialize_searcher()
+
+            best_specialist = self._train(terrain)
+
+            self.e.append([terrain])
+            self.g.append(best_specialist)
+
+            self.ff_manager.save_pandas_logger_df(terrain, self.pandas_logger)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
 
 
 class Experiment4(Algo):

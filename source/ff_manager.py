@@ -2,6 +2,7 @@
 
 from abc import ABC
 from pathlib import Path
+import json
 import os
 import pickle
 from datetime import datetime
@@ -61,6 +62,10 @@ class FFManagerGeneralist(FFManager):
     def save_df(self, number: int, df: pd.DataFrame, file_name: str):
         """Saves the DataFrame. Filename must end with .csv"""
         pd.DataFrame(df).to_csv(self.root_folder / f"partition_{number}" / file_name, index=False)
+
+    def save_json(self, number: int, dict, file_name: str):
+        with open(self.root_folder / f"partition_{number}" / file_name, 'w') as file:
+            json.dump(dict, file)
 
 class FFManagerSpecialist(FFManager):
     """Manages folder creation and file saving specifically for specialist runs."""

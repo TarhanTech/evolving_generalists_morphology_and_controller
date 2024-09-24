@@ -53,22 +53,15 @@ class TrainingSchedule:
     rt_floor_step: float = 0.1
 
     def __init__(self):
-
         self.training_terrains: List[TerrainType] = self._init_training_terrains()
         self.testing_terrains = self._init_testing_terrains()
         self.all_terrains = self.training_terrains + self.testing_terrains
 
         self.store_training_terrains: List[TerrainType] = []
 
-        self.training_index = -1
-
-    def get_current_training_terrain(self) -> TerrainType:
-        return self.training_terrains[self.training_index % len(self.training_terrains)]
-
-    def get_next_training_terrain(self) -> TerrainType:
+    def get_training_terrain(self, generation: int) -> TerrainType:
         """Retrieves a training terrain based on the generation number."""
-        self.training_index += 1
-        return self.training_terrains[self.training_index % len(self.training_terrains)]
+        return self.training_terrains[generation % len(self.training_terrains)]
 
     def remove_training_terrain(self, index: int) -> TerrainType:
         """Removes and returns a training terrain from the list based on its index."""
