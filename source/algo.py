@@ -237,7 +237,19 @@ class Experiment2(GeneralistExperimentBase):
 
     def run(self):
         """Run the experiment where you create one generalist for all the environments"""
-        pass
+        partitions: int = 1
+
+        self.ff_manager.create_partition_folder(partitions)
+        self._initialize_searcher()
+        best_generalist, best_generalist_score = self._train(partitions)
+        
+        self.e.append(self.t.training_terrains)
+        self.g.append(best_generalist)
+
+        self._dump_logs(partitions)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
 
 
 class Experiment3(SpecialistExperimentBase):
