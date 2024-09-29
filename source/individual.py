@@ -90,7 +90,7 @@ class Individual:
             file.write(self.mj_env.xml_str)
 
         env: AntEnv = gym.make(
-            "Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), render_mode=render_mode
+            "Ant-v4", xml_file=generated_ant_xml, healthy_z_range=(-1, 7.5), render_mode=render_mode, camera_name="track"
         )
         if render_mode == "rgb_array":
             assert (
