@@ -43,7 +43,6 @@ def experiment2():
     print("Experiment 2 has finished!!")
 
 
-
 def experiment3():
     """Runs experiment 3"""
     os.environ["MUJOCO_GL"] = "egl"
@@ -82,8 +81,7 @@ def test_ant(tensor_path: Path, terrain: str, params: str):
                 raise ValueError(f"Parameter '{param}' is not a valid integer or float.") from e
 
     terrain_type: TerrainType = TERRAIN_MAP[terrain]
-
-    ind: Individual = Individual(id=99)
+    ind: Individual = Individual("cpu", (-0.1, 0.1), 100, 1000)
     tensor_params = torch.load(tensor_path)
     if terrain_type is DefaultTerrain:
         ind.setup_ant_default(tensor_params)
