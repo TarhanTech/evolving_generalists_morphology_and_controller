@@ -1,12 +1,14 @@
 """This module contains graphbuilder classes"""
 
 import os
+import json
 from pathlib import Path
 import pickle
 from typing import List, Tuple
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
+from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 import seaborn as sns
 import joblib
@@ -524,11 +526,34 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.tight_layout()
 
             plt.savefig(
-                self.run_path / f"partition_{i+1}" / "generalist_score_metrics_plot.png",
+                self.run_path / f"partition_{i+1}" / "generalist_score_metrics_plot.pdf",
                 dpi=300,
                 bbox_inches="tight",
             )
             plt.close()
+
+    def create_fitness_evaluation_graphs(self):
+        for i, _ in enumerate(self.g):
+            json_file_path = self.run_path / f"partition_{i+1}" / "fitness_scores.json"
+            with open(json_file_path, 'r') as file:
+                data = json.load(file)
+
+            fitness_evals_envs_path = self.run_path / f"partition_{i+1}" / "fitness_evals_envs"
+            fitness_evals_envs_path.mkdir(parents=True, exist_ok=True)
+            for key, values in data.items():
+                plt.figure()
+                plt.plot(values)
+                plt.title(f'{key} Plot')
+                plt.xlabel('Index')
+                plt.ylabel('Value')
+                plt.grid(True)
+                plt.savefig(
+                    fitness_evals_envs_path / f"{str(key)}.pdf",
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+                plt.close()
+        
 
     def create_morph_params_plot(self):
         """Method that creates graphs showing the change of morphological parameters over the generations"""

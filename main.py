@@ -42,6 +42,8 @@ def experiment2():
     algo.run()
     print("Experiment 2 has finished!!")
 
+
+
 def experiment3():
     """Runs experiment 3"""
     os.environ["MUJOCO_GL"] = "egl"
