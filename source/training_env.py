@@ -44,12 +44,12 @@ class TrainingSchedule:
 
     hills_scale_range: tuple[int, int] = (5, 20)
     hills_scale_step: int = 5
-    hills_floor_range: tuple[float, float] = (2.0, 4.6)
+    hills_floor_range: tuple[float, float] = (2.2, 4.0)
     hills_floor_step: float = 0.2
 
     rt_block_range: tuple[int, int] = (1, 4)
     rt_block_step: int = 1
-    rt_floor_range: tuple[float, float] = (0.1, 1.4)
+    rt_floor_range: tuple[float, float] = (0.1, 1.0)
     rt_floor_step: float = 0.1
 
     def __init__(self):
@@ -76,30 +76,22 @@ class TrainingSchedule:
 
     def _init_training_terrains(self) -> List[TerrainType]:
         training_terrains_hills: List[HillsTerrain] = [
-            HillsTerrain(2.4, 5),
-            HillsTerrain(2.4, 10),
-            HillsTerrain(2.4, 15),
-            HillsTerrain(2.4, 20),
             HillsTerrain(2.6, 5),
             HillsTerrain(2.6, 10),
             HillsTerrain(2.6, 15),
             HillsTerrain(2.6, 20),
-            HillsTerrain(3.2, 5),
-            HillsTerrain(3.2, 10),
-            HillsTerrain(3.2, 15),
-            HillsTerrain(3.2, 20),
+            HillsTerrain(2.8, 5),
+            HillsTerrain(2.8, 10),
+            HillsTerrain(2.8, 15),
+            HillsTerrain(2.8, 20),
             HillsTerrain(3.4, 5),
             HillsTerrain(3.4, 10),
             HillsTerrain(3.4, 15),
             HillsTerrain(3.4, 20),
-            HillsTerrain(4.0, 5),
-            HillsTerrain(4.0, 10),
-            HillsTerrain(4.0, 15),
-            HillsTerrain(4.0, 20),
-            HillsTerrain(4.2, 5),
-            HillsTerrain(4.2, 10),
-            HillsTerrain(4.2, 15),
-            HillsTerrain(4.2, 20),
+            HillsTerrain(3.6, 5),
+            HillsTerrain(3.6, 10),
+            HillsTerrain(3.6, 15),
+            HillsTerrain(3.6, 20),
         ]
         training_terrains_rough: List[RoughTerrain] = [
             RoughTerrain(0.3, 1),
@@ -118,14 +110,6 @@ class TrainingSchedule:
             RoughTerrain(0.8, 2),
             RoughTerrain(0.8, 3),
             RoughTerrain(0.8, 4),
-            RoughTerrain(1.1, 1),
-            RoughTerrain(1.1, 2),
-            RoughTerrain(1.1, 3),
-            RoughTerrain(1.1, 4),
-            RoughTerrain(1.2, 1),
-            RoughTerrain(1.2, 2),
-            RoughTerrain(1.2, 3),
-            RoughTerrain(1.2, 4),
         ]
 
         return [DefaultTerrain()] + training_terrains_hills + training_terrains_rough
