@@ -524,7 +524,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.tight_layout()
 
             plt.savefig(
-                self.run_path / "generalist_score_metrics_plot.png",
+                self.run_path / f"partition_{i+1}" / "generalist_score_metrics_plot.png",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -702,6 +702,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                     morph_data.append(self.inds[0].mj_env.morphology.morph_params_map)
                 morph_data_dfs.append(pd.DataFrame(morph_data))
         return morph_data_dfs
+
 
 
 class GraphBuilderSpecialist(Graphbuilder):
