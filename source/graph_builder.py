@@ -19,6 +19,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from abc import ABC, abstractmethod
 from scipy.stats import mode
+from scipy.interpolate import interp1d
 from sklearn.metrics.pairwise import cosine_similarity
 import networkx as nx
 
@@ -493,8 +494,11 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         super().__init__(run_path, create_videos)
-
-        self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
+        self.morph_step_size = 10 
+        
+        x1, x2 = self._load_morph_data()
+        self.morph_data_dfs: list[pd.DataFrame] = x1
+        self.best_tensors_indices: list[list[int]] = x2
         
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
@@ -538,14 +542,24 @@ class GraphBuilderGeneralist(Graphbuilder):
             with open(json_file_path, 'r') as file:
                 data = json.load(file)
 
+            num_generations: int = 0
+            for _, values in data.items():
+                num_generations += len(values)
+
+
             fitness_evals_envs_path = self.run_path / f"partition_{i+1}" / "fitness_evals_envs"
             fitness_evals_envs_path.mkdir(parents=True, exist_ok=True)
             for key, values in data.items():
+                original_indices = np.linspace(0, num_generations, num=len(values))
+
+                interpolator = interp1d(original_indices, values, kind='linear')
+                new_indices = np.linspace(0, num_generations, num=num_generations)
+                interpolated_values = interpolator(new_indices)
                 plt.figure()
-                plt.plot(values)
+                plt.plot(new_indices, interpolated_values)
                 plt.title(f'{key} Plot')
-                plt.xlabel('Index')
-                plt.ylabel('Value')
+                plt.xlabel('Generations')
+                plt.ylabel('Fitness')
                 plt.grid(True)
                 plt.savefig(
                     fitness_evals_envs_path / f"{str(key)}.pdf",
@@ -553,7 +567,6 @@ class GraphBuilderGeneralist(Graphbuilder):
                     bbox_inches="tight",
                 )
                 plt.close()
-        
 
     def create_morph_params_plot(self):
         """Method that creates graphs showing the change of morphological parameters over the generations"""
@@ -594,7 +607,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             df_aux_length = df[aux_length_columns]
             df_ankle_length = df[ankle_length_columns]
 
-            generations = np.arange(1, len(df) + 1)
+            generations = np.arange(1, len(df) * self.morph_step_size + 1, self.morph_step_size)
             _create_plot(
                 df_aux_width,
                 generations,
@@ -624,7 +637,7 @@ class GraphBuilderGeneralist(Graphbuilder):
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
 
-        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path):
+        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path, best_x=None, best_y=None):
             plt.figure(figsize=(8, 6))
 
             scatter = plt.scatter(
@@ -634,6 +647,10 @@ class GraphBuilderGeneralist(Graphbuilder):
                 cmap="viridis",
             )
             plt.colorbar(scatter, label=c_label)
+
+            if best_x is not None and best_y is not None:
+                plt.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
+                plt.legend()
 
             plt.xlabel(x_label)
             plt.ylabel(y_label)
@@ -656,31 +673,51 @@ class GraphBuilderGeneralist(Graphbuilder):
             pca = PCA(n_components=1)
             pca_components = pca.fit_transform(df_scaled)
             df_pca = pd.DataFrame(pca_components, columns=["PC1"])
-            df_pca["generations"] = list(range(1, len(df_pca) + 1))
-            df_pca["Generalist Score"] = gen_score_df["Generalist Score"]
+            df_pca["Generation"] = df.index
+
+            gen_scores = []
+            for j in df.index.to_list():
+                gen_scores.append(gen_score_df.loc[j - 1, "Generalist Score"])
+            df_pca["Generalist Score"] = gen_scores
+
+            best_indices = self.best_tensors_indices[i] 
+            best_tensors = df_pca.iloc[best_indices]
+
             create_scatter_plot(
                 df_pca["Generalist Score"],
                 df_pca["PC1"],
-                df_pca["generations"],
+                df_pca["Generation"],
                 "Generalist Score",
                 "Principal Component Morphology",
                 "Generations",
                 folder_save_path / "one_pca_scatterplot.png",
+                best_x=best_tensors["Generalist Score"],
+                best_y=best_tensors["PC1"],
             )
 
+            # PCA with 2 components for the second scatterplot
             pca = PCA(n_components=2)
             pca_components = pca.fit_transform(df_scaled)
             df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
-            df_pca["generations"] = list(range(1, len(df_pca) + 1))
-            df_pca["Generalist Score"] = gen_score_df["Generalist Score"]
+            df_pca["Generation"] = df.index
+
+            gen_scores = []
+            for j in df.index.to_list():
+                gen_scores.append(gen_score_df.loc[j - 1, "Generalist Score"])
+            df_pca["Generalist Score"] = gen_scores
+
+            best_tensors = df_pca.iloc[best_indices]
+
             create_scatter_plot(
                 df_pca["PC2"],
                 df_pca["PC1"],
-                df_pca["generations"],
+                df_pca["Generation"],
                 "2nd Principal Component Morphology",
                 "1st Principal Component Morphology",
                 "Generations",
                 folder_save_path / "two_pca_generation_scatterplot.png",
+                best_x=best_tensors["PC2"],
+                best_y=best_tensors["PC1"],
             )
             create_scatter_plot(
                 df_pca["PC2"],
@@ -689,8 +726,11 @@ class GraphBuilderGeneralist(Graphbuilder):
                 "2nd Principal Component Morphology",
                 "1st Principal Component Morphology",
                 "Generalist Score",
-                folder_save_path / "two_pca_gener_score_scatterplot.png",
+                folder_save_path / "two_pca_generalist_score_scatterplot.png",
+                best_x=best_tensors["PC2"],
+                best_y=best_tensors["PC1"],
             )
+
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
@@ -710,24 +750,37 @@ class GraphBuilderGeneralist(Graphbuilder):
             cv2.destroyAllWindows()
             video.release()
         
-    def _load_morph_data(self) -> list[pd.DataFrame]:
+    def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]]]:
+        def get_creation_time(tensor_file):
+            return os.path.getctime(tensors_path / tensor_file)
+        
         morph_data_dfs: list[pd.DataFrame] = []
+        best_tensors_indices: list[list[int]] = []
 
-        for folder in os.listdir(self.run_path):
-            full_path = self.run_path / folder
+        for i, _ in enumerate(self.g):
+            tensors_path = self.run_path / f"partition_{i+1}" / "gen_tensors"
+            morph_data = []
+            best_tensors_index = []
 
-            if full_path.is_dir() and folder.startswith("partition"):
-                tensors_path: Path = full_path / "gen_tensors"
-                morph_data = []
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=get_creation_time)
 
-                for tensor_file in os.listdir(tensors_path):
+            for i, tensor_file in enumerate(sorted_tensor_files):
+                if i % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path)
                     self.inds[0].setup_ant_default(params)
-                    morph_data.append(self.inds[0].mj_env.morphology.morph_params_map)
-                morph_data_dfs.append(pd.DataFrame(morph_data))
-        return morph_data_dfs
-
+                    
+                    morph_data.append({
+                        **self.inds[0].mj_env.morphology.morph_params_map,
+                        "Generation": i + 1
+                        })
+                    if tensor_file.endswith("best.pt"):
+                        best_tensors_index.append(len(morph_data) - 1)
+            
+            morph_data = pd.DataFrame(morph_data).set_index("Generation")
+            morph_data_dfs.append(morph_data)
+            best_tensors_indices.append(best_tensors_index)
+        return (morph_data_dfs, best_tensors_indices)
 
 
 class GraphBuilderSpecialist(Graphbuilder):
