@@ -93,6 +93,7 @@ def main():
     elif args.type == "combined":
         raise NotImplementedError
 
+    print("Creating graphs has finished!")
     plt.close()
 
 

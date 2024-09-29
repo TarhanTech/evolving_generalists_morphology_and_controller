@@ -81,7 +81,7 @@ def test_ant(tensor_path: Path, terrain: str, params: str):
                 raise ValueError(f"Parameter '{param}' is not a valid integer or float.") from e
 
     terrain_type: TerrainType = TERRAIN_MAP[terrain]
-    ind: Individual = Individual("cpu", (-0.1, 0.1), 100, 1000)
+    ind: Individual = Individual("cpu", (-0.1, 0.1), 1.03, 100, 1000)
     tensor_params = torch.load(tensor_path)
     if terrain_type is DefaultTerrain:
         ind.setup_ant_default(tensor_params)
