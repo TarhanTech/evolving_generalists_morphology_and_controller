@@ -14,7 +14,8 @@ from noise import pnoise2
 class MJEnv:
     """Class defining the mujoco environment, so the agent and environment."""
 
-    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float]):
+    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool):
+        self.dis_morph_evo = dis_morph_evo
         self.uid: uuid.UUID = uid
         self.terrain_env = TerrainEnv(uid)
         self.morphology = Morphology(uid, morph_params_bounds_enc)
@@ -24,32 +25,47 @@ class MJEnv:
         self.file_path_template_default = "./xml_models/ant_plain_with_keys.xml"
         self.xml_str = ""
 
-    def setup_ant_hills(self, morph_params: Tensor, floor_height: float, scale: int):
-        self.morphology.set_morph_params(morph_params)
+    def setup_ant_hills(self, floor_height: float, scale: int, morph_params: Tensor = None):
+        if self.dis_morph_evo is False and morph_params is None:
+            raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
+    
+        self.terrain_env.setup_hills(floor_height, scale)
+        
+        if self.dis_morph_evo is False:
+            self.morphology.set_morph_params(morph_params)
+            
         temp_xml_str = self._create_xml_with_morph_params(
             template_xml=self.file_path_template_hills
         )
-
-        self.terrain_env.setup_hills(floor_height, scale)
         for key, value in self.terrain_env.hills_params.items():
             temp_xml_str = temp_xml_str.replace(f"{{{key}}}", str(value))
-
         self.xml_str = temp_xml_str
 
     def setup_ant_rough(self, morph_params: Tensor, floor_height: float, block_size: int):
-        self.morphology.set_morph_params(morph_params)
+        if self.dis_morph_evo is False and morph_params is None:
+            raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
+        
+        self.terrain_env.setup_rough(floor_height, block_size)
+
+        if self.dis_morph_evo is False:
+            self.morphology.set_morph_params(morph_params)
+        
         temp_xml_str = self._create_xml_with_morph_params(
             template_xml=self.file_path_template_rough
         )
 
-        self.terrain_env.setup_rough(floor_height, block_size)
         for key, value in self.terrain_env.rough_params.items():
             temp_xml_str = temp_xml_str.replace(f"{{{key}}}", str(value))
 
         self.xml_str = temp_xml_str
 
     def setup_ant_default(self, morph_params: Tensor):
-        self.morphology.set_morph_params(morph_params)
+        if self.dis_morph_evo is False and morph_params is None:
+            raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
+        
+        if self.dis_morph_evo is False:
+            self.morphology.set_morph_params(morph_params)
+
         self.xml_str = self._create_xml_with_morph_params(
             template_xml=self.file_path_template_default
         )
@@ -170,15 +186,17 @@ class Morphology:
     leg_width_range = (0.05, 0.2)
     total_leg_width_params: int = 8
 
-    total_params: int = total_leg_length_params + total_leg_width_params
+    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool):
+        self.dis_morp_evo = dis_morph_evo
+        self.total_params: int = 0 if self.dis_morp_evo else self.total_leg_length_params + self.total_leg_width_params
 
-    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float]):
         self.uid: uuid.UUID = uid
         self.morph_params_bounds_enc: tuple[float, float] = morph_params_bounds_enc
         self.morph_params_tensor: Tensor = None
-        self.morph_params_map = None
+        self.morph_params_map = self._get_default_morph_params_map()
 
     def set_morph_params(self, morph_params: Tensor):
+        if self.dis_morp_evo == True: raise Exception(f"Morphological evolution is disabled. Setting custom morph parameters is not supported.")
         assert (
             morph_params.size(0) == self.total_params
         ), f"Expected {self.total_params} parameters, but got {morph_params.size(0)}."
@@ -205,6 +223,26 @@ class Morphology:
         assert (
             len(self.morph_params_map) == self.total_params
         ), f"Expected self.morph_params_map to have {self.total_params} elements, but has {len(self.morph_params_map)}."
+
+    def _get_default_morph_params_map(self):
+        return {
+            "aux_1_length": 0.2,
+            "ankle_1_length": 0.4,
+            "aux_2_length": 0.2,
+            "ankle_2_length": 0.4,
+            "aux_3_length": 0.2,
+            "ankle_3_length": 0.4,
+            "aux_4_length": 0.2,
+            "ankle_4_length": 0.4,
+            "aux_1_width": 0.08,
+            "ankle_1_width": 0.08,
+            "aux_2_width": 0.08,
+            "ankle_2_width": 0.08,
+            "aux_3_width": 0.08,
+            "ankle_3_width": 0.08,
+            "aux_4_width": 0.08,
+            "ankle_4_width": 0.08,
+        }
 
     def _decode_morph_params(self, morph_params: Tensor) -> Tensor:
         length_params, width_params = torch.split(

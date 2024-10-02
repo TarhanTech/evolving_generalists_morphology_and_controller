@@ -90,6 +90,30 @@ class GeneralistExperimentBase(Algo):
         self.df_gen_scores = {"Generalist Score": []}
         self.fitness_scores_dict = defaultdict(list)
 
+    def run(self):
+        """Run the experiment where you create a generalist for each partition of the environment."""
+        partitions: int = 0
+        while len(self.t.training_terrains) != 0:
+            partitions += 1
+
+            self.ff_manager.create_partition_folder(partitions)
+            self._initialize_searcher()
+
+            best_generalist, best_generalist_score = self._train(partitions)
+            p_terrains: List[TerrainType] = self._partition(best_generalist)
+
+            self.t.setup_train_on_terrain_partition(p_terrains)
+            best_generalist, _ = self._train(partitions, best_generalist, best_generalist_score)
+            self.t.restore_training_terrains()
+
+            self.e.append(p_terrains)
+            self.g.append(best_generalist)
+
+            self._dump_logs(partitions)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
+
     def _train(self, partitions, best_generalist: Tensor = None, best_generalist_score: float = float("-inf")) -> Tuple[Tensor, float]:
         num_generations_no_improvement: int = 0
 
@@ -202,30 +226,6 @@ class Experiment1(GeneralistExperimentBase):
             max_generations=5000, gen_stagnation=500, init_training_generations=2500, exp_folder_name="exp1_gen", parallel_jobs=parallel_jobs
         )
 
-    def run(self):
-        """Run the experiment where you create a generalist for each partition of the environment."""
-        partitions: int = 0
-        while len(self.t.training_terrains) != 0:
-            partitions += 1
-
-            self.ff_manager.create_partition_folder(partitions)
-            self._initialize_searcher()
-
-            best_generalist, best_generalist_score = self._train(partitions)
-            p_terrains: List[TerrainType] = self._partition(best_generalist)
-
-            self.t.setup_train_on_terrain_partition(p_terrains)
-            best_generalist, _ = self._train(partitions, best_generalist, best_generalist_score)
-            self.t.restore_training_terrains()
-
-            self.e.append(p_terrains)
-            self.g.append(best_generalist)
-
-            self._dump_logs(partitions)
-
-        self.ff_manager.save_pickle("G_var.pkl", self.g)
-        self.ff_manager.save_pickle("E_var.pkl", self.e)
-
 
 class Experiment2(GeneralistExperimentBase):
     """Class used to run the second experiment where you create one generalist for all the environments"""
@@ -241,8 +241,8 @@ class Experiment2(GeneralistExperimentBase):
 
         self.ff_manager.create_partition_folder(partitions)
         self._initialize_searcher()
-        best_generalist, best_generalist_score = self._train(partitions)
-        
+        best_generalist, _ = self._train(partitions)
+
         self.e.append(self.t.training_terrains)
         self.g.append(best_generalist)
 
@@ -279,24 +279,70 @@ class Experiment3(SpecialistExperimentBase):
         self.ff_manager.save_pickle("E_var.pkl", self.e)
 
 
-class Experiment4(Algo):
-    """Class used to run the fourth experiment where you create a specialist for each of the environments using same resources as experiment 1"""
+class Experiment4(SpecialistExperimentBase):
+    """
+    Class used to run the fourth experiment where you create a specialist for each of the environments using same resources as experiment 1
+
+    Experiment 1 lets the iterations/generations go till max 5000. We will assume this number for our calculation.
+    The problem creates a population of 23 individuals. This means we have 23 evaluations per iterations.
+    After every generation, we calculate the generalist score using the training environments (33 environments).
+
+    |evals| = (5000 * 23) + (5000 * 33) = 5000(23 + 33) = 280.000
+
+    We need 79 specialist MC-pairs.
+    |evals|/specialist =  280.000/79 = 3545 evals/specialist
+    |generation|/specialist = 3545/23 = 155 generations/specialist
+    """
 
     def __init__(self, parallel_jobs: int = 6):
-        super().__init__(parallel_jobs)
+        super().__init__(
+            max_generations=155, gen_stagnation=155, init_training_generations=155, exp_folder_name="exp4_spec", parallel_jobs=parallel_jobs
+        )
 
-        self.max_generations: int = 10000
+    def run(self):
+        """run the third experiment where you create a specialist for each of the environments"""
+        for terrain in self.t.all_terrains:
+            self.t.setup_train_on_terrain_partition([terrain])
+            self.ff_manager.create_terrain_folder(terrain)
+            self._initialize_searcher()
 
-        self.ff_manager: FFManagerGeneralist = FFManagerGeneralist("exp4_spec")
+            best_specialist = self._train(terrain)
+
+            self.e.append([terrain])
+            self.g.append(best_specialist)
+
+            self.ff_manager.save_pandas_logger_df(terrain, self.pandas_logger)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
 
 
-class Experiment5(Algo):
+class Experiment5(GeneralistExperimentBase):
     """Class used to run the fifth experiment where you create a generalist (no morphological evolution) for each partition of the environments."""
 
     def __init__(self, parallel_jobs: int = 6):
-        super().__init__(parallel_jobs)
+        super().__init__(
+            max_generations=5000, gen_stagnation=500, init_training_generations=2500, exp_folder_name="exp5_gen", parallel_jobs=parallel_jobs
+        )
 
-        self.ff_manager: FFManagerGeneralist = FFManagerGeneralist("exp5_gen")
+    def _initialize_individuals(self) -> List[Individual]:
+        return [
+            Individual(
+                self.device,
+                self.morph_params_bounds_enc,
+                self.penalty_growth_rate,
+                self.penalty_scale_factor,
+                self.penalty_scale_factor_err,
+                dis_morph_evo=True,
+            )
+            for i in range(self.parallel_jobs)
+        ]
 
-    def run(self):
-        pass
+
+class Experiment6(GeneralistExperimentBase):
+    def __init__(self, parallel_jobs):
+        super.__init__(
+            max_generations=5000, gen_stagnation=500, init_training_generations=2500, exp_folder_name="exp5_gen", parallel_jobs=parallel_jobs
+        )
+
+    
