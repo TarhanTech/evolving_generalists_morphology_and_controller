@@ -76,6 +76,7 @@ def main():
         graph_builder_gen.create_fitness_env_boxplot()
 
         graph_builder_gen.create_generalist_evaluation_graph()
+        graph_builder_gen.create_fitness_evaluation_graphs()
         graph_builder_gen.create_morph_params_plot()
         graph_builder_gen.create_morph_params_pca_scatterplot()
         graph_builder_gen.create_evolution_video()
