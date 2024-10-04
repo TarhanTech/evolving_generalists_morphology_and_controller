@@ -123,7 +123,7 @@ class TerrainEnv:
         noise_image = self._generate_noise_image(width, height, scale)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
-        terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.uid}.png"
+        terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.uid}.pdf"
         image.save(terrain_noise_file)
         self.hills_params["terrain_noise"] = os.path.abspath(terrain_noise_file)
 

@@ -24,7 +24,7 @@ def create_plot(df: pd.DataFrame, save_path: str):
     plt.legend()
     plt.grid(True)
     # Save the plot as a file
-    plt.savefig(f"{save_path}/evaluation_metrics_plot.png", dpi=300, bbox_inches="tight")
+    plt.savefig(f"{save_path}/evaluation_metrics_plot.pdf", dpi=300, bbox_inches="tight")
 
 
 def experiment1():

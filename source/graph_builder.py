@@ -137,7 +137,7 @@ class Graphbuilder(ABC):
 
         plt.tight_layout()  # Adjust layout
         plt.savefig(
-            self.run_path / "generalist_heatmap_partition.png",
+            self.run_path / "generalist_heatmap_partition.pdf",
             dpi=300,
             bbox_inches="tight",
         )
@@ -310,7 +310,7 @@ class Graphbuilder(ABC):
         )
 
         plt.tight_layout()  # Adjust layout
-        plt.savefig(self.run_path / "fitness_heatmap.png", dpi=300, bbox_inches="tight")
+        plt.savefig(self.run_path / "fitness_heatmap.pdf", dpi=300, bbox_inches="tight")
         plt.close()
 
     def create_fitness_env_boxplot(self):
@@ -335,7 +335,7 @@ class Graphbuilder(ABC):
         boxplot.set_xlabel("Environment", fontsize=14)
         boxplot.tick_params(labelsize=12)
 
-        plt.savefig(self.run_path / "fitness_boxplot.png", dpi=300, bbox_inches="tight")
+        plt.savefig(self.run_path / "fitness_boxplot.pdf", dpi=300, bbox_inches="tight")
         plt.close()
 
     def _load_g(self):
@@ -503,7 +503,7 @@ class GraphBuilderGeneralist(Graphbuilder):
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
-            self.inds[0].make_screenshot_ant(self.run_path / f"partition_{i+1}" / f"ant_{i+1}.png")
+            self.inds[0].make_screenshot_ant(self.run_path / f"partition_{i+1}" / f"ant_{i+1}.pdf")
         print("Created Ant Screenshots")
 
     def create_generalist_evaluation_graph(self):
@@ -612,25 +612,25 @@ class GraphBuilderGeneralist(Graphbuilder):
                 df_aux_width,
                 generations,
                 "Aux Leg Width",
-                folder_save_path / "aux_leg_width_plot.png",
+                folder_save_path / "aux_leg_width_plot.pdf",
             )
             _create_plot(
                 df_ankle_width,
                 generations,
                 "Ankle Leg Width",
-                folder_save_path / "ankle_leg_width_plot.png",
+                folder_save_path / "ankle_leg_width_plot.pdf",
             )
             _create_plot(
                 df_aux_length,
                 generations,
                 "Aux Leg Length",
-                folder_save_path / "aux_leg_length_plot.png",
+                folder_save_path / "aux_leg_length_plot.pdf",
             )
             _create_plot(
                 df_ankle_length,
                 generations,
                 "Ankle Leg Length",
-                folder_save_path / "ankle_leg_length_plot.png",
+                folder_save_path / "ankle_leg_length_plot.pdf",
             )
         plt.close()
 
@@ -690,7 +690,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 "Generalist Score",
                 "Principal Component Morphology",
                 "Generations",
-                folder_save_path / "one_pca_scatterplot.png",
+                folder_save_path / "one_pca_scatterplot.pdf",
                 best_x=best_tensors["Generalist Score"],
                 best_y=best_tensors["PC1"],
             )
@@ -715,7 +715,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 "2nd Principal Component Morphology",
                 "1st Principal Component Morphology",
                 "Generations",
-                folder_save_path / "two_pca_generation_scatterplot.png",
+                folder_save_path / "two_pca_generation_scatterplot.pdf",
                 best_x=best_tensors["PC2"],
                 best_y=best_tensors["PC1"],
             )
@@ -726,7 +726,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 "2nd Principal Component Morphology",
                 "1st Principal Component Morphology",
                 "Generalist Score",
-                folder_save_path / "two_pca_generalist_score_scatterplot.png",
+                folder_save_path / "two_pca_generalist_score_scatterplot.pdf",
                 best_x=best_tensors["PC2"],
                 best_y=best_tensors["PC1"],
             )
@@ -794,7 +794,7 @@ class GraphBuilderSpecialist(Graphbuilder):
     def create_ant_screenshots(self):
         for g, e in zip(self.g, self.e):
             self.inds[0].setup_ant_default(g)
-            self.inds[0].make_screenshot_ant(self.run_path / "specialist" / e[0].__str__() / f"ant.png")
+            self.inds[0].make_screenshot_ant(self.run_path / "specialist" / e[0].__str__() / f"ant.pdf")
         print("Created Ant Screenshots")
         
     def create_fitness_evaluation_graph(self):
@@ -822,7 +822,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             plt.tight_layout()
 
             plt.savefig(
-                full_folder_path / "fitness_score_metrics_plot.png",
+                full_folder_path / "fitness_score_metrics_plot.pdf",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -872,25 +872,25 @@ class GraphBuilderSpecialist(Graphbuilder):
                 df_aux_width,
                 generations,
                 "Aux Leg Width",
-                folder_save_path / "aux_leg_width_plot.png",
+                folder_save_path / "aux_leg_width_plot.pdf",
             )
             _create_plot(
                 df_ankle_width,
                 generations,
                 "Ankle Leg Width",
-                folder_save_path / "ankle_leg_width_plot.png",
+                folder_save_path / "ankle_leg_width_plot.pdf",
             )
             _create_plot(
                 df_aux_length,
                 generations,
                 "Aux Leg Length",
-                folder_save_path / "aux_leg_length_plot.png",
+                folder_save_path / "aux_leg_length_plot.pdf",
             )
             _create_plot(
                 df_ankle_length,
                 generations,
                 "Ankle Leg Length",
-                folder_save_path / "ankle_leg_length_plot.png",
+                folder_save_path / "ankle_leg_length_plot.pdf",
             )
 
     def create_morph_params_pca_scatterplot(self):
@@ -919,7 +919,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             plt.ylabel("Second Principal Component")
             plt.grid(True)
             plt.savefig(
-                folder_save_path / "pca_scatterplot.png",
+                folder_save_path / "pca_scatterplot.pdf",
                 dpi=300,
                 bbox_inches="tight",
             )
@@ -999,5 +999,5 @@ class GraphBuilderCombination:
         boxplot.set_xlabel("Experiment", fontsize=14)
         boxplot.tick_params(labelsize=10)
 
-        plt.savefig("./fitness_boxplot_experiments.png", dpi=300, bbox_inches="tight")
+        plt.savefig("./fitness_boxplot_experiments.pdf", dpi=300, bbox_inches="tight")
         plt.close()

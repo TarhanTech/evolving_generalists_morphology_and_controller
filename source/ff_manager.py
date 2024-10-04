@@ -47,7 +47,7 @@ class FFManagerGeneralist(FFManager):
     def save_screenshot_ant(self, number: int, gen: int, pop_best: torch.Tensor, ind: Individual):
         """Saves a screenshot of the ant."""
         ind.setup_ant_default(pop_best)
-        ind.make_screenshot_ant(self.root_folder / f"partition_{number}" / "screenshots" / f"ant_{gen}.png")
+        ind.make_screenshot_ant(self.root_folder / f"partition_{number}" / "screenshots" / f"ant_{gen}.pdf")
 
     def save_generalist_tensor(self, number: int, gen: int, params: torch.Tensor, new_best: bool):
         """Saves a tensor representing the parameters of the generalist model."""
@@ -84,7 +84,7 @@ class FFManagerSpecialist(FFManager):
     def save_screenshot_ant(self, terrain: TerrainType, gen: int, pop_best: torch.Tensor, ind: Individual):
         """Saves a screenshot of the ant."""
         ind.setup_ant_default(pop_best)
-        ind.make_screenshot_ant(self._get_path_to_save(terrain) / "screenshots" / f"ant_{gen}.png")
+        ind.make_screenshot_ant(self._get_path_to_save(terrain) / "screenshots" / f"ant_{gen}.pdf")
 
     def save_specialist_tensor(self, terrain: TerrainType, gen: int, params: torch.Tensor):
         """Saves a tensor representing the parameters of the generalist model."""
