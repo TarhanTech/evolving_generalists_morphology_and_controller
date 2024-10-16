@@ -15,18 +15,6 @@ from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, Terr
 from source.algo import Experiment1, Experiment2, Experiment3, Experiment4, Experiment5
 
 
-def create_plot(df: pd.DataFrame, save_path: str):
-    plt.figure(figsize=(10, 6))
-    plt.plot(df.index, df["pop_best_eval"], label="Population Best Evaluation", marker="s")
-    plt.xlabel("Generation")
-    plt.ylabel("Evaluation Values")
-    plt.title("Evaluation Metrics")
-    plt.legend()
-    plt.grid(True)
-    # Save the plot as a file
-    plt.savefig(f"{save_path}/evaluation_metrics_plot.pdf", dpi=300, bbox_inches="tight")
-
-
 def experiment1():
     """Runs experiment 1"""
     os.environ["MUJOCO_GL"] = "egl"

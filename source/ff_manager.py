@@ -22,7 +22,7 @@ class FFManager(ABC):
     """Base class for managing folder creation and file saving operations."""
 
     def __init__(self, subfolder: str):
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        date_time = datetime.now().strftime("%d-%m_%H-%M-%S-%f")
         self.root_folder: Path = Path(f"./runs/{subfolder}_{date_time}")
         self.root_folder.mkdir(parents=True, exist_ok=True)
 
