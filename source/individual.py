@@ -64,7 +64,7 @@ class Individual:
             params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
         )
         self.controller.set_nn_params(nn_params)
-        self.mj_env.setup_ant_hills(morph_params, floor_height, scale)
+        self.mj_env.setup_ant_hills(floor_height, scale, morph_params)
 
     def setup_ant_rough(self, params: Tensor, floor_height: float, block_size: int):
         """Method to initialize the individual in the rough terrain environment."""
@@ -72,7 +72,7 @@ class Individual:
             params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
         )
         self.controller.set_nn_params(nn_params)
-        self.mj_env.setup_ant_rough(morph_params, floor_height, block_size)
+        self.mj_env.setup_ant_rough(floor_height, block_size, morph_params)
 
     def setup_ant_default(self, params: Tensor):
         """Method to initialize the individual in the default terrain environment."""

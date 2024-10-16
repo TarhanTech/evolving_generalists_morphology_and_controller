@@ -18,7 +18,7 @@ class MJEnv:
         self.dis_morph_evo = dis_morph_evo
         self.uid: uuid.UUID = uid
         self.terrain_env = TerrainEnv(uid)
-        self.morphology = Morphology(uid, morph_params_bounds_enc)
+        self.morphology = Morphology(uid, morph_params_bounds_enc, dis_morph_evo)
 
         self.file_path_template_hills = "./xml_models/ant_hills_with_keys.xml"
         self.file_path_template_rough = "./xml_models/ant_rough_with_keys.xml"
@@ -30,7 +30,7 @@ class MJEnv:
             raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
     
         self.terrain_env.setup_hills(floor_height, scale)
-        
+
         if self.dis_morph_evo is False:
             self.morphology.set_morph_params(morph_params)
             
@@ -41,7 +41,7 @@ class MJEnv:
             temp_xml_str = temp_xml_str.replace(f"{{{key}}}", str(value))
         self.xml_str = temp_xml_str
 
-    def setup_ant_rough(self, morph_params: Tensor, floor_height: float, block_size: int):
+    def setup_ant_rough(self, floor_height: float, block_size: int, morph_params: Tensor = None):
         if self.dis_morph_evo is False and morph_params is None:
             raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
         
@@ -59,7 +59,7 @@ class MJEnv:
 
         self.xml_str = temp_xml_str
 
-    def setup_ant_default(self, morph_params: Tensor):
+    def setup_ant_default(self, morph_params: Tensor = None):
         if self.dis_morph_evo is False and morph_params is None:
             raise Exception(f"Morphological evolution is activated, so morph_params is expected to have a value.")
         
@@ -123,7 +123,7 @@ class TerrainEnv:
         noise_image = self._generate_noise_image(width, height, scale)
 
         image = Image.fromarray(noise_image, mode="L")  # 'L' mode is for grayscale
-        terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.uid}.pdf"
+        terrain_noise_file = f"./train_terrain_noise/generated_terrain_hills_{self.uid}.png"
         image.save(terrain_noise_file)
         self.hills_params["terrain_noise"] = os.path.abspath(terrain_noise_file)
 
@@ -197,6 +197,7 @@ class Morphology:
 
     def set_morph_params(self, morph_params: Tensor):
         if self.dis_morp_evo == True: raise Exception(f"Morphological evolution is disabled. Setting custom morph parameters is not supported.")
+
         assert (
             morph_params.size(0) == self.total_params
         ), f"Expected {self.total_params} parameters, but got {morph_params.size(0)}."
