@@ -188,61 +188,55 @@ class Morphology:
 
     def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool):
         self.dis_morp_evo = dis_morph_evo
-        self.total_params: int = 0 if self.dis_morp_evo else self.total_leg_length_params + self.total_leg_width_params
+        self.total_params: int = self.total_leg_length_params + self.total_leg_width_params
 
         self.uid: uuid.UUID = uid
         self.morph_params_bounds_enc: tuple[float, float] = morph_params_bounds_enc
-        self.morph_params_tensor: Tensor = None
-        self.morph_params_map = self._get_default_morph_params_map()
+        self.morph_params_tensor, self.morph_params_map = self._get_default_morph_params()
 
     def set_morph_params(self, morph_params: Tensor):
-        if self.dis_morp_evo == True: raise Exception(f"Morphological evolution is disabled. Setting custom morph parameters is not supported.")
+        if self.dis_morp_evo:
+            raise Exception("Morphological evolution is disabled. Setting custom morph parameters is not supported.")
 
         assert (
             morph_params.size(0) == self.total_params
         ), f"Expected {self.total_params} parameters, but got {morph_params.size(0)}."
 
         self.morph_params_tensor = self._decode_morph_params(morph_params.clone())
-        self.morph_params_map = {
-            "aux_1_length": self.morph_params_tensor[0].item(),
-            "ankle_1_length": self.morph_params_tensor[1].item(),
-            "aux_2_length": self.morph_params_tensor[2].item(),
-            "ankle_2_length": self.morph_params_tensor[3].item(),
-            "aux_3_length": self.morph_params_tensor[4].item(),
-            "ankle_3_length": self.morph_params_tensor[5].item(),
-            "aux_4_length": self.morph_params_tensor[6].item(),
-            "ankle_4_length": self.morph_params_tensor[7].item(),
-            "aux_1_width": self.morph_params_tensor[8].item(),
-            "ankle_1_width": self.morph_params_tensor[9].item(),
-            "aux_2_width": self.morph_params_tensor[10].item(),
-            "ankle_2_width": self.morph_params_tensor[11].item(),
-            "aux_3_width": self.morph_params_tensor[12].item(),
-            "ankle_3_width": self.morph_params_tensor[13].item(),
-            "aux_4_width": self.morph_params_tensor[14].item(),
-            "ankle_4_width": self.morph_params_tensor[15].item(),
-        }
+        self.morph_params_map = self._tensor_to_map(self.morph_params_tensor)
+        
         assert (
             len(self.morph_params_map) == self.total_params
         ), f"Expected self.morph_params_map to have {self.total_params} elements, but has {len(self.morph_params_map)}."
 
-    def _get_default_morph_params_map(self):
+    def _get_default_morph_params(self):
+        scalar: int = 1
+        default_values = np.array([
+            0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4,  # Lengths
+            0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08  # Widths
+        ])
+        morph_params_tensor = torch.tensor(default_values * scalar)
+        morph_params_map = self._tensor_to_map(morph_params_tensor)
+        return morph_params_tensor, morph_params_map
+
+    def _tensor_to_map(self, tensor: Tensor):
         return {
-            "aux_1_length": 0.2,
-            "ankle_1_length": 0.4,
-            "aux_2_length": 0.2,
-            "ankle_2_length": 0.4,
-            "aux_3_length": 0.2,
-            "ankle_3_length": 0.4,
-            "aux_4_length": 0.2,
-            "ankle_4_length": 0.4,
-            "aux_1_width": 0.08,
-            "ankle_1_width": 0.08,
-            "aux_2_width": 0.08,
-            "ankle_2_width": 0.08,
-            "aux_3_width": 0.08,
-            "ankle_3_width": 0.08,
-            "aux_4_width": 0.08,
-            "ankle_4_width": 0.08,
+            "aux_1_length": tensor[0].item(),
+            "ankle_1_length": tensor[1].item(),
+            "aux_2_length": tensor[2].item(),
+            "ankle_2_length": tensor[3].item(),
+            "aux_3_length": tensor[4].item(),
+            "ankle_3_length": tensor[5].item(),
+            "aux_4_length": tensor[6].item(),
+            "ankle_4_length": tensor[7].item(),
+            "aux_1_width": tensor[8].item(),
+            "ankle_1_width": tensor[9].item(),
+            "aux_2_width": tensor[10].item(),
+            "ankle_2_width": tensor[11].item(),
+            "aux_3_width": tensor[12].item(),
+            "ankle_3_width": tensor[13].item(),
+            "aux_4_width": tensor[14].item(),
+            "ankle_4_width": tensor[15].item(),
         }
 
     def _decode_morph_params(self, morph_params: Tensor) -> Tensor:

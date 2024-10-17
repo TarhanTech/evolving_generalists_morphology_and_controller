@@ -49,6 +49,7 @@ class AntProblem(Problem):
         batch_size: int = len(self.individuals)
         all_fitness = []
 
+        # uncomment to easily debugs what happens in these threads
         # self.evals(batch.values[0], self.individuals[0])
 
         for i in range(0, len(batch.values), batch_size):

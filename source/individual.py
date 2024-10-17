@@ -40,7 +40,7 @@ class Individual:
         self.device = device
         self.mj_env = MJEnv(self.uid, morph_params_bounds_enc, dis_morph_evo)
         self.controller = NeuralNetwork(self.uid).to(self.device)
-        self.params_size = self.mj_env.morphology.total_params + self.controller.total_weigths
+        self.params_size = self.controller.total_weigths + (0 if self.dis_morph_evo else self.mj_env.morphology.total_params)
         self.generation: int = 0
 
         self.train_ant_xml_folder: str = "train_ant_xml"
@@ -60,25 +60,43 @@ class Individual:
 
     def setup_ant_hills(self, params: Tensor, floor_height: float, scale: int):
         """Method to initialize the individual in the hills terrain environment."""
-        nn_params, morph_params = torch.split(
-            params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
-        )
+        nn_params: Tensor = None
+        morph_params: Tensor = None
+        if self.dis_morph_evo is True:
+            nn_params = params
+        else:
+            nn_params, morph_params = torch.split(
+                params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
+            )
+            
         self.controller.set_nn_params(nn_params)
         self.mj_env.setup_ant_hills(floor_height, scale, morph_params)
 
     def setup_ant_rough(self, params: Tensor, floor_height: float, block_size: int):
         """Method to initialize the individual in the rough terrain environment."""
-        nn_params, morph_params = torch.split(
-            params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
-        )
+        nn_params: Tensor = None
+        morph_params: Tensor = None
+        if self.dis_morph_evo is True:
+            nn_params = params
+        else:
+            nn_params, morph_params = torch.split(
+                params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
+            )
+
         self.controller.set_nn_params(nn_params)
         self.mj_env.setup_ant_rough(floor_height, block_size, morph_params)
 
     def setup_ant_default(self, params: Tensor):
         """Method to initialize the individual in the default terrain environment."""
-        nn_params, morph_params = torch.split(
-            params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
-        )
+        nn_params: Tensor = None
+        morph_params: Tensor = None
+        if self.dis_morph_evo is True:
+            nn_params = params
+        else:
+            nn_params, morph_params = torch.split(
+                params, (self.controller.total_weigths, self.mj_env.morphology.total_params)
+            )
+
         self.controller.set_nn_params(nn_params)
         self.mj_env.setup_ant_default(morph_params=morph_params)
 

@@ -7,8 +7,6 @@ from typing import List, Union
 from pathlib import Path
 import argparse
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
 import torch
 from source.individual import Individual
 from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, TerrainType

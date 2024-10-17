@@ -37,7 +37,7 @@ from source.algo import Algo
 class Graphbuilder(ABC):
     """Superclass used to create graphs for an experimental run, images and videos for the experimental runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool = False):
+    def __init__(self, run_path: Path, create_videos: bool, dis_morph_evo):
         self.run_path: Path = run_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.inds: List[Individual] = [
@@ -47,10 +47,11 @@ class Graphbuilder(ABC):
                 Algo.penalty_growth_rate,
                 Algo.penalty_scale_factor,
                 Algo.penalty_scale_factor_err,
+                dis_morph_evo
             )
-            for i in range(6)
+            for _ in range(6)
         ]
-
+        
         self.ts: TrainingSchedule = TrainingSchedule()
 
         self.g: List[torch.Tensor] = self._load_g()
@@ -396,6 +397,7 @@ class Graphbuilder(ABC):
 
         return default_df, hills_df, rt_df
 
+    # TODO: Refine this method to only consider rows  
     def _assign_testing_terrains_to_partitions(self):
         def get_neighbors(df: pd.DataFrame, row: int, col: int, range_limit: int):
             neighbors: List[int] = []
@@ -449,6 +451,8 @@ class Graphbuilder(ABC):
     def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
+        self._evaluate(terrains[0], self.inds[0], False)
+
         batch_size: int = len(self.inds)
         for i in range(0, len(terrains), batch_size):
             batch = terrains[i : i + batch_size]
@@ -492,8 +496,8 @@ class Graphbuilder(ABC):
 class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool = False):
-        super().__init__(run_path, create_videos)
+    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
+        super().__init__(run_path, create_videos, dis_morph_evo)
         self.morph_step_size = 10 
         
         x1, x2 = self._load_morph_data()

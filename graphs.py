@@ -41,6 +41,12 @@ def main():
         default=False,
         help="Enable verbose output."
     )
+    parser_generalist.add_argument(
+        "--dis_morph_evo",
+        action="store_true",
+        default=False,
+        help="Enable verbose output."
+    )
 
     parser_specialist = subparsers.add_parser(
         "specialist", help="Create graphs meant for a run path of specialist."
@@ -69,7 +75,7 @@ def main():
     
     args = parser.parse_args()
     if args.type == "generalist":
-        graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos)
+        graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos, args.dis_morph_evo)
         graph_builder_gen.create_ant_screenshots()
         graph_builder_gen.create_generalist_heatmap_partition()
         graph_builder_gen.create_fitness_heatmap()
