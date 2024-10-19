@@ -507,7 +507,7 @@ class GraphBuilderGeneralist(Graphbuilder):
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
-            self.inds[0].make_screenshot_ant(self.run_path / f"partition_{i+1}" / f"ant_{i+1}.pdf")
+            self.inds[0].make_screenshot_ant(self.run_path / f"partition_{i+1}" / f"ant_{i+1}.png")
         print("Created Ant Screenshots")
 
     def create_generalist_evaluation_graph(self):
@@ -738,17 +738,21 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
+        def get_creation_time(image_file):
+            return os.path.getctime(images_folder / image_file)
+        
         for i in range(len(self.g)):
             partition_folder: Path = self.run_path / f"partition_{i+1}"
             images_folder: Path = partition_folder / "screenshots"
-            images = [img for img in os.listdir(images_folder)]
-            frame = cv2.imread(images_folder / images[0])
+            sorted_image_files = sorted(os.listdir(images_folder), key=get_creation_time)
+
+            frame = cv2.imread(str(images_folder / sorted_image_files[0]))
             height, width, layers = frame.shape
 
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             video = cv2.VideoWriter(partition_folder / "evolution_video.mp4", fourcc, 30, (width, height))
 
-            for image in images:
+            for image in sorted_image_files:
                 video.write(cv2.imread(os.path.join(images_folder, image)))
 
             cv2.destroyAllWindows()
@@ -798,7 +802,7 @@ class GraphBuilderSpecialist(Graphbuilder):
     def create_ant_screenshots(self):
         for g, e in zip(self.g, self.e):
             self.inds[0].setup_ant_default(g)
-            self.inds[0].make_screenshot_ant(self.run_path / "specialist" / e[0].__str__() / f"ant.pdf")
+            self.inds[0].make_screenshot_ant(self.run_path / "specialist" / e[0].__str__() / f"ant.png")
         print("Created Ant Screenshots")
         
     def create_fitness_evaluation_graph(self):

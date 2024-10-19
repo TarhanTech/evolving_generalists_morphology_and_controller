@@ -337,12 +337,3 @@ class Experiment5(GeneralistExperimentBase):
             )
             for i in range(self.parallel_jobs)
         ]
-
-
-class Experiment6(GeneralistExperimentBase):
-    def __init__(self, parallel_jobs):
-        super.__init__(
-            max_generations=5000, gen_stagnation=500, init_training_generations=2500, exp_folder_name="exp5_gen", parallel_jobs=parallel_jobs
-        )
-
-    
