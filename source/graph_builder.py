@@ -5,10 +5,11 @@ import json
 from pathlib import Path
 import pickle
 from typing import List, Tuple
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
-from matplotlib.backends.backend_pdf import PdfPages
+from PIL import Image
 import pandas as pd
 import seaborn as sns
 import joblib
@@ -501,9 +502,10 @@ class GraphBuilderGeneralist(Graphbuilder):
         super().__init__(run_path, create_videos, dis_morph_evo)
         self.morph_step_size = 10 
         
-        x1, x2 = self._load_morph_data()
+        x1, x2, x3 = self._load_morph_data()
         self.morph_data_dfs: list[pd.DataFrame] = x1
         self.best_tensors_indices: list[list[int]] = x2
+        self.best_images = x3
         
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
@@ -653,29 +655,66 @@ class GraphBuilderGeneralist(Graphbuilder):
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
 
-        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path, best_x=None, best_y=None):
-            plt.figure(figsize=(8, 6))
+        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path, best_x=None, best_y=None, images=None):
+            # Create a figure with extended width to accommodate the images
+            fig, ax = plt.subplots(figsize=(10, 6))  # Increased width to make room for images on the right
 
-            scatter = plt.scatter(
-                x=x,
-                y=y,
-                c=c,
-                cmap="viridis",
-            )
+            # Create scatter plot
+            scatter = ax.scatter(x=x, y=y, c=c, cmap="viridis")
             plt.colorbar(scatter, label=c_label)
 
+            # Plot the line if best_x and best_y are provided
             if best_x is not None and best_y is not None:
-                plt.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
-                plt.legend()
+                ax.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
+                ax.legend()
 
+                # Extend the x-axis limits to make room for the images outside the plot
+                xlim = ax.get_xlim()
+                ax.set_xlim(xlim[0], xlim[1] + (xlim[1] - xlim[0]) * 0.3)  # Extend the x-axis to the right
+
+                # Add 5 evenly spread images from the list if provided
+                if images is not None:
+                    num_images = min(len(best_x), len(images))  # Get the minimum between points and images
+                    indices = np.round(np.linspace(0, num_images - 1, 5)).astype(int)  # 5 evenly spaced indices
+
+                    # Calculate vertical positions for the images (evenly spaced)
+                    image_y_positions = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 5)
+
+                    for idx, i in enumerate(indices):
+                        x_coord = best_x.iloc[i] if hasattr(best_x, 'iloc') else best_x[i]
+                        y_coord = best_y.iloc[i] if hasattr(best_y, 'iloc') else best_y[i]
+
+                        # Position the image to the right, at a fixed horizontal location
+                        x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.2  # Fixed offset to the right of the plot
+                        y_offset = image_y_positions[idx]  # Vertically aligned based on index
+
+                        # Place the image
+                        img = OffsetImage(images[i], zoom=0.2)
+                        ab = AnnotationBbox(img, (x_offset, y_offset), frameon=False, clip_on=False)
+                        ax.add_artist(ab)
+
+                        # Draw the arrow from the scatter point to the image
+                        ax.annotate(
+                            '',
+                            xy=(x_coord, y_coord),
+                            xytext=(x_offset, y_offset),
+                            arrowprops=dict(color='black', arrowstyle='->')
+                        )
+
+            # Set labels and grid
             plt.xlabel(x_label)
             plt.ylabel(y_label)
             plt.grid(True)
+
+            # Save the figure with padding to ensure images outside the plot are visible
             plt.savefig(
                 save_path,
                 dpi=300,
                 bbox_inches="tight",
+                pad_inches=0.5  # Add padding to ensure all elements are visible
             )
+
+            # Close the plot to free memory
             plt.close()
 
         for i, df in enumerate(self.morph_data_dfs):
@@ -709,6 +748,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 folder_save_path / "one_pca_scatterplot.pdf",
                 best_x=best_tensors["Generalist Score"],
                 best_y=best_tensors["PC1"],
+                images=self.best_images[i]
             )
 
             # PCA with 2 components for the second scatterplot
@@ -734,6 +774,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 folder_save_path / "two_pca_generation_scatterplot.pdf",
                 best_x=best_tensors["PC2"],
                 best_y=best_tensors["PC1"],
+                images=self.best_images[i]
             )
             create_scatter_plot(
                 df_pca["PC2"],
@@ -745,6 +786,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                 folder_save_path / "two_pca_generalist_score_scatterplot.pdf",
                 best_x=best_tensors["PC2"],
                 best_y=best_tensors["PC1"],
+                images=self.best_images[i]
             )
 
     def create_evolution_video(self):
@@ -775,32 +817,35 @@ class GraphBuilderGeneralist(Graphbuilder):
         
         morph_data_dfs: list[pd.DataFrame] = []
         best_tensors_indices: list[list[int]] = []
+        best_images_part = []
 
         for i, _ in enumerate(self.g):
             tensors_path = self.run_path / f"partition_{i+1}" / "gen_tensors"
             morph_data = []
             best_tensors_index = []
+            best_images = []
 
             sorted_tensor_files = sorted(os.listdir(tensors_path), key=get_creation_time)
 
-            for i, tensor_file in enumerate(sorted_tensor_files):
-                if i % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
+            for j, tensor_file in enumerate(sorted_tensor_files):
+                if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path)
                     self.inds[0].setup_ant_default(params)
                     
                     morph_data.append({
                         **self.inds[0].mj_env.morphology.morph_params_map,
-                        "Generation": i + 1
+                        "Generation": j + 1
                         })
                     if tensor_file.endswith("best.pt"):
                         best_tensors_index.append(len(morph_data) - 1)
+                        best_images.append(Image.open(self.run_path / f"partition_{i+1}" / "screenshots" / f"ant_{j+1}.png"))
             
             morph_data = pd.DataFrame(morph_data).set_index("Generation")
             morph_data_dfs.append(morph_data)
             best_tensors_indices.append(best_tensors_index)
-        return (morph_data_dfs, best_tensors_indices)
-
+            best_images_part.append(best_images)
+        return (morph_data_dfs, best_tensors_indices, best_images_part)
 
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
