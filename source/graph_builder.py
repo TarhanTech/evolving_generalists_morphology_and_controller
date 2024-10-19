@@ -397,19 +397,20 @@ class Graphbuilder(ABC):
 
         return default_df, hills_df, rt_df
 
-    # TODO: Refine this method to only consider rows  
     def _assign_testing_terrains_to_partitions(self):
         def get_neighbors(df: pd.DataFrame, row: int, col: int, range_limit: int):
             neighbors: List[int] = []
             rows, cols = df.shape
+
+            # Look only to the left and right within the range limit
             for x in range(-range_limit, range_limit + 1):
-                for y in range(-range_limit, range_limit + 1):
-                    if x == 0 and y == 0:
-                        continue  # Skip the current cell
-                    if 0 <= row + x < rows and 0 <= col + y < cols:
-                        neighbor_value = df.iloc[row + x, col + y]
-                        if not pd.isna(neighbor_value):
-                            neighbors.append(int(neighbor_value))
+                if x == 0:
+                    continue  # Skip the current cell
+                if 0 <= col + x < cols:
+                    neighbor_value = df.iloc[row, col + x]
+                    if not pd.isna(neighbor_value):
+                        neighbors.append(int(neighbor_value))
+
             return neighbors
 
         def fill_based_on_neighbors(df: pd.DataFrame, terrain_class: TerrainType):
@@ -518,11 +519,22 @@ class GraphBuilderGeneralist(Graphbuilder):
             gen_score_df.set_index("Generation", inplace=True)
             plt.figure(figsize=(12, 6))
 
+            # Plot the generalist score line
             plt.plot(
                 gen_score_df.index,
                 gen_score_df["Generalist Score"],
                 label="Generalist Score",
                 marker="o",
+            )
+
+            # Calculate and plot the maximum increasing line
+            max_values = gen_score_df["Generalist Score"].cummax()
+            plt.plot(
+                gen_score_df.index,
+                max_values,
+                label="Maximum Increasing Line",
+                linestyle="-",
+                color="red",
             )
 
             plt.xlabel("Generation")
@@ -734,7 +746,6 @@ class GraphBuilderGeneralist(Graphbuilder):
                 best_x=best_tensors["PC2"],
                 best_y=best_tensors["PC1"],
             )
-
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
