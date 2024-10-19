@@ -41,6 +41,7 @@ class Graphbuilder(ABC):
     def __init__(self, run_path: Path, create_videos: bool, dis_morph_evo):
         self.run_path: Path = run_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.dis_morph_evo = dis_morph_evo
         self.inds: List[Individual] = [
             Individual(
                 self.device,
@@ -502,10 +503,11 @@ class GraphBuilderGeneralist(Graphbuilder):
         super().__init__(run_path, create_videos, dis_morph_evo)
         self.morph_step_size = 10 
         
-        x1, x2, x3 = self._load_morph_data()
-        self.morph_data_dfs: list[pd.DataFrame] = x1
-        self.best_tensors_indices: list[list[int]] = x2
-        self.best_images = x3
+        if dis_morph_evo is False:
+            x1, x2, x3 = self._load_morph_data()
+            self.morph_data_dfs: list[pd.DataFrame] = x1
+            self.best_tensors_indices: list[list[int]] = x2
+            self.best_images = x3
         
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
@@ -588,6 +590,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_morph_params_plot(self):
         """Method that creates graphs showing the change of morphological parameters over the generations"""
+        if self.dis_morph_evo: return
 
         def _create_plot(df: pd.DataFrame, generations, ylabel, save_path):
             plt.figure(figsize=(20, 4))
@@ -654,6 +657,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_morph_params_pca_scatterplot(self):
         """Method that creates a scatterplot of the morphological parameters which are reduced using PCA, showing the change in morphology over generations"""
+        if self.dis_morph_evo: return
 
         def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path, best_x=None, best_y=None, images=None):
             # Create a figure with extended width to accommodate the images
@@ -670,7 +674,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
                 # Extend the x-axis limits to make room for the images outside the plot
                 xlim = ax.get_xlim()
-                ax.set_xlim(xlim[0], xlim[1] + (xlim[1] - xlim[0]) * 0.3)  # Extend the x-axis to the right
+                ax.set_xlim(xlim[0], xlim[1] + (xlim[1] - xlim[0]) * 0.6)  # Extend the x-axis to the right
 
                 # Add 5 evenly spread images from the list if provided
                 if images is not None:
@@ -685,7 +689,7 @@ class GraphBuilderGeneralist(Graphbuilder):
                         y_coord = best_y.iloc[i] if hasattr(best_y, 'iloc') else best_y[i]
 
                         # Position the image to the right, at a fixed horizontal location
-                        x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.2  # Fixed offset to the right of the plot
+                        x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.5  # Fixed offset to the right of the plot
                         y_offset = image_y_positions[idx]  # Vertically aligned based on index
 
                         # Place the image
@@ -706,12 +710,10 @@ class GraphBuilderGeneralist(Graphbuilder):
             plt.ylabel(y_label)
             plt.grid(True)
 
-            # Save the figure with padding to ensure images outside the plot are visible
             plt.savefig(
                 save_path,
                 dpi=300,
                 bbox_inches="tight",
-                pad_inches=0.5  # Add padding to ensure all elements are visible
             )
 
             # Close the plot to free memory
