@@ -813,7 +813,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             cv2.destroyAllWindows()
             video.release()
         
-    def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]]]:
+    def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]], list]:
         def get_creation_time(tensor_file):
             return os.path.getctime(tensors_path / tensor_file)
         
