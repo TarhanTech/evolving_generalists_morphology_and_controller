@@ -262,7 +262,7 @@ class Experiment3(SpecialistExperimentBase):
 
     def run(self):
         """run the third experiment where you create a specialist for each of the environments"""
-        terrains_to_create_specialist = self.t.all_terrains[0::10]
+        terrains_to_create_specialist = self._load_terrains_to_create_specialists()
         for terrain in terrains_to_create_specialist:
             self.t.setup_train_on_terrain_partition([terrain])
             self.ff_manager.create_terrain_folder(terrain)
@@ -278,6 +278,33 @@ class Experiment3(SpecialistExperimentBase):
         self.ff_manager.save_pickle("G_var.pkl", self.g)
         self.ff_manager.save_pickle("E_var.pkl", self.e)
 
+    def _load_terrains_to_create_specialists(self):
+        return [
+            HillsTerrain(2.2, 5),
+            HillsTerrain(3.0, 5),
+            HillsTerrain(3.8, 5),
+            HillsTerrain(2.2, 10),
+            HillsTerrain(3.0, 10),
+            HillsTerrain(3.8, 10),
+            HillsTerrain(2.2, 15),
+            HillsTerrain(3.0, 15),
+            HillsTerrain(3.8, 15),
+            HillsTerrain(2.2, 20),
+            HillsTerrain(3.0, 20),
+            HillsTerrain(3.8, 20),
+            RoughTerrain(0.1, 1),
+            RoughTerrain(0.5, 1),
+            RoughTerrain(0.9, 1),
+            RoughTerrain(0.1, 2),
+            RoughTerrain(0.5, 2),
+            RoughTerrain(0.9, 2),
+            RoughTerrain(0.1, 3),
+            RoughTerrain(0.5, 3),
+            RoughTerrain(0.9, 3),
+            RoughTerrain(0.1, 4),
+            RoughTerrain(0.5, 4),
+            RoughTerrain(0.9, 4),
+        ]
 
 class Experiment4(SpecialistExperimentBase):
     """
