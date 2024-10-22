@@ -67,6 +67,8 @@ class Graphbuilder(ABC):
         self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
+        self._change_folder_name()
+        
     @abstractmethod
     def create_ant_screenshots(self):
         """Method that creates photos of the ants morphology in the environment"""
@@ -495,6 +497,26 @@ class Graphbuilder(ABC):
         fitness_mean = fitness_sum / self._evaluation_count
         return (terrain, fitness_mean)
 
+    def _change_folder_name(self):
+        fitness_only = np.array([x[1] for x in self.env_fitnesses])
+        mean_fitness = round(np.mean(fitness_only))
+
+        run_path_str = str(self.run_path)
+    
+        if 'gen_' in run_path_str:
+            prefix, suffix = run_path_str.split('gen_')
+            suffix = '_'.join(suffix.split('_')[1:])
+            new_run_path = Path(prefix + f"gen_{mean_fitness}_" + suffix)
+        elif 'spec_' in run_path_str:
+            prefix, suffix = run_path_str.split('spec_')
+            suffix = '_'.join(suffix.split('_')[1:])
+            new_run_path = Path(prefix + f"spec_{mean_fitness}_" + suffix)
+        else:
+            new_run_path = Path(f"{run_path_str}_{mean_fitness}")
+        
+        self.run_path.rename(new_run_path)
+        self.run_path = new_run_path
+        
 
 class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
@@ -848,6 +870,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_tensors_indices.append(best_tensors_index)
             best_images_part.append(best_images)
         return (morph_data_dfs, best_tensors_indices, best_images_part)
+
 
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
