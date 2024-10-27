@@ -279,7 +279,7 @@ class Experiment3(SpecialistExperimentBase):
         self.ff_manager.save_pickle("E_var.pkl", self.e)
 
     def _load_terrains_to_create_specialists(self):
-         return self.t.all_terrains # [
+        return self.t.all_terrains # [
         #     HillsTerrain(2.2, 5),
         #     HillsTerrain(3.0, 5),
         #     HillsTerrain(3.8, 5),

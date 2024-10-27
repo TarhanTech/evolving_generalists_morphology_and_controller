@@ -86,9 +86,10 @@ class FFManagerSpecialist(FFManager):
         ind.setup_ant_default(pop_best)
         ind.make_screenshot_ant(self._get_path_to_save(terrain) / "screenshots" / f"ant_{gen}.png")
 
-    def save_specialist_tensor(self, terrain: TerrainType, gen: int, params: torch.Tensor):
+    def save_specialist_tensor(self, terrain: TerrainType, gen: int, params: torch.Tensor, new_best: bool):
         """Saves a tensor representing the parameters of the generalist model."""
-        torch.save(params, self._get_path_to_save(terrain) / "gen_tensors" / f"tensor_{gen}.pt")
+        tensor_filename = f"tensor_{gen}_best.pt" if new_best else f"tensor_{gen}.pt"
+        torch.save(params, self._get_path_to_save(terrain) / "gen_tensors" / tensor_filename)
 
     def save_pandas_logger_df(self, terrain: TerrainType, pandas_logger: PandasLogger):
         """Saves the DataFrame of the pandas logger of evotorch containing mean, best and median scores to a CSV file."""

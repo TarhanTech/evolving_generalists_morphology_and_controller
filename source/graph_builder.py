@@ -44,7 +44,7 @@ from source.algo import Algo
 class Graphbuilder(ABC):
     """Superclass used to create graphs for an experimental run, images and videos for the experimental runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool, dis_morph_evo):
+    def __init__(self, run_path: Path, dis_morph_evo):
         self.run_path: Path = run_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dis_morph_evo = dis_morph_evo
@@ -66,7 +66,7 @@ class Graphbuilder(ABC):
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
-        self._evaluation_count: int = 50
+        self._evaluation_count: int = 1
         
     @abstractmethod
     def create_ant_screenshots(self):
@@ -523,7 +523,7 @@ class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
 
     def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
-        super().__init__(run_path, create_videos, dis_morph_evo)
+        super().__init__(run_path, dis_morph_evo)
         self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
         self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
@@ -823,13 +823,10 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
-        def get_creation_time(image_file):
-            return os.path.getctime(images_folder / image_file)
-        
         for i in range(len(self.g)):
             partition_folder: Path = self.run_path / f"partition_{i+1}"
             images_folder: Path = partition_folder / "screenshots"
-            sorted_image_files = sorted(os.listdir(images_folder), key=get_creation_time)
+            sorted_image_files = sorted(os.listdir(images_folder), key=lambda file: get_creation_time(file, images_folder))
 
             frame = cv2.imread(str(images_folder / sorted_image_files[0]))
             height, width, layers = frame.shape
@@ -844,9 +841,6 @@ class GraphBuilderGeneralist(Graphbuilder):
             video.release()
         
     def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]], list]:
-        def get_creation_time(tensor_file):
-            return os.path.getctime(tensors_path / tensor_file)
-        
         morph_data_dfs: list[pd.DataFrame] = []
         best_tensors_indices: list[list[int]] = []
         best_images_part = []
@@ -857,7 +851,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_tensors_index = []
             best_images = []
 
-            sorted_tensor_files = sorted(os.listdir(tensors_path), key=get_creation_time)
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensor_path))
 
             for j, tensor_file in enumerate(sorted_tensor_files):
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
@@ -883,8 +877,8 @@ class GraphBuilderGeneralist(Graphbuilder):
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool = False):
-        super().__init__(run_path, create_videos)
+    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
+        super().__init__(run_path, dis_morph_evo)
 
         self.ts.training_terrains = self.ts.all_terrains
         self.ts.testing_terrains = []
@@ -896,7 +890,12 @@ class GraphBuilderSpecialist(Graphbuilder):
         self._change_folder_name()
         self._print_run_data()
 
-        self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
+        self.morph_step_size = 10 
+
+        x1, x2, x3 = self._load_morph_data()
+        self.morph_data_dfs: list[pd.DataFrame] = x1
+        self.best_tensors_indices: list[list[int]] = x2
+        self.best_images = x3
 
     def create_ant_screenshots(self):
         for g, e in zip(self.g, self.e):
@@ -957,8 +956,10 @@ class GraphBuilderSpecialist(Graphbuilder):
             plt.savefig(save_path)
             plt.close()
 
-        for df, folder in zip(self.morph_data_dfs, os.listdir(self.run_path / "specialists")):
-            folder_save_path: Path = self.run_path / "specialists" / folder / "morph_params_evolution_plots"
+        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+
+        for df, folder in zip(self.morph_data_dfs, spec_folders):
+            folder_save_path: Path = self.run_path / "specialist" / folder / "morph_params_evolution_plots"
             os.makedirs(folder_save_path, exist_ok=True)
 
             width_columns = [col for col in df.columns if "width" in col]
@@ -1001,36 +1002,139 @@ class GraphBuilderSpecialist(Graphbuilder):
             )
 
     def create_morph_params_pca_scatterplot(self):
-        for df, folder in zip(self.morph_data_dfs, os.listdir(self.run_path / "specialists")):
-            folder_save_path: str = self.run_path / "specialists" / folder
-            scaler: StandardScaler = StandardScaler()
-            df_scaled = scaler.fit_transform(df)
+        def create_scatter_plot(x, y, c, x_label, y_label, c_label, save_path, best_x=None, best_y=None, images=None):
+            # Create a figure with extended width to accommodate the images
+            fig, ax = plt.subplots(figsize=(10, 6))  # Increased width to make room for images on the right
 
-            pca = PCA(n_components=2)
-            pca_components = pca.fit_transform(df_scaled)
+            # Create scatter plot
+            scatter = ax.scatter(x=x, y=y, c=c, cmap="viridis")
+            plt.colorbar(scatter, label=c_label)
 
-            df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
-            df_pca["generations"] = range(1, len(df_pca) + 1)
+            # Plot the line if best_x and best_y are provided
+            if best_x is not None and best_y is not None:
+                ax.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
+                ax.legend()
 
-            plt.figure(figsize=(8, 6))
+                # Extend the x-axis limits to make room for the images outside the plot
+                xlim = ax.get_xlim()
+                ax.set_xlim(xlim[0], xlim[1] + (xlim[1] - xlim[0]) * 0.6)  # Extend the x-axis to the right
 
-            scatter = plt.scatter(
-                df_pca["PC1"],
-                df_pca["PC2"],
-                c=df_pca["generations"],
-                cmap="viridis",
-            )
-            plt.colorbar(scatter, label="Generation Year")
+                # Add 5 evenly spread images from the list if provided
+                if images is not None:
+                    num_images = min(len(best_x), len(images))  # Get the minimum between points and images
+                    indices = np.round(np.linspace(0, num_images - 1, 5)).astype(int)  # 5 evenly spaced indices
 
-            plt.xlabel("First Principal Component")
-            plt.ylabel("Second Principal Component")
+                    # Calculate vertical positions for the images (evenly spaced)
+                    image_y_positions = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 5)
+
+                    for idx, i in enumerate(indices):
+                        x_coord = best_x.iloc[i] if hasattr(best_x, 'iloc') else best_x[i]
+                        y_coord = best_y.iloc[i] if hasattr(best_y, 'iloc') else best_y[i]
+
+                        # Position the image to the right, at a fixed horizontal location
+                        x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.5  # Fixed offset to the right of the plot
+                        y_offset = image_y_positions[idx]  # Vertically aligned based on index
+
+                        # Place the image
+                        img = OffsetImage(images[i], zoom=0.2)
+                        ab = AnnotationBbox(img, (x_offset, y_offset), frameon=False, clip_on=False)
+                        ax.add_artist(ab)
+
+                        # Draw the arrow from the scatter point to the image
+                        ax.annotate(
+                            '',
+                            xy=(x_coord, y_coord),
+                            xytext=(x_offset, y_offset),
+                            arrowprops=dict(color='black', arrowstyle='->')
+                        )
+
+            # Set labels and grid
+            plt.xlabel(x_label)
+            plt.ylabel(y_label)
             plt.grid(True)
+
             plt.savefig(
-                folder_save_path / "pca_scatterplot.pdf",
+                save_path,
                 dpi=300,
                 bbox_inches="tight",
             )
+
+            # Close the plot to free memory
             plt.close()
+
+        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+
+        for i, df, folder in enumerate(zip(self.morph_data_dfs, spec_folders)):
+            pandas_logger_df = pd.read_csv(self.run_path / "specialist" / folder / "pandas_logger_df.csv")
+            folder_save_path: str = self.run_path / "specialist" / folder / "pca_plots"
+            os.makedirs(folder_save_path, exist_ok=True)
+
+            scaler: StandardScaler = StandardScaler()
+            df_scaled = scaler.fit_transform(df)
+
+            pca = PCA(n_components=1)
+            pca_components = pca.fit_transform(df_scaled)
+            df_pca = pd.DataFrame(pca_components, columns=["PC1"])
+            df_pca["Generation"] = df.index
+
+            gen_scores = []
+            for j in df.index.to_list():
+                gen_scores.append(pandas_logger_df.loc[j - 1, "Fitness Score"])
+            df_pca["Fitness Score"] = gen_scores
+
+            best_indices = self.best_tensors_indices[i] 
+            best_tensors = df_pca.iloc[best_indices]
+
+            create_scatter_plot(
+                df_pca["Fitness Score"],
+                df_pca["PC1"],
+                df_pca["Generation"],
+                "Fitness Score",
+                "Principal Component Morphology",
+                "Generations",
+                folder_save_path / "one_pca_scatterplot.pdf",
+                best_x=best_tensors["Fitness Score"],
+                best_y=best_tensors["PC1"],
+                images=self.best_images[i]
+            )
+
+            # PCA with 2 components for the second scatterplot
+            pca = PCA(n_components=2)
+            pca_components = pca.fit_transform(df_scaled)
+            df_pca = pd.DataFrame(pca_components, columns=["PC1", "PC2"])
+            df_pca["Generation"] = df.index
+
+            gen_scores = []
+            for j in df.index.to_list():
+                gen_scores.append(pandas_logger_df.loc[j - 1, "Fitness Score"])
+            df_pca["Fitness Score"] = gen_scores
+
+            best_tensors = df_pca.iloc[best_indices]
+
+            create_scatter_plot(
+                df_pca["PC2"],
+                df_pca["PC1"],
+                df_pca["Generation"],
+                "2nd Principal Component Morphology",
+                "1st Principal Component Morphology",
+                "Generations",
+                folder_save_path / "two_pca_generation_scatterplot.pdf",
+                best_x=best_tensors["PC2"],
+                best_y=best_tensors["PC1"],
+                images=self.best_images[i]
+            )
+            create_scatter_plot(
+                df_pca["PC2"],
+                df_pca["PC1"],
+                df_pca["Fitness Score"],
+                "2nd Principal Component Morphology",
+                "1st Principal Component Morphology",
+                "Fitness Score",
+                folder_save_path / "two_pca_fitness_score_scatterplot.pdf",
+                best_x=best_tensors["PC2"],
+                best_y=best_tensors["PC1"],
+                images=self.best_images[i]
+            )
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
@@ -1050,23 +1154,38 @@ class GraphBuilderSpecialist(Graphbuilder):
             cv2.destroyAllWindows()
             video.release()
 
-    def _load_morph_data(self) -> list[list[pd.DataFrame]]:
+    def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]], list]:
         morph_data_dfs: list[pd.DataFrame] = []
+        best_tensors_indices: list[list[int]] = []
+        best_images_part = []
 
-        for folder in os.listdir(self.run_path / "specialist"):
-            full_path = self.run_path / "specialist" / folder
+        for folder in sorted(os.listdir(self.run_path / "specialist"), key=get_creation_time):
+            tensors_path = self.run_path / "specialist" / folder / "gen_tensors"
+            morph_data = []
+            best_tensors_index = []
+            best_images = []
 
-            if full_path.is_dir():
-                tensors_path: Path = full_path / "gen_tensors"
-                morph_data = []
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensors_path))
 
-                for tensor_file in os.listdir(tensors_path):
+            for j, tensor_file in enumerate(sorted_tensor_files):
+                if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path)
                     self.inds[0].setup_ant_default(params)
-                    morph_data.append(self.inds[0].mj_env.morphology.morph_params_map)
-                morph_data_dfs.append(pd.DataFrame(morph_data))
-        return morph_data_dfs
+                    
+                    morph_data.append({
+                        **self.inds[0].mj_env.morphology.morph_params_map,
+                        "Generation": j + 1
+                        })
+                    if tensor_file.endswith("best.pt"):
+                        best_tensors_index.append(len(morph_data) - 1)
+                        best_images.append(Image.open(self.run_path / "specialist" / folder / "screenshots" / f"ant_{j+1}.png"))
+            
+            morph_data = pd.DataFrame(morph_data).set_index("Generation")
+            morph_data_dfs.append(morph_data)
+            best_tensors_indices.append(best_tensors_index)
+            best_images_part.append(best_images)
+        return (morph_data_dfs, best_tensors_indices, best_images_part)
 
 # TODO: When all experiments are established in algo.py. Finish this class
 class GraphBuilderCombination:
@@ -1108,3 +1227,7 @@ class GraphBuilderCombination:
 
         plt.savefig("./fitness_boxplot_experiments.pdf", dpi=300, bbox_inches="tight")
         plt.close()
+
+
+def get_creation_time(file, path):
+    return os.path.getctime(path / file)

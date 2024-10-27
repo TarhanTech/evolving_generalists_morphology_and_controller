@@ -41,13 +41,13 @@ def main():
         "--videos",
         action="store_true",
         default=False,
-        help="Enable verbose output."
+        help="CReate videos"
     )
     parser_generalist.add_argument(
         "--dis_morph_evo",
         action="store_true",
         default=False,
-        help="Enable verbose output."
+        help=""
     )
 
     parser_specialist = subparsers.add_parser(
@@ -64,6 +64,12 @@ def main():
         action="store_true",
         default=False,
         help="Enable verbose output."
+    )
+    parser_specialist.add_argument(
+        "--dis_morph_evo",
+        action="store_true",
+        default=False,
+        help=""
     )
 
     parser_combined = subparsers.add_parser("combined", help="Create combined graphs to compare results from different experiments.")
@@ -89,15 +95,15 @@ def main():
         graph_builder_gen.create_morph_params_pca_scatterplot()
         graph_builder_gen.create_evolution_video()
     elif args.type == "specialist":
-        graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos)
+        graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos, args.dis_morph_evo)
         graph_builder_spec.create_ant_screenshots()
         graph_builder_spec.create_generalist_heatmap_partition()
         graph_builder_spec.create_fitness_heatmap()
         graph_builder_spec.create_fitness_env_boxplot()
 
         graph_builder_spec.create_fitness_evaluation_graph()
-        # graph_builder_spec.create_morph_params_plot()
-        # graph_builder_spec.create_morph_params_pca_scatterplot()
+        graph_builder_spec.create_morph_params_plot()
+        graph_builder_spec.create_morph_params_pca_scatterplot()
         graph_builder_spec.create_evolution_video()
     elif args.type == "combined":
         raise NotImplementedError
