@@ -323,7 +323,7 @@ class Experiment4(SpecialistExperimentBase):
 
     def __init__(self, parallel_jobs: int = 6):
         super().__init__(
-            max_generations=155, gen_stagnation=155, init_training_generations=155, exp_folder_name="exp4_spec", parallel_jobs=parallel_jobs
+            max_generations=150, gen_stagnation=150, init_training_generations=150, exp_folder_name="exp4_spec", parallel_jobs=parallel_jobs
         )
 
     def run(self):
