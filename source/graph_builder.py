@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
 from PIL import Image
-from threading import Lock
 import pandas as pd
 import seaborn as sns
 import joblib
 import numpy as np
-from sympy import false
 import torch
+from torch import Tensor
+import threading
 import cv2
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -57,23 +57,23 @@ class Graphbuilder(ABC):
                 Algo.penalty_scale_factor_err,
                 dis_morph_evo
             )
-            for _ in range(6)
+            for _ in range(10)
         ]
         
         self.ts: TrainingSchedule = TrainingSchedule()
 
-        self.e_lock = Lock()
-        self.g: List[torch.Tensor] = self._load_g()
+        self.g: List[Tensor] = self._load_g()
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
-        self._evaluation_count: int = 1
+        self._evaluation_count: int = 50
 
-        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
-        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, 1, create_videos)
+        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, len(self.inds), create_videos)
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
         self._change_folder_name()
+        self._print_run_data()
         
     @abstractmethod
     def create_ant_screenshots(self):
@@ -407,65 +407,82 @@ class Graphbuilder(ABC):
 
         return default_df, hills_df, rt_df
 
-    def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
+    def _evaluate_envs(self, terrains: List[TerrainType], batch_size: int, create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
-        # self._evaluate(terrains[0], self.inds[0], False)
-
-        batch_size: int = 1
-        for i in range(0, len(terrains), batch_size):
-            batch = terrains[i : i + batch_size]
-            tasks = (joblib.delayed(self._evaluate)(terrain, ind, create_videos) for terrain, ind in zip(batch, self.inds))
-            batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
-            env_fitnesses.extend(batch_fitness)
-
+        for terrain in terrains:
+            env_fitness = self._evaluate(terrain, create_videos)
+            env_fitnesses.append(env_fitness)
         return env_fitnesses
 
-    def _evaluate(self, terrain, ind: Individual, create_videos: bool):
-        def eval(terrain, params, create_videos):
+    def _evaluate(self, terrain: TerrainType,  create_videos: bool):
+        def setup_env_ind(terrain: TerrainType, params: Tensor):
             if isinstance(terrain, RoughTerrain):
-                ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
+                for ind in self.inds: ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
             elif isinstance(terrain, HillsTerrain):
-                ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
+                for ind in self.inds: ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
             elif isinstance(terrain, DefaultTerrain):
-                ind.setup_ant_default(params)
+                for ind in self.inds: ind.setup_ant_default(params)
             else:
                 assert False, "Class type not supported"
 
-            video_save_path = self.run_path / "videos_env" / terrain.__str__()
-            fitness_sum = 0
-            for _ in range(self._evaluation_count):
-                if create_videos is True:
-                    fitness_sum = fitness_sum + ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
-                    create_videos = False
-                else:
-                    fitness_sum = fitness_sum + ind.evaluate_fitness()
-
-            fitness_mean = fitness_sum / self._evaluation_count
-            return fitness_mean
+        def eval(ind: Individual):
+            return ind.evaluate_fitness()
 
         if terrain in self.ts.training_terrains:
-            params: torch.Tensor = None
+            params: Tensor = None
             for i, terrains in enumerate(self.e):
                 if terrain in terrains:
                     params = self.g[i]
                     break
 
-            return (terrain, eval(terrain, params, create_videos))
-        else:
-            print(f"is training env: {terrain.__str__()}")
-            fitnesses = []
+            if create_videos:
+                video_thread = threading.Thread(
+                    target=self._create_video,
+                    args=(terrain, copy.deepcopy(self.inds[0]), params)
+                )
+                video_thread.start()
+
+            setup_env_ind(terrain, params)
+
+            fitnesses: list[float] = []
+            batch_size = len(self.inds)
+            for i in range(0, self._evaluation_count, batch_size):
+                tasks = (joblib.delayed(eval)(ind) for ind in self.inds)
+                batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
+                fitnesses.extend(batch_fitness)
+
+            mean_fitness = sum(fitnesses) / len(fitnesses)
+            return (terrain, mean_fitness)
+        elif terrain in self.ts.testing_terrains:
+            fitnesses_part: list[float] = []
             for params in self.g:
-               fitnesses.append(eval(terrain, params, False))
-            highest_fitness = max(fitnesses)
-            highest_fitness_index = fitnesses.index(highest_fitness)
+                setup_env_ind(terrain, params)
+                fitnesses: list[float] = []
+                batch_size = len(self.inds)
+                for i in range(0, self._evaluation_count, batch_size):
+                    tasks = (joblib.delayed(eval)(ind) for ind in self.inds)
+                    batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
+                    fitnesses.extend(batch_fitness)
 
-            with self.e_lock:
-                self.e[highest_fitness_index].append(copy.copy(terrain))
+                mean_fitness = sum(fitnesses) / len(fitnesses)
+                fitnesses_part.append(mean_fitness)
 
-            if create_videos is True:
-                self._create_video(terrain, ind, self.g[highest_fitness_index])
+            highest_fitness = max(fitnesses_part)
+            highest_fitness_index = fitnesses_part.index(highest_fitness)
+
+            self.e[highest_fitness_index].append(copy.copy(terrain))
+
+            if create_videos:
+                video_thread = threading.Thread(
+                    target=self._create_video,
+                    args=(terrain, copy.deepcopy(self.inds[0]), params)
+                )
+                video_thread.start()
+
             return (terrain, highest_fitness)
+        else: 
+            raise ValueError(f"Terrain {terrain} not found in training or testing terrains.")
 
     def _create_video(self, terrain, ind: Individual, params):
         if isinstance(terrain, RoughTerrain):
