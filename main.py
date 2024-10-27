@@ -2,6 +2,8 @@
 Execute this file to run one of the experiments described in the paper.
 Example: 'nohup python main.py experiment2 > experiment2.log 2>&1 &'
 """
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
 from typing import List, Union
 from pathlib import Path

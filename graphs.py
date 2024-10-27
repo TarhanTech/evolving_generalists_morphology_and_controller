@@ -1,4 +1,6 @@
 """This executable creates graphs, images and videos for the experimental runs"""
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
 import os
 from pathlib import Path

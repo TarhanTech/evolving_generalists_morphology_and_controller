@@ -1,19 +1,25 @@
 """This module contains graphbuilder classes"""
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
+import copy
 import os
 import json
 from pathlib import Path
 import pickle
+import re
 from typing import List, Tuple
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Rectangle
 from PIL import Image
+from threading import Lock
 import pandas as pd
 import seaborn as sns
 import joblib
 import numpy as np
+from sympy import false
 import torch
 import cv2
 from sklearn.decomposition import PCA
@@ -56,12 +62,12 @@ class Graphbuilder(ABC):
         
         self.ts: TrainingSchedule = TrainingSchedule()
 
+        self.e_lock = Lock()
         self.g: List[torch.Tensor] = self._load_g()
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
-        self._assign_testing_terrains_to_partitions()
-        self._evaluation_count: int = 50
+        self._evaluation_count: int = 1
 
         self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
         self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
@@ -401,64 +407,12 @@ class Graphbuilder(ABC):
 
         return default_df, hills_df, rt_df
 
-    def _assign_testing_terrains_to_partitions(self):
-        def get_neighbors(df: pd.DataFrame, row: int, col: int, range_limit: int):
-            neighbors: List[int] = []
-            rows, cols = df.shape
-
-            # Look only to the left and right within the range limit
-            for x in range(-range_limit, range_limit + 1):
-                if x == 0:
-                    continue  # Skip the current cell
-                if 0 <= col + x < cols:
-                    neighbor_value = df.iloc[row, col + x]
-                    if not pd.isna(neighbor_value):
-                        neighbors.append(int(neighbor_value))
-
-            return neighbors
-
-        def fill_based_on_neighbors(df: pd.DataFrame, terrain_class: TerrainType):
-            rows, cols = df.shape
-
-            for i in range(rows):
-                for j in range(cols):
-                    if pd.isna(df.iloc[i, j]):
-                        range_limit = 1
-                        neighbors: int = []
-
-                        while not neighbors and range_limit < 10:
-                            neighbors = get_neighbors(df, i, j, range_limit)
-                            range_limit += 1
-
-                        most_common_value: int = mode(neighbors).mode
-
-                        self.e[most_common_value].append(terrain_class(df.columns[j], df.index[i]))
-
-        default_df, hills_df, rt_df = self._create_dataframe_terrains()
-
-        for j in range(len(self.e)):
-            for env in self.e[j]:
-                if isinstance(env, RoughTerrain):
-                    rt_df.loc[round(env.block_size, 1), round(env.floor_height, 1)] = j
-                elif isinstance(env, HillsTerrain):
-                    hills_df.loc[round(env.scale, 1), round(env.floor_height, 1)] = j
-                elif isinstance(env, DefaultTerrain):
-                    default_df.iloc[0, 0] = j
-                else:
-                    assert False, "Class type not supported"
-
-        fill_based_on_neighbors(hills_df, HillsTerrain)
-        fill_based_on_neighbors(rt_df, RoughTerrain)
-
-        print("Run data after assigning terrain to partition")
-        self._print_run_data()
-
     def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
-        self._evaluate(terrains[0], self.inds[0], False)
+        # self._evaluate(terrains[0], self.inds[0], False)
 
-        batch_size: int = len(self.inds)
+        batch_size: int = 1
         for i in range(0, len(terrains), batch_size):
             batch = terrains[i : i + batch_size]
             tasks = (joblib.delayed(self._evaluate)(terrain, ind, create_videos) for terrain, ind in zip(batch, self.inds))
@@ -468,14 +422,52 @@ class Graphbuilder(ABC):
         return env_fitnesses
 
     def _evaluate(self, terrain, ind: Individual, create_videos: bool):
-        params: torch.Tensor = None
-        for i, terrains in enumerate(self.e):
-            if terrain in terrains:
-                params = self.g[i]
-                break
+        def eval(terrain, params, create_videos):
+            if isinstance(terrain, RoughTerrain):
+                ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
+            elif isinstance(terrain, HillsTerrain):
+                ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
+            elif isinstance(terrain, DefaultTerrain):
+                ind.setup_ant_default(params)
+            else:
+                assert False, "Class type not supported"
 
-        assert params is not None, f"params variable is set to None, something went wrong. {terrain}"
+            video_save_path = self.run_path / "videos_env" / terrain.__str__()
+            fitness_sum = 0
+            for _ in range(self._evaluation_count):
+                if create_videos is True:
+                    fitness_sum = fitness_sum + ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
+                    create_videos = False
+                else:
+                    fitness_sum = fitness_sum + ind.evaluate_fitness()
 
+            fitness_mean = fitness_sum / self._evaluation_count
+            return fitness_mean
+
+        if terrain in self.ts.training_terrains:
+            params: torch.Tensor = None
+            for i, terrains in enumerate(self.e):
+                if terrain in terrains:
+                    params = self.g[i]
+                    break
+
+            return (terrain, eval(terrain, params, create_videos))
+        else:
+            print(f"is training env: {terrain.__str__()}")
+            fitnesses = []
+            for params in self.g:
+               fitnesses.append(eval(terrain, params, False))
+            highest_fitness = max(fitnesses)
+            highest_fitness_index = fitnesses.index(highest_fitness)
+
+            with self.e_lock:
+                self.e[highest_fitness_index].append(copy.copy(terrain))
+
+            if create_videos is True:
+                self._create_video(terrain, ind, self.g[highest_fitness_index])
+            return (terrain, highest_fitness)
+
+    def _create_video(self, terrain, ind: Individual, params):
         if isinstance(terrain, RoughTerrain):
             ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
         elif isinstance(terrain, HillsTerrain):
@@ -486,36 +478,35 @@ class Graphbuilder(ABC):
             assert False, "Class type not supported"
 
         video_save_path = self.run_path / "videos_env" / terrain.__str__()
-        fitness_sum = 0
-        for _ in range(self._evaluation_count):
-            if create_videos is True:
-                fitness_sum = fitness_sum + ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
-                create_videos = False
-            else:
-                fitness_sum = fitness_sum + ind.evaluate_fitness()
-
-        fitness_mean = fitness_sum / self._evaluation_count
-        return (terrain, fitness_mean)
+        ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
 
     def _change_folder_name(self):
         fitness_only = np.array([x[1] for x in self.env_fitnesses])
         mean_fitness = round(np.mean(fitness_only))
 
-        run_path_str = str(self.run_path)
-    
-        if 'gen_' in run_path_str:
-            prefix, suffix = run_path_str.split('gen_')
-            suffix = '_'.join(suffix.split('_')[1:])
-            new_run_path = Path(prefix + f"gen_{mean_fitness}_" + suffix)
-        elif 'spec_' in run_path_str:
-            prefix, suffix = run_path_str.split('spec_')
-            suffix = '_'.join(suffix.split('_')[1:])
-            new_run_path = Path(prefix + f"spec_{mean_fitness}_" + suffix)
+        current_run_path = self.run_path
+
+        folder_name = current_run_path.name
+
+        pattern = r'^(exp\d+_(?:gen|spec)_)(\d+_)?(.*)$'
+
+        def repl(match):
+            prefix = match.group(1)  # 'expX_gen_' or 'expX_spec_'
+            suffix = match.group(3)  # The rest of the folder name
+            return f'{prefix}{mean_fitness}_{suffix}'
+
+        # Apply the substitution to get the new folder name
+        new_folder_name = re.sub(pattern, repl, folder_name)
+
+        # Construct the new run path
+        new_run_path = current_run_path.parent / new_folder_name
+
+        # Rename the folder (ensure the new path doesn't already exist)
+        if not new_run_path.exists():
+            current_run_path.rename(new_run_path)
+            self.run_path = new_run_path
         else:
-            new_run_path = Path(f"{run_path_str}_{mean_fitness}")
-        
-        self.run_path.rename(new_run_path)
-        self.run_path = new_run_path
+            print(f"Cannot rename: {new_run_path} already exists.")
         
 
 class GraphBuilderGeneralist(Graphbuilder):
@@ -871,7 +862,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_images_part.append(best_images)
         return (morph_data_dfs, best_tensors_indices, best_images_part)
 
-
+# TODO: Fix this class same way generalist was fixed
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
 
@@ -1050,7 +1041,7 @@ class GraphBuilderSpecialist(Graphbuilder):
                 morph_data_dfs.append(pd.DataFrame(morph_data))
         return morph_data_dfs
 
-
+# TODO: When all experiments are established in algo.py. Finish this class
 class GraphBuilderCombination:
     """Class used to create graphs that combines data from multiple experimental runs."""
 
