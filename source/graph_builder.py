@@ -67,13 +67,6 @@ class Graphbuilder(ABC):
         self._print_run_data()
 
         self._evaluation_count: int = 50
-
-        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, 1, create_videos)
-        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, len(self.inds), create_videos)
-        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
-
-        self._change_folder_name()
-        self._print_run_data()
         
     @abstractmethod
     def create_ant_screenshots(self):
@@ -407,7 +400,7 @@ class Graphbuilder(ABC):
 
         return default_df, hills_df, rt_df
 
-    def _evaluate_envs(self, terrains: List[TerrainType], batch_size: int, create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
+    def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
         env_fitnesses: List[Tuple[TerrainType, float]] = []
 
         for terrain in terrains:
@@ -531,6 +524,13 @@ class GraphBuilderGeneralist(Graphbuilder):
 
     def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
         super().__init__(run_path, create_videos, dis_morph_evo)
+        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
+        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+
+        self._change_folder_name()
+        self._print_run_data()
+        
         self.morph_step_size = 10 
         
         if dis_morph_evo is False:
@@ -885,6 +885,16 @@ class GraphBuilderSpecialist(Graphbuilder):
 
     def __init__(self, run_path: Path, create_videos: bool = False):
         super().__init__(run_path, create_videos)
+
+        self.ts.training_terrains = self.ts.all_terrains
+        self.ts.testing_terrains = []
+
+        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = []
+        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+
+        self._change_folder_name()
+        self._print_run_data()
 
         self.morph_data_dfs: list[pd.DataFrame] = self._load_morph_data()
 

@@ -279,32 +279,32 @@ class Experiment3(SpecialistExperimentBase):
         self.ff_manager.save_pickle("E_var.pkl", self.e)
 
     def _load_terrains_to_create_specialists(self):
-        return [
-            HillsTerrain(2.2, 5),
-            HillsTerrain(3.0, 5),
-            HillsTerrain(3.8, 5),
-            HillsTerrain(2.2, 10),
-            HillsTerrain(3.0, 10),
-            HillsTerrain(3.8, 10),
-            HillsTerrain(2.2, 15),
-            HillsTerrain(3.0, 15),
-            HillsTerrain(3.8, 15),
-            HillsTerrain(2.2, 20),
-            HillsTerrain(3.0, 20),
-            HillsTerrain(3.8, 20),
-            RoughTerrain(0.1, 1),
-            RoughTerrain(0.5, 1),
-            RoughTerrain(0.9, 1),
-            RoughTerrain(0.1, 2),
-            RoughTerrain(0.5, 2),
-            RoughTerrain(0.9, 2),
-            RoughTerrain(0.1, 3),
-            RoughTerrain(0.5, 3),
-            RoughTerrain(0.9, 3),
-            RoughTerrain(0.1, 4),
-            RoughTerrain(0.5, 4),
-            RoughTerrain(0.9, 4),
-        ]
+         return self.t.all_terrains # [
+        #     HillsTerrain(2.2, 5),
+        #     HillsTerrain(3.0, 5),
+        #     HillsTerrain(3.8, 5),
+        #     HillsTerrain(2.2, 10),
+        #     HillsTerrain(3.0, 10),
+        #     HillsTerrain(3.8, 10),
+        #     HillsTerrain(2.2, 15),
+        #     HillsTerrain(3.0, 15),
+        #     HillsTerrain(3.8, 15),
+        #     HillsTerrain(2.2, 20),
+        #     HillsTerrain(3.0, 20),
+        #     HillsTerrain(3.8, 20),
+        #     RoughTerrain(0.1, 1),
+        #     RoughTerrain(0.5, 1),
+        #     RoughTerrain(0.9, 1),
+        #     RoughTerrain(0.1, 2),
+        #     RoughTerrain(0.5, 2),
+        #     RoughTerrain(0.9, 2),
+        #     RoughTerrain(0.1, 3),
+        #     RoughTerrain(0.5, 3),
+        #     RoughTerrain(0.9, 3),
+        #     RoughTerrain(0.1, 4),
+        #     RoughTerrain(0.5, 4),
+        #     RoughTerrain(0.9, 4),
+        # ]
 
 class Experiment4(SpecialistExperimentBase):
     """
@@ -316,9 +316,9 @@ class Experiment4(SpecialistExperimentBase):
 
     |evals| = (5000 * 23) + (5000 * 33) = 5000(23 + 33) = 280.000
 
-    We need 79 specialist MC-pairs.
-    |evals|/specialist =  280.000/79 = 3545 evals/specialist
-    |generation|/specialist = 3545/23 = 155 generations/specialist
+    We need 81 specialist MC-pairs.
+    |evals|/specialist =  280.000/81 = 3457 evals/specialist
+    |generation|/specialist = 3545/23 = 150 generations/specialist
     """
 
     def __init__(self, parallel_jobs: int = 6):
