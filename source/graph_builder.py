@@ -66,7 +66,7 @@ class Graphbuilder(ABC):
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
-        self._evaluation_count: int = 1
+        self._evaluation_count: int = 50
         
     @abstractmethod
     def create_ant_screenshots(self):
@@ -851,7 +851,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_tensors_index = []
             best_images = []
 
-            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensor_path))
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensors_path))
 
             for j, tensor_file in enumerate(sorted_tensor_files):
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
@@ -1064,7 +1064,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
         spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
 
-        for i, df, folder in enumerate(zip(self.morph_data_dfs, spec_folders)):
+        for i, (df, folder) in enumerate(zip(self.morph_data_dfs, spec_folders)):
             pandas_logger_df = pd.read_csv(self.run_path / "specialist" / folder / "pandas_logger_df.csv")
             folder_save_path: str = self.run_path / "specialist" / folder / "pca_plots"
             os.makedirs(folder_save_path, exist_ok=True)
@@ -1079,7 +1079,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             gen_scores = []
             for j in df.index.to_list():
-                gen_scores.append(pandas_logger_df.loc[j - 1, "Fitness Score"])
+                gen_scores.append(pandas_logger_df.loc[j - 1, "mean_eval"])
             df_pca["Fitness Score"] = gen_scores
 
             best_indices = self.best_tensors_indices[i] 
@@ -1106,7 +1106,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             gen_scores = []
             for j in df.index.to_list():
-                gen_scores.append(pandas_logger_df.loc[j - 1, "Fitness Score"])
+                gen_scores.append(pandas_logger_df.loc[j - 1, "mean_eval"])
             df_pca["Fitness Score"] = gen_scores
 
             best_tensors = df_pca.iloc[best_indices]
@@ -1138,7 +1138,8 @@ class GraphBuilderSpecialist(Graphbuilder):
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
-        for folder in os.listdir(self.run_path / "specialist"):
+        sorted_files = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+        for folder in sorted_files:
             full_folder_path: Path = self.run_path / "specialist" / folder
             images_folder: Path = full_folder_path / "screenshots"
             images = [img for img in os.listdir(images_folder)]
@@ -1159,7 +1160,7 @@ class GraphBuilderSpecialist(Graphbuilder):
         best_tensors_indices: list[list[int]] = []
         best_images_part = []
 
-        for folder in sorted(os.listdir(self.run_path / "specialist"), key=get_creation_time):
+        for folder in sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist")):
             tensors_path = self.run_path / "specialist" / folder / "gen_tensors"
             morph_data = []
             best_tensors_index = []
@@ -1227,7 +1228,6 @@ class GraphBuilderCombination:
 
         plt.savefig("./fitness_boxplot_experiments.pdf", dpi=300, bbox_inches="tight")
         plt.close()
-
 
 def get_creation_time(file, path):
     return os.path.getctime(path / file)

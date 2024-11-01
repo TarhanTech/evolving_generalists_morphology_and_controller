@@ -208,12 +208,13 @@ class SpecialistExperimentBase(Algo):
             self.ff_manager.save_screenshot_ant(terrain, self.searcher.step_count, pop_best, self.individuals[0])
 
             if pop_best_fitness > best_fitness:
+                self.ff_manager.save_specialist_tensor(terrain, self.searcher.step_count, pop_best, True)
                 best_fitness = pop_best_fitness
                 num_generations_no_improvement = 0
             else:
+                self.ff_manager.save_specialist_tensor(terrain, self.searcher.step_count, pop_best, False)
                 if self.init_training_generations < self.searcher.step_count:
                     num_generations_no_improvement += 1
-            self.ff_manager.save_specialist_tensor(terrain, self.searcher.step_count, pop_best)
 
         return self.searcher.status["pop_best"].values
 
@@ -306,6 +307,7 @@ class Experiment3(SpecialistExperimentBase):
         #     RoughTerrain(0.9, 4),
         # ]
 
+                                 
 class Experiment4(SpecialistExperimentBase):
     """
     Class used to run the fourth experiment where you create a specialist for each of the environments using same resources as experiment 1

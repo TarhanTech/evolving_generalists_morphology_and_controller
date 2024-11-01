@@ -4,9 +4,9 @@ max_jobs=3
 total_runs=12
 
 run_experiment() {
-    echo "Starting experiment1..."
-    python main.py experiment1
-    echo "Finished experiment1"
+    echo "Starting experiment4..."
+    python main.py experiment4
+    echo "Finished experiment4"
 }
 
 for ((i=1; i<=total_runs; i++)); do
