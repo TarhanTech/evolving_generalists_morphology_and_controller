@@ -469,7 +469,7 @@ class Graphbuilder(ABC):
             if create_videos:
                 video_thread = threading.Thread(
                     target=self._create_video,
-                    args=(terrain, copy.deepcopy(self.inds[0]), params)
+                    args=(terrain, copy.deepcopy(self.inds[0]), self.g[highest_fitness_index])
                 )
                 video_thread.start()
 
@@ -873,7 +873,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_images_part.append(best_images)
         return (morph_data_dfs, best_tensors_indices, best_images_part)
 
-# TODO: Fix this class same way generalist was fixed
+
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
 

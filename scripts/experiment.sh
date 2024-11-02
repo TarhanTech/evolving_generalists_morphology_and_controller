@@ -1,12 +1,19 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+  echo "Error: Experiment name parameter is required."
+  echo "Usage: $0 experiment_name"
+  exit 1
+fi
+
+exp_name="$1"
 max_jobs=3
 total_runs=12
 
 run_experiment() {
-    echo "Starting experiment4..."
-    python main.py experiment4
-    echo "Finished experiment4"
+    echo "Starting $1..."
+    python main.py $1
+    echo "Finished $1"
 }
 
 for ((i=1; i<=total_runs; i++)); do

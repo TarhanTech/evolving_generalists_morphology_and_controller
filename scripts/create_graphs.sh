@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Check if the required parameter is provided
 if [ -z "$1" ]; then
   echo "Error: Experiment name parameter is required."
   echo "Usage: $0 experiment_name"
@@ -19,7 +18,7 @@ if [[ "$exp_name" == "exp1" ]] || [[ "$exp_name" == "exp2" ]]; then
   python_arg="generalist"
 elif [[ "$exp_name" == "exp5" ]]; then
   python_arg="generalist"
-  dis_morph_evo_flag="--dis_morph_evo"--dis_morp
+  dis_morph_evo_flag="--dis_morph_evo"
 elif [[ "$exp_name" == "exp3" ]] || [[ "$exp_name" == "exp4" ]]; then
   python_arg="specialist"
 else
