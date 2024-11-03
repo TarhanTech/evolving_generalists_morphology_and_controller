@@ -21,6 +21,7 @@ from gymnasium.envs.mujoco.ant_v4 import AntEnv
 # Local Application/Library Imports
 from source.neural_network import NeuralNetwork
 from source.mj_env import MJEnv, Morphology
+from source.training_env import RoughTerrain, HillsTerrain, DefaultTerrain, TerrainType
 
 
 class Individual:
@@ -99,6 +100,16 @@ class Individual:
 
         self.controller.set_nn_params(nn_params)
         self.mj_env.setup_ant_default(morph_params=morph_params)
+
+    def setup_env_ind(self, params: Tensor, terrain: TerrainType):
+        if isinstance(terrain, RoughTerrain):
+            self.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
+        elif isinstance(terrain, HillsTerrain):
+            self.setup_ant_hills(params, terrain.floor_height, terrain.scale)
+        elif isinstance(terrain, DefaultTerrain):
+            self.setup_ant_default(params)
+        else:
+            assert False, "Class type not supported"
 
     def evaluate_fitness(self, render_mode: str = None, video_save_path: str = None) -> float:
         """Method to run the simulation in the mujoco environment that was initialized and evaluate the fitness score."""

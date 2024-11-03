@@ -1,5 +1,8 @@
 """This module contains graphbuilder classes"""
 import warnings
+
+from matplotlib.pylab import f
+from sympy import false
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
 import copy
@@ -498,12 +501,12 @@ class Graphbuilder(ABC):
 
         folder_name = current_run_path.name
 
-        pattern = r'^(exp\d+_(?:gen|spec)_)(\d+_)?(.*)$'
+        pattern = r"^(exp\d+_(?:gen|spec)_)(\d+_)?(.*)$"
 
         def repl(match):
-            prefix = match.group(1)  # 'expX_gen_' or 'expX_spec_'
+            prefix = match.group(1)  # "expX_gen_" or "expX_spec_"
             suffix = match.group(3)  # The rest of the folder name
-            return f'{prefix}{mean_fitness}_{suffix}'
+            return f"{prefix}{mean_fitness}_{suffix}"
 
         # Apply the substitution to get the new folder name
         new_folder_name = re.sub(pattern, repl, folder_name)
@@ -511,7 +514,7 @@ class Graphbuilder(ABC):
         # Construct the new run path
         new_run_path = current_run_path.parent / new_folder_name
 
-        # Rename the folder (ensure the new path doesn't already exist)
+        # Rename the folder (ensure the new path doesn"t already exist)
         if not new_run_path.exists():
             current_run_path.rename(new_run_path)
             self.run_path = new_run_path
@@ -589,7 +592,7 @@ class GraphBuilderGeneralist(Graphbuilder):
     def create_fitness_evaluation_graphs(self):
         for i, _ in enumerate(self.g):
             json_file_path = self.run_path / f"partition_{i+1}" / "fitness_scores.json"
-            with open(json_file_path, 'r') as file:
+            with open(json_file_path, "r") as file:
                 data = json.load(file)
 
             num_generations: int = 0
@@ -602,14 +605,14 @@ class GraphBuilderGeneralist(Graphbuilder):
             for key, values in data.items():
                 original_indices = np.linspace(0, num_generations, num=len(values))
 
-                interpolator = interp1d(original_indices, values, kind='linear')
+                interpolator = interp1d(original_indices, values, kind="linear")
                 new_indices = np.linspace(0, num_generations, num=num_generations)
                 interpolated_values = interpolator(new_indices)
                 plt.figure()
                 plt.plot(new_indices, interpolated_values)
-                plt.title(f'{key} Plot')
-                plt.xlabel('Generations')
-                plt.ylabel('Fitness')
+                plt.title(f"{key} Plot")
+                plt.xlabel("Generations")
+                plt.ylabel("Fitness")
                 plt.grid(True)
                 plt.savefig(
                     fitness_evals_envs_path / f"{str(key)}.pdf",
@@ -699,7 +702,7 @@ class GraphBuilderGeneralist(Graphbuilder):
 
             # Plot the line if best_x and best_y are provided
             if best_x is not None and best_y is not None:
-                ax.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
+                ax.plot(best_x, best_y, color="red", linewidth=2, label="Best Tensors")
                 ax.legend()
 
                 # Extend the x-axis limits to make room for the images outside the plot
@@ -715,8 +718,8 @@ class GraphBuilderGeneralist(Graphbuilder):
                     image_y_positions = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 5)
 
                     for idx, i in enumerate(indices):
-                        x_coord = best_x.iloc[i] if hasattr(best_x, 'iloc') else best_x[i]
-                        y_coord = best_y.iloc[i] if hasattr(best_y, 'iloc') else best_y[i]
+                        x_coord = best_x.iloc[i] if hasattr(best_x, "iloc") else best_x[i]
+                        y_coord = best_y.iloc[i] if hasattr(best_y, "iloc") else best_y[i]
 
                         # Position the image to the right, at a fixed horizontal location
                         x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.5  # Fixed offset to the right of the plot
@@ -729,10 +732,10 @@ class GraphBuilderGeneralist(Graphbuilder):
 
                         # Draw the arrow from the scatter point to the image
                         ax.annotate(
-                            '',
+                            "",
                             xy=(x_coord, y_coord),
                             xytext=(x_offset, y_offset),
-                            arrowprops=dict(color='black', arrowstyle='->')
+                            arrowprops=dict(color="black", arrowstyle="->")
                         )
 
             # Set labels and grid
@@ -1012,7 +1015,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             # Plot the line if best_x and best_y are provided
             if best_x is not None and best_y is not None:
-                ax.plot(best_x, best_y, color='red', linewidth=2, label="Best Tensors")
+                ax.plot(best_x, best_y, color="red", linewidth=2, label="Best Tensors")
                 ax.legend()
 
                 # Extend the x-axis limits to make room for the images outside the plot
@@ -1028,8 +1031,8 @@ class GraphBuilderSpecialist(Graphbuilder):
                     image_y_positions = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 5)
 
                     for idx, i in enumerate(indices):
-                        x_coord = best_x.iloc[i] if hasattr(best_x, 'iloc') else best_x[i]
-                        y_coord = best_y.iloc[i] if hasattr(best_y, 'iloc') else best_y[i]
+                        x_coord = best_x.iloc[i] if hasattr(best_x, "iloc") else best_x[i]
+                        y_coord = best_y.iloc[i] if hasattr(best_y, "iloc") else best_y[i]
 
                         # Position the image to the right, at a fixed horizontal location
                         x_offset = xlim[1] + (xlim[1] - xlim[0]) * 0.5  # Fixed offset to the right of the plot
@@ -1042,10 +1045,10 @@ class GraphBuilderSpecialist(Graphbuilder):
 
                         # Draw the arrow from the scatter point to the image
                         ax.annotate(
-                            '',
+                            "",
                             xy=(x_coord, y_coord),
                             xytext=(x_offset, y_offset),
-                            arrowprops=dict(color='black', arrowstyle='->')
+                            arrowprops=dict(color="black", arrowstyle="->")
                         )
 
             # Set labels and grid
@@ -1188,45 +1191,182 @@ class GraphBuilderSpecialist(Graphbuilder):
             best_images_part.append(best_images)
         return (morph_data_dfs, best_tensors_indices, best_images_part)
 
-# TODO: When all experiments are established in algo.py. Finish this class
-class GraphBuilderCombination:
+class GraphBuilderCombination():
     """Class used to create graphs that combines data from multiple experimental runs."""
 
-    def __init__(self, gbs: List[Graphbuilder]):
-        self.gbs: List[Graphbuilder] = gbs
+    def __init__(self, run_paths: list[Path] = None):
+        self.ts = TrainingSchedule()
+        self.evaluation_count: int = 30
 
-    def create_boxplot_experiments(self):
-        """Method that creates a graph with boxplots of different experiments"""
-        if len(self.gbs) <= 1:
-            return
+        self.path_to_save: Path = Path("combined_data")
 
-        labels: List[str] = []
-        fitness_values: List[float] = []
-        for i, gb in enumerate(self.gbs):
-            fitness_only: list[float] = [x[1] for x in gb.env_fitnesses]
-            label: str = gb.run_path.name
-            labels.extend([label] * len(fitness_only))
-            fitness_values.extend(fitness_only)
-        sns.set(style="whitegrid")
+        if run_paths is not None and len(run_paths) > 0:
+            self.path_to_save.mkdir(parents=True, exist_ok=True)
 
-        plt.figure(figsize=(10, 6))
-        boxplot = sns.boxplot(
-            x=labels,
-            y=fitness_values,
-            width=0.45,
-            palette=["magenta", "teal", "red"],
-            hue=labels,
+            exp1_path: Path = self._get_run_path(run_paths, "exp1")
+            if exp1_path is not None:
+                self.exp1_df: pd.DataFrame = self._create_df(exp1_path)
+                self.exp1_df.to_csv(self.path_to_save / "exp1_df.csv", index=False)
+
+            exp2_path: Path = self._get_run_path(run_paths, "exp2")
+            if exp2_path is not None:
+                self.exp2_df: pd.DataFrame = self._create_df(exp2_path)
+                self.exp2_df.to_csv(self.path_to_save / "exp2_df.csv", index=False) 
+
+            exp3_path: Path = self._get_run_path(run_paths, "exp3")
+            if exp3_path is not None:
+                self.exp3_df: pd.DataFrame = self._create_df(exp3_path)
+                self.exp3_df.to_csv(self.path_to_save / "exp3_df.csv", index=False) 
+
+            exp4_path: Path = self._get_run_path(run_paths, "exp4")
+            if exp4_path is not None:
+                self.exp4_df: pd.DataFrame = self._create_df(exp4_path)
+                self.exp4_df.to_csv(self.path_to_save / "exp4_df.csv", index=False) 
+
+            exp5_path: Path = self._get_run_path(run_paths, "exp5")
+            if exp5_path is not None:
+                self.exp5_df: pd.DataFrame = self._create_df(exp5_path)
+                self.exp5_df.to_csv(self.path_to_save / "exp5_df.csv", index=False) 
+        else:
+            self.exp1_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp1_df.csv")
+            self.exp2_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp2_df.csv")
+            # self.exp3_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp3_df.csv")
+            # self.exp4_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp4_df.csv")
+            # self.exp5_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp5_df.csv")
+    
+    def create_graphs(self):
+        self._plot_fitness_vs_environment(self.exp1_df, "exp1_fitness_env.pdf")
+        self._plot_fitness_vs_environment(self.exp2_df, "exp2_fitness_env.pdf")
+
+        self._plot_max_fitness_vs_environment(self.exp1_df, "exp1_fitness_env_ensamble_controllers.pdf")
+
+    def _get_run_path(self, run_paths, exp: str) -> Path:
+        exp_paths = [path for path in run_paths if exp in str(path)]
+    
+        if len(exp_paths) == 1:
+            return exp_paths[0]
+        elif len(exp_paths) == 0:
+            return None
+        else:
+            raise ValueError(f"Multiple paths containing {exp} found.")
+        
+    def _create_df(self, run_path: Path) -> pd.DataFrame:
+        g = self._load_g(run_path)
+
+        rows = []
+
+        for i, params in enumerate(g):
+            for terrain in self.ts.all_terrains:
+                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo=("exp5" in str(run_path)))
+                row = {
+                    "Environment": terrain.short_string(),
+                    "Controller": i,
+                    "Fitness": fitness_mean,
+                    "Fitness std": fitness_std 
+                }
+                rows.append(row)
+
+        df = pd.DataFrame(rows)
+        return df
+
+    def _load_g(self, run_path: Path):
+        with open(run_path / "G_var.pkl", "rb") as file:
+            g = pickle.load(file)
+        return g
+
+    def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool) -> Tuple[float, float]:
+        parallel_jobs = 30
+        fitnesses = []
+        inds: list[Individual] = [
+            Individual(
+                torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+                Algo.morph_params_bounds_enc,
+                Algo.penalty_growth_rate,
+                Algo.penalty_scale_factor,
+                Algo.penalty_scale_factor_err,
+                dis_morph_evo)
+            for _ in range(parallel_jobs)
+        ]
+        for ind in inds: ind.setup_env_ind(params, terrain)
+
+        def eval(ind: Individual) -> float: return ind.evaluate_fitness() 
+        for _ in range(0, self.evaluation_count, parallel_jobs):
+            batch_size = min(parallel_jobs, self.evaluation_count - len(fitnesses))
+            print(batch_size)
+
+            tasks = (joblib.delayed(eval)(ind) for ind in inds[:batch_size])
+            batch_fitness = joblib.Parallel(n_jobs=parallel_jobs)(tasks)
+            fitnesses.extend(batch_fitness)
+
+        fitnesses = np.array(fitnesses)
+        return (np.mean(fitnesses), np.std(fitnesses))
+
+    def _plot_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str):
+        categories = data["Environment"].unique()
+        data["Environment"] = pd.Categorical(data["Environment"], categories=categories, ordered=True)
+        
+        num_envs = len(categories)
+        
+        fig_width = max(20, num_envs * 0.2)
+        fig_height = 4 
+        
+        plt.figure(figsize=(fig_width, fig_height))
+
+        sns.lineplot(
+            x="Environment",
+            y="Fitness",
+            hue="Controller",
+            data=data,
+            marker="o",
+            errorbar=None,
+            palette="tab10"
         )
-        boxplot.set_title(
-            "Fitness Distribution on all Environments by Experiment",
-            fontsize=16,
-            fontweight="bold",
-        )
-        boxplot.set_ylabel("Fitness", fontsize=14)
-        boxplot.set_xlabel("Experiment", fontsize=14)
-        boxplot.tick_params(labelsize=10)
 
-        plt.savefig("./fitness_boxplot_experiments.pdf", dpi=300, bbox_inches="tight")
+        plt.title("Fitness vs Environment for All Controllers", fontsize=16)
+        plt.xlabel("Environment", fontsize=14)
+        plt.ylabel("Fitness", fontsize=14)
+        
+        plt.xticks(rotation=90, fontsize=10)
+        plt.yticks(fontsize=10)
+        
+        plt.tight_layout()
+        
+        plt.savefig(self.path_to_save / save_as_name, bbox_inches="tight")
+        plt.close() 
+
+    def _plot_max_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str):
+        max_fitness = data.groupby("Environment", as_index=False, observed=False)["Fitness"].max()
+
+        categories = data["Environment"].unique()
+        max_fitness["Environment"] = pd.Categorical(max_fitness["Environment"], categories=categories, ordered=True)
+        
+        num_envs = len(categories)
+        
+        fig_width = max(20, num_envs * 0.2)
+        fig_height = 4
+
+        plt.figure(figsize=(fig_width, fig_height))
+
+        sns.lineplot(
+            x="Environment",
+            y="Fitness",
+            data=max_fitness,
+            marker="o",
+            color="red",
+            label="Max Fitness",
+            errorbar=None
+        )
+        
+        plt.title("Maximum Fitness vs Environment", fontsize=16)
+        plt.xlabel("Environment", fontsize=14)
+        plt.ylabel("Fitness", fontsize=14)
+        
+        plt.xticks(rotation=90, fontsize=10)
+        plt.yticks(fontsize=10)
+        
+        plt.tight_layout()
+        
+        plt.savefig(self.path_to_save / save_as_name, bbox_inches="tight")
         plt.close()
 
 def get_creation_time(file, path):

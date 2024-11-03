@@ -77,11 +77,11 @@ def main():
         "--run_paths",
         nargs="+",
         type=Path,
-        required=True,
         help="A list of paths to multiple experimental runs to create combined graphs to compare the results.",
     )
-    
+
     args = parser.parse_args()
+                
     if args.type == "generalist":
         graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos, args.dis_morph_evo)
         graph_builder_gen.create_ant_screenshots()
@@ -106,7 +106,8 @@ def main():
         graph_builder_spec.create_morph_params_pca_scatterplot()
         graph_builder_spec.create_evolution_video()
     elif args.type == "combined":
-        raise NotImplementedError
+        gs = GraphBuilderCombination(args.run_paths)
+        gs.create_graphs()
 
     print("Creating graphs has finished!")
     plt.close()

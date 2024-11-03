@@ -14,6 +14,9 @@ class RoughTerrain:
     floor_height: float
     block_size: int
 
+    def short_string(self) -> str:
+        return f"rt({self.floor_height},{self.block_size})"
+
     def __str__(self):
         return f"RoughTerrain(floor_height={self.floor_height}, block_size={self.block_size})"
 
@@ -25,6 +28,9 @@ class HillsTerrain:
     floor_height: float
     scale: int
 
+    def short_string(self) -> str:
+        return f"ht({self.floor_height},{self.scale})"
+
     def __str__(self):
         return f"HillsTerrain(floor_height={self.floor_height}, scale={self.scale})"
 
@@ -33,8 +39,11 @@ class HillsTerrain:
 class DefaultTerrain:
     """Represents a default terrain with no specific attributes."""
 
+    def short_string(self) -> str:
+        return "def"
+
     def __str__(self):
-        return f"DefaultTerrain"
+        return "DefaultTerrain"
 
 TerrainType = Union[RoughTerrain, HillsTerrain, DefaultTerrain]
 
@@ -56,6 +65,8 @@ class TrainingSchedule:
         self.training_terrains: List[TerrainType] = self._init_training_terrains()
         self.testing_terrains = self._init_testing_terrains()
         self.all_terrains = self.training_terrains + self.testing_terrains
+
+        self.all_terrains = self._sort_terrain_list(self.all_terrains)
 
         self.store_training_terrains: List[TerrainType] = []
 
@@ -152,3 +163,16 @@ class TrainingSchedule:
                     testing_terrains.append(terrain)
 
         return testing_terrains
+
+    def _sort_terrain_list(self, terrains: List[TerrainType]) -> List[TerrainType]:
+        # Sorting function to sort the combined terrains
+        def sort_key(terrain: TerrainType):
+            if isinstance(terrain, DefaultTerrain):
+                return (0, 0, 0)  # DefaultTerrain should come first
+            elif isinstance(terrain, HillsTerrain):
+                return (1, terrain.scale, terrain.floor_height)  # Sort HillsTerrain by scale, then by floor_height
+            elif isinstance(terrain, RoughTerrain):
+                return (2, terrain.block_size, terrain.floor_height)  # Sort RoughTerrain by block_size, then by floor_height
+
+        # Sort all terrains using the custom key
+        return sorted(terrains, key=sort_key)
