@@ -1,10 +1,4 @@
 """This module contains graphbuilder classes"""
-import warnings
-
-from matplotlib.pylab import f
-from sympy import false
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
-
 import copy
 import os
 import json
@@ -28,10 +22,9 @@ import cv2
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from abc import ABC, abstractmethod
-from scipy.stats import mode
 from scipy.interpolate import interp1d
-from sklearn.metrics.pairwise import cosine_similarity
-import networkx as nx
+from scipy.stats import kruskal
+import itertools
 
 from source.training_env import (
     TrainingSchedule,
@@ -69,7 +62,7 @@ class Graphbuilder(ABC):
         self.e: List[List[TerrainType]] = self._load_e()
         self._print_run_data()
 
-        self._evaluation_count: int = 50
+        self._evaluation_count: int = 30
         
     @abstractmethod
     def create_ant_screenshots(self):
@@ -425,22 +418,35 @@ class Graphbuilder(ABC):
         def eval(ind: Individual):
             return ind.evaluate_fitness()
 
-        if terrain in self.ts.training_terrains:
-            params: Tensor = None
-            for i, terrains in enumerate(self.e):
-                if terrain in terrains:
-                    params = self.g[i]
-                    break
+        # if terrain in self.ts.training_terrains:
+        #     params: Tensor = None
+        #     for i, terrains in enumerate(self.e):
+        #         if terrain in terrains:
+        #             params = self.g[i]
+        #             break
 
-            if create_videos:
-                video_thread = threading.Thread(
-                    target=self._create_video,
-                    args=(terrain, copy.deepcopy(self.inds[0]), params)
-                )
-                video_thread.start()
+        #     if create_videos:
+        #         video_thread = threading.Thread(
+        #             target=self._create_video,
+        #             args=(terrain, copy.deepcopy(self.inds[0]), params)
+        #         )
+        #         video_thread.start()
 
+        #     setup_env_ind(terrain, params)
+
+        #     fitnesses: list[float] = []
+        #     batch_size = len(self.inds)
+        #     for i in range(0, self._evaluation_count, batch_size):
+        #         tasks = (joblib.delayed(eval)(ind) for ind in self.inds)
+        #         batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
+        #         fitnesses.extend(batch_fitness)
+
+        #     mean_fitness = sum(fitnesses) / len(fitnesses)
+        #     return (terrain, mean_fitness)
+        # elif terrain in self.ts.testing_terrains:
+        fitnesses_part: list[float] = []
+        for params in self.g:
             setup_env_ind(terrain, params)
-
             fitnesses: list[float] = []
             batch_size = len(self.inds)
             for i in range(0, self._evaluation_count, batch_size):
@@ -449,36 +455,23 @@ class Graphbuilder(ABC):
                 fitnesses.extend(batch_fitness)
 
             mean_fitness = sum(fitnesses) / len(fitnesses)
-            return (terrain, mean_fitness)
-        elif terrain in self.ts.testing_terrains:
-            fitnesses_part: list[float] = []
-            for params in self.g:
-                setup_env_ind(terrain, params)
-                fitnesses: list[float] = []
-                batch_size = len(self.inds)
-                for i in range(0, self._evaluation_count, batch_size):
-                    tasks = (joblib.delayed(eval)(ind) for ind in self.inds)
-                    batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
-                    fitnesses.extend(batch_fitness)
+            fitnesses_part.append(mean_fitness)
 
-                mean_fitness = sum(fitnesses) / len(fitnesses)
-                fitnesses_part.append(mean_fitness)
+        highest_fitness = max(fitnesses_part)
+        highest_fitness_index = fitnesses_part.index(highest_fitness)
 
-            highest_fitness = max(fitnesses_part)
-            highest_fitness_index = fitnesses_part.index(highest_fitness)
+        self.e[highest_fitness_index].append(copy.copy(terrain))
 
-            self.e[highest_fitness_index].append(copy.copy(terrain))
+        if create_videos:
+            video_thread = threading.Thread(
+                target=self._create_video,
+                args=(terrain, copy.deepcopy(self.inds[0]), self.g[highest_fitness_index])
+            )
+            video_thread.start()
 
-            if create_videos:
-                video_thread = threading.Thread(
-                    target=self._create_video,
-                    args=(terrain, copy.deepcopy(self.inds[0]), self.g[highest_fitness_index])
-                )
-                video_thread.start()
-
-            return (terrain, highest_fitness)
-        else: 
-            raise ValueError(f"Terrain {terrain} not found in training or testing terrains.")
+        return (terrain, highest_fitness)
+        # else: 
+        #     raise ValueError(f"Terrain {terrain} not found in training or testing terrains.")
 
     def _create_video(self, terrain, ind: Individual, params):
         if isinstance(terrain, RoughTerrain):
@@ -1231,14 +1224,20 @@ class GraphBuilderCombination():
             self.exp1_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp1_df.csv")
             self.exp2_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp2_df.csv")
             # self.exp3_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp3_df.csv")
-            # self.exp4_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp4_df.csv")
-            # self.exp5_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp5_df.csv")
+            self.exp4_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp4_df.csv")
+            self.exp5_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp5_df.csv")
     
     def create_graphs(self):
-        self._plot_fitness_vs_environment(self.exp1_df, "exp1_fitness_env.pdf")
-        self._plot_fitness_vs_environment(self.exp2_df, "exp2_fitness_env.pdf")
+        self._plot_fitness_vs_environment(self.exp1_df, "exp1_fitness_env.pdf", "Exp1: Environment fitnesses of MC-Pairs of each partition")
+        self._plot_fitness_vs_environment(self.exp2_df, "exp2_fitness_env.pdf", "Exp1: Environment fitnesses of MC-Pair")
 
-        self._plot_max_fitness_vs_environment(self.exp1_df, "exp1_fitness_env_ensamble_controllers.pdf")
+        self._plot_max_fitness_vs_environment(self.exp1_df, "exp1_fitness_env_ensamble_controllers.pdf", "Exp1: Environment fitnesses of MC-Pairs ensamble")
+        self._plot_max_fitness_vs_environment(self.exp5_df, "exp5_fitness_env_ensamble_controllers.pdf", "Exp5: Environment fitnesses of controllers ensamble")
+
+        self._multiple_plot_max_fitness_vs_environment([self.exp1_df, self.exp4_df, self.exp5_df], ["exp1", "exp4", "exp5"], "fitness_env_experiments.pdf", "Environment fitnesses from different experiments")
+
+        self._plot_max_fitness_boxplot_with_significance([self.exp1_df, self.exp2_df, self.exp4_df, self.exp5_df], ["exp1", "exp2",  "exp4", "exp5"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")
+        
 
     def _get_run_path(self, run_paths, exp: str) -> Path:
         exp_paths = [path for path in run_paths if exp in str(path)]
@@ -1301,7 +1300,7 @@ class GraphBuilderCombination():
         fitnesses = np.array(fitnesses)
         return (np.mean(fitnesses), np.std(fitnesses))
 
-    def _plot_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str):
+    def _plot_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str, title: str):
         categories = data["Environment"].unique()
         data["Environment"] = pd.Categorical(data["Environment"], categories=categories, ordered=True)
         
@@ -1322,9 +1321,10 @@ class GraphBuilderCombination():
             palette="tab10"
         )
 
-        plt.title("Fitness vs Environment for All Controllers", fontsize=16)
+        plt.title(title, fontsize=16)
         plt.xlabel("Environment", fontsize=14)
         plt.ylabel("Fitness", fontsize=14)
+        plt.legend(title="MC-Pair")
         
         plt.xticks(rotation=90, fontsize=10)
         plt.yticks(fontsize=10)
@@ -1334,7 +1334,7 @@ class GraphBuilderCombination():
         plt.savefig(self.path_to_save / save_as_name, bbox_inches="tight")
         plt.close() 
 
-    def _plot_max_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str):
+    def _plot_max_fitness_vs_environment(self, data: pd.DataFrame, save_as_name: str, title: str):
         max_fitness = data.groupby("Environment", as_index=False, observed=False)["Fitness"].max()
 
         categories = data["Environment"].unique()
@@ -1354,10 +1354,11 @@ class GraphBuilderCombination():
             marker="o",
             color="red",
             label="Max Fitness",
-            errorbar=None
+            errorbar=None,
+            legend=False
         )
         
-        plt.title("Maximum Fitness vs Environment", fontsize=16)
+        plt.title(title, fontsize=16)
         plt.xlabel("Environment", fontsize=14)
         plt.ylabel("Fitness", fontsize=14)
         
@@ -1367,6 +1368,117 @@ class GraphBuilderCombination():
         plt.tight_layout()
         
         plt.savefig(self.path_to_save / save_as_name, bbox_inches="tight")
+        plt.close()
+
+    def _multiple_plot_max_fitness_vs_environment(self, dataframes: list, labels: list, save_as_name: str, title: str):
+        plt.figure(figsize=(20, 4))
+        
+        for data, label in zip(dataframes, labels):
+            max_fitness = data.groupby("Environment", as_index=False, observed=False)["Fitness"].max()
+            
+            categories = data["Environment"].unique()
+            max_fitness["Environment"] = pd.Categorical(max_fitness["Environment"], categories=categories, ordered=True)
+
+            sns.lineplot(
+                x="Environment",
+                y="Fitness",
+                data=max_fitness,
+                marker="o",
+                label=label,
+                errorbar=None
+            )
+
+        plt.title(title, fontsize=16)
+        plt.xlabel("Environment", fontsize=14)
+        plt.ylabel("Fitness", fontsize=14)
+        
+        plt.xticks(rotation=90, fontsize=10)
+        plt.yticks(fontsize=10)
+        
+        plt.tight_layout()
+        
+        plt.savefig(self.path_to_save / save_as_name, bbox_inches="tight")
+        plt.close()
+
+    def _plot_max_fitness_boxplot_with_significance(self, dataframes, labels, output_file, title):
+        combined_df = pd.concat(
+            [df.assign(Experiment=label) for df, label in zip(dataframes, labels)],
+            ignore_index=True
+        )
+
+        max_fitness_df = combined_df.groupby(["Experiment", "Environment"])["Fitness"].max().reset_index()
+
+        sns.set(style="whitegrid")
+
+        palette = sns.color_palette("Set2", len(labels))
+
+        plt.figure(figsize=(10, 6), dpi=300)
+        ax = sns.boxplot(
+            x="Experiment", 
+            y="Fitness", 
+            data=max_fitness_df, 
+            hue="Experiment", 
+            palette=palette, 
+            boxprops={"alpha": 0.2},
+            width=0.5,
+            legend=False
+        )
+
+        sns.stripplot(
+            x="Experiment", 
+            y="Fitness", 
+            data=max_fitness_df, 
+            hue="Experiment", 
+            palette=palette,
+            alpha=0.9, 
+            jitter=True,
+            dodge=False,
+            ax=ax,
+            legend=False
+        )
+
+        pairs = list(itertools.combinations(labels, 2))
+        y_max = max_fitness_df["Fitness"].max()
+        y_min = max_fitness_df["Fitness"].min()
+        y_range = y_max - y_min
+        y_offset = y_range * 0.05
+
+        for i, (exp1, exp2) in enumerate(pairs):
+            data1 = max_fitness_df[max_fitness_df["Experiment"] == exp1]["Fitness"]
+            data2 = max_fitness_df[max_fitness_df["Experiment"] == exp2]["Fitness"]
+            
+            stat, p_val = kruskal(data1, data2)
+
+            if p_val < 0.0001:
+                significance = "****"
+            elif p_val < 0.001:
+                significance = "***"
+            elif p_val < 0.01:
+                significance = "**"
+            elif p_val < 0.05:
+                significance = "*"
+            else:
+                significance = "ns"
+
+            x1, x2 = labels.index(exp1), labels.index(exp2)
+            y = max(max_fitness_df["Fitness"][max_fitness_df["Experiment"] == exp1].max(),
+                    max_fitness_df["Fitness"][max_fitness_df["Experiment"] == exp2].max()) + y_offset
+
+            ax.plot([x1, x1, x2, x2], [y, y + y_offset, y + y_offset, y], lw=1.5, color="k")
+
+            ax.text((x1 + x2) * 0.5, y + y_offset, significance, ha="center", va="bottom", color="k", fontsize=12)
+
+        ax.set_title(title, fontsize=16, weight="bold", pad=15)
+        ax.set_xlabel("Experiment", fontsize=14, weight="bold")
+        ax.set_ylabel("Fitness Score", fontsize=14, weight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+
+        ax.grid(True, which="both", axis="y", linestyle="--", linewidth=0.6, alpha=0.7)
+        sns.despine(trim=True)
+
+        plt.tight_layout()
+        plt.savefig(self.path_to_save / output_file, bbox_inches="tight", dpi=300)
         plt.close()
 
 def get_creation_time(file, path):

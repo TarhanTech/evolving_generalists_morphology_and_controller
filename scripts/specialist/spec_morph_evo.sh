@@ -1,19 +1,11 @@
-#!/bin/bash
-
-if [ -z "$1" ]; then
-  echo "Error: Experiment name parameter is required."
-  echo "Usage: $0 experiment_name"
-  exit 1
-fi
-
-exp_name="$1"
+exp_name="Spec-MorphEvo"
 max_jobs=3
-total_runs=12
+total_runs=15
 
 run_experiment() {
-    echo "Starting $1..."
-    python main.py $1
-    echo "Finished $1"
+    echo "Starting $exp_name..."
+    python main.py our_algo
+    echo "Finished $exp_name"
 }
 
 for ((i=1; i<=total_runs; i++)); do
@@ -29,4 +21,4 @@ done
 # Wait for any remaining background jobs to finish
 wait
 
-echo "All $total_runs runs of experiment1 have been executed."
+echo "All $total_runs runs of $exp_name have been executed."

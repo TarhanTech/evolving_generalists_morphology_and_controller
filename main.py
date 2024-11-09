@@ -2,7 +2,9 @@
 Execute this file to run one of the experiments described in the paper.
 Example: 'nohup python main.py experiment2 > experiment2.log 2>&1 &'
 """
+
 import warnings
+
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
 from typing import List, Union
@@ -12,7 +14,7 @@ import os
 import torch
 from source.individual import Individual
 from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, TerrainType
-from source.algo import Experiment1, Experiment2, Experiment3, Experiment4, Experiment5
+from source.algo import OurAlgo, OurAlgoOneGen, Specialist
 
 
 def experiment1():
@@ -66,7 +68,9 @@ def test_ant(tensor_path: Path, terrain: str, params: str):
             try:
                 return float(param)
             except ValueError as e:
-                raise ValueError(f"Parameter '{param}' is not a valid integer or float.") from e
+                raise ValueError(
+                    f"Parameter '{param}' is not a valid integer or float."
+                ) from e
 
     terrain_type: TerrainType = TERRAIN_MAP[terrain]
     ind: Individual = Individual("cpu", (-0.1, 0.1), 1.03, 100, 1000)
@@ -95,32 +99,62 @@ TERRAIN_MAP = {
 
 def main():
     parser = argparse.ArgumentParser(description="")
-    subparsers = parser.add_subparsers(dest="experiment", required=True, help="Choose an experiment to run.")
-
-    parser_exp1 = subparsers.add_parser(
-        "experiment1", help="Run the first experiment where you create a generalist for each partition of the environments."
+    subparsers = parser.add_subparsers(
+        dest="experiment", required=True, help="Choose an experiment to run."
     )
 
-    parser_exp2 = subparsers.add_parser(
-        "experiment2",
-        help="Run the second experiment where you create one generalist for all the environments",
+    parser_our_algo = subparsers.add_parser(
+        "our_algo",
+        help="Run the experiment where you create a generalist for each partition of the environments.",
+    )
+    parser_our_algo.add_argument(
+        "--dis_morph_evo",
+        action="store_true",
+        default=False,
+    )
+    parser_our_algo.add_argument(
+        "--default_morph",
+        action="store_true",
+        default=False,
     )
 
-    parser_exp3 = subparsers.add_parser("experiment3", help="run the third experiment where you create a specialist for each of the environments")
+    parser_our_algo_one_gen = subparsers.add_parser(
+        "our_algo_one_gen",
+        help="Run the experiment where you create one generalist for all the environments",
+    )
 
-    parser_exp4 = subparsers.add_parser(
-        "experiment4",
+    parser_specialist = subparsers.add_parser(
+        "specialist",
         help="Run the fourth experiment where you create a specialist for each of the environments using same resources as experiment 1",
     )
-
-    parser_exp5 = subparsers.add_parser(
-        "experiment5",
-        help="Run the fifth experiment where you create a generalist (no morphological evolution) for each partition of the environments.",
+    parser_specialist.add_argument(
+        "--dis_morph_evo",
+        action="store_true",
+        default=False,
+    )
+    parser_specialist.add_argument(
+        "--long",
+        action="store_true",
+        default=False,
     )
 
-    parser_test = subparsers.add_parser("test", help="Run a test experiment to visual a generated tensor from the tensor folders")
-    parser_test.add_argument("--tensor", type=Path, required=True, help="Path to the tensor that you want to test.")
-    parser_test.add_argument("--terrain", type=str, choices=TERRAIN_MAP.keys(), required=True, help="Terrain environment to test in")
+    parser_test = subparsers.add_parser(
+        "test",
+        help="Run a test experiment to visual a generated tensor from the tensor folders",
+    )
+    parser_test.add_argument(
+        "--tensor",
+        type=Path,
+        required=True,
+        help="Path to the tensor that you want to test.",
+    )
+    parser_test.add_argument(
+        "--terrain",
+        type=str,
+        choices=TERRAIN_MAP.keys(),
+        required=True,
+        help="Terrain environment to test in",
+    )
     parser_test.add_argument(
         "--params",
         type=str,
@@ -131,16 +165,12 @@ def main():
 
     args = parser.parse_args()
 
-    if args.experiment == "experiment1":
-        experiment1()
-    elif args.experiment == "experiment2":
-        experiment2()
-    elif args.experiment == "experiment3":
-        experiment3()
-    elif args.experiment == "experiment4":
-        experiment4()
-    elif args.experiment == "experiment5":
-        experiment5()
+    if args.experiment == "our_algo":
+        OurAlgo(args.dis_morph_evo, args.default_morph)
+    elif args.experiment == "our_algo_one_gen":
+        OurAlgoOneGen()
+    elif args.experiment == "specialist":
+        Specialist(args.dis_morph_evo, args.long)
     elif args.experiment == "test":
         test_ant(args.tensor, args.terrain, args.params)
     else:
