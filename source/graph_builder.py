@@ -1184,6 +1184,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             best_images_part.append(best_images)
         return (morph_data_dfs, best_tensors_indices, best_images_part)
 
+
 class GraphBuilderCombination():
     """Class used to create graphs that combines data from multiple experimental runs."""
 
@@ -1236,8 +1237,7 @@ class GraphBuilderCombination():
 
         self._multiple_plot_max_fitness_vs_environment([self.exp1_df, self.exp4_df, self.exp5_df], ["exp1", "exp4", "exp5"], "fitness_env_experiments.pdf", "Environment fitnesses from different experiments")
 
-        self._plot_max_fitness_boxplot_with_significance([self.exp1_df, self.exp2_df, self.exp4_df, self.exp5_df], ["exp1", "exp2",  "exp4", "exp5"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")
-        
+        self._plot_max_fitness_boxplot_with_significance([self.exp1_df, self.exp2_df, self.exp4_df, self.exp5_df], ["exp1", "exp2",  "exp4", "exp5"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")    
 
     def _get_run_path(self, run_paths, exp: str) -> Path:
         exp_paths = [path for path in run_paths if exp in str(path)]
@@ -1480,6 +1480,7 @@ class GraphBuilderCombination():
         plt.tight_layout()
         plt.savefig(self.path_to_save / output_file, bbox_inches="tight", dpi=300)
         plt.close()
+
 
 def get_creation_time(file, path):
     return os.path.getctime(path / file)

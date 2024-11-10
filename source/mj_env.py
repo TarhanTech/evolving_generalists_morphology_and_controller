@@ -214,15 +214,15 @@ class Morphology:
         scalar: int = 1
 
         if self.default_morph:
-            default_values = np.array([
-                0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4,  # Lengths
-                [0.08] * self.total_leg_width_params # Widths
-            ])
+            default_values = np.array(
+                [0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4] +  # Lengths
+                [0.08] * self.total_leg_width_params        # Widths
+            )
         else:
-            default_values = np.array([
-                [self.leg_length_range[1]] * self.total_leg_length_params,  # Lengths
-                [0.08] * self.total_leg_width_params # Widths
-            ])
+            default_values = np.array(
+                [self.leg_length_range[1]] * self.total_leg_length_params + # Lengths
+                [0.08] * self.total_leg_width_params                        # Widths
+            )
         morph_params_tensor = torch.tensor(default_values * scalar)
         morph_params_map = self._tensor_to_map(morph_params_tensor)
         return morph_params_tensor, morph_params_map

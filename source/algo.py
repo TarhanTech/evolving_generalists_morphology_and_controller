@@ -61,7 +61,7 @@ class Algo(ABC):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.parallel_jobs = parallel_jobs
 
-        self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo)
+        self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo, default_morph)
         self.searcher = None
         self.pandas_logger = None
 
@@ -70,7 +70,7 @@ class Algo(ABC):
         """Run the experiment"""
         pass
 
-    def _initialize_individuals(self, dis_morph_evo: bool) -> List[Individual]:
+    def _initialize_individuals(self, dis_morph_evo: bool, default_morph: bool) -> List[Individual]:
         """Initialize the list of individuals."""
 
         return [
@@ -81,6 +81,7 @@ class Algo(ABC):
                 self.penalty_scale_factor,
                 self.penalty_scale_factor_err,
                 dis_morph_evo,
+                default_morph
             )
             for _ in range(self.parallel_jobs)
         ]

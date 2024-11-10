@@ -5,11 +5,9 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 import os
 from pathlib import Path
 import argparse
-from typing import List
 import matplotlib.pyplot as plt
 
 from source.graph_builder import (
-    Graphbuilder,
     GraphBuilderGeneralist,
     GraphBuilderSpecialist,
     GraphBuilderCombination,

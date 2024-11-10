@@ -17,44 +17,22 @@ from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, Terr
 from source.algo import OurAlgo, OurAlgoOneGen, Specialist
 
 
-def experiment1():
-    """Runs experiment 1"""
+def our_algo(dis_morph_evo: bool, default_morph: bool):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: Experiment1 = Experiment1(23)
+    algo: OurAlgo = OurAlgo(dis_morph_evo, default_morph, 23)
     algo.run()
-    print("Experiment 1 has finished!!")
 
 
-def experiment2():
-    """Runs experiment 2"""
+def our_algo_one_gen():
     os.environ["MUJOCO_GL"] = "egl"
-    algo: Experiment2 = Experiment2(23)
+    algo: OurAlgoOneGen = OurAlgoOneGen(23)
     algo.run()
-    print("Experiment 2 has finished!!")
 
 
-def experiment3():
-    """Runs experiment 3"""
+def specialist(dis_morph_evo: bool, long: bool):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: Experiment3 = Experiment3(23)
+    algo: Specialist = Specialist(dis_morph_evo, long, 23)
     algo.run()
-    print("Experiment 3 has finished!!")
-
-
-def experiment4():
-    """Runs experiment 3"""
-    os.environ["MUJOCO_GL"] = "egl"
-    algo: Experiment4 = Experiment4(23)
-    algo.run()
-    print("Experiment 4 has finished!!")
-
-
-def experiment5():
-    """Runs experiment 3"""
-    os.environ["MUJOCO_GL"] = "egl"
-    algo: Experiment5 = Experiment5(23)
-    algo.run()
-    print("Experiment 5 has finished!!")
 
 
 def test_ant(tensor_path: Path, terrain: str, params: str):
@@ -166,11 +144,11 @@ def main():
     args = parser.parse_args()
 
     if args.experiment == "our_algo":
-        OurAlgo(args.dis_morph_evo, args.default_morph)
+        our_algo(args.dis_morph_evo, args.default_morph)
     elif args.experiment == "our_algo_one_gen":
-        OurAlgoOneGen()
+        our_algo_one_gen()
     elif args.experiment == "specialist":
-        Specialist(args.dis_morph_evo, args.long)
+        specialist(args.dis_morph_evo, args.long)
     elif args.experiment == "test":
         test_ant(args.tensor, args.terrain, args.params)
     else:
