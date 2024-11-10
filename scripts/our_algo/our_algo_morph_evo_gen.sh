@@ -1,3 +1,5 @@
+#!/bin/bash
+
 exp_name="OurAlgo-MorphEvo-Gen"
 max_jobs=3
 total_runs=15

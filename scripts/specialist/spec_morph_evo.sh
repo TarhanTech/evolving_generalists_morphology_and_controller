@@ -1,6 +1,8 @@
+#!/bin/bash
+
 exp_name="Spec-MorphEvo"
-max_jobs=3
-total_runs=15
+max_jobs=2
+total_runs=17
 
 run_experiment() {
     echo "Starting $exp_name..."

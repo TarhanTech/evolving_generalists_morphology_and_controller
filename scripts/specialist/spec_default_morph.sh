@@ -1,3 +1,5 @@
+#!/bin/bash
+
 exp_name="Spec-DefaultMorph"
 max_jobs=3
 total_runs=15
