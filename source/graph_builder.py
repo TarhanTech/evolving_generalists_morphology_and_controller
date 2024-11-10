@@ -1197,47 +1197,40 @@ class GraphBuilderCombination():
         if run_paths is not None and len(run_paths) > 0:
             self.path_to_save.mkdir(parents=True, exist_ok=True)
 
-            exp1_path: Path = self._get_run_path(run_paths, "exp1")
-            if exp1_path is not None:
-                self.exp1_df: pd.DataFrame = self._create_df(exp1_path)
-                self.exp1_df.to_csv(self.path_to_save / "exp1_df.csv", index=False)
+            our_algo_morph_evo_gen_path: Path = self._get_run_path(run_paths, "our_algo_morph_evo_gen")
+            if our_algo_morph_evo_gen_path is not None:
+                self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path)
+                self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "our_algo_morph_evo_gen_df.csv", index=False)
 
-            exp2_path: Path = self._get_run_path(run_paths, "exp2")
-            if exp2_path is not None:
-                self.exp2_df: pd.DataFrame = self._create_df(exp2_path)
-                self.exp2_df.to_csv(self.path_to_save / "exp2_df.csv", index=False) 
+            spec_morph_evo_long_path: Path = self._get_run_path(run_paths, "spec_morph_evo_long")
+            if spec_morph_evo_long_path is not None:
+                self.spec_morph_evo_long_df: pd.DataFrame = self._create_df(spec_morph_evo_long_path)
+                self.spec_morph_evo_long_df.to_csv(self.path_to_save / "spec_morph_evo_long_df.csv", index=False) 
 
-            exp3_path: Path = self._get_run_path(run_paths, "exp3")
-            if exp3_path is not None:
-                self.exp3_df: pd.DataFrame = self._create_df(exp3_path)
-                self.exp3_df.to_csv(self.path_to_save / "exp3_df.csv", index=False) 
+            spec_morph_evo_path: Path = self._get_run_path(run_paths, "spec_morph_evo")
+            if spec_morph_evo_path is not None:
+                self.spec_morph_evo_df: pd.DataFrame = self._create_df(spec_morph_evo_path)
+                self.spec_morph_evo_df.to_csv(self.path_to_save / "spec_morph_evo_df.csv", index=False) 
 
-            exp4_path: Path = self._get_run_path(run_paths, "exp4")
-            if exp4_path is not None:
-                self.exp4_df: pd.DataFrame = self._create_df(exp4_path)
-                self.exp4_df.to_csv(self.path_to_save / "exp4_df.csv", index=False) 
-
-            exp5_path: Path = self._get_run_path(run_paths, "exp5")
-            if exp5_path is not None:
-                self.exp5_df: pd.DataFrame = self._create_df(exp5_path)
-                self.exp5_df.to_csv(self.path_to_save / "exp5_df.csv", index=False) 
+            our_algo_default_morph_gen_path: Path = self._get_run_path(run_paths, "our_algo_default_morph_gen")
+            if our_algo_default_morph_gen_path is not None:
+                self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path)
+                self.our_algo_default_morph_gen_df.to_csv(self.path_to_save / "our_algo_default_morph_gen_df.csv", index=False) 
         else:
-            self.exp1_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp1_df.csv")
-            self.exp2_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp2_df.csv")
-            # self.exp3_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp3_df.csv")
-            self.exp4_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp4_df.csv")
-            self.exp5_df: pd.DataFrame = pd.read_csv(self.path_to_save / "exp5_df.csv")
+            self.our_algo_morph_evo_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "our_algo_morph_evo_gen_df.csv")
+            # self.spec_morph_evo_long_df: pd.DataFrame = pd.read_csv(self.path_to_save / "spec_morph_evo_long_df.csv")
+            self.spec_morph_evo_df: pd.DataFrame = pd.read_csv(self.path_to_save / "spec_morph_evo_df.csv")
+            self.our_algo_default_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "our_algo_default_morph_gen_df.csv")
     
     def create_graphs(self):
-        self._plot_fitness_vs_environment(self.exp1_df, "exp1_fitness_env.pdf", "Exp1: Environment fitnesses of MC-Pairs of each partition")
-        self._plot_fitness_vs_environment(self.exp2_df, "exp2_fitness_env.pdf", "Exp1: Environment fitnesses of MC-Pair")
+        self._plot_fitness_vs_environment(self.our_algo_morph_evo_gen_df, "our_algo_morph_evo_gen_fitness_env.pdf", "our_algo_morph_evo_gen: Environment fitnesses of MC-Pairs of each partition")
 
-        self._plot_max_fitness_vs_environment(self.exp1_df, "exp1_fitness_env_ensamble_controllers.pdf", "Exp1: Environment fitnesses of MC-Pairs ensamble")
-        self._plot_max_fitness_vs_environment(self.exp5_df, "exp5_fitness_env_ensamble_controllers.pdf", "Exp5: Environment fitnesses of controllers ensamble")
+        self._plot_max_fitness_vs_environment(self.our_algo_morph_evo_gen_df, "our_algo_morph_evo_gen_fitness_env_ensamble_controllers.pdf", "our_algo_morph_evo_gen: Environment fitnesses of MC-Pairs ensamble")
+        self._plot_max_fitness_vs_environment(self.our_algo_default_morph_gen_df, "our_algo_default_morph_gen_fitness_env_ensamble_controllers.pdf", "our_algo_default_morph_gen: Environment fitnesses of controllers ensamble")
 
-        self._multiple_plot_max_fitness_vs_environment([self.exp1_df, self.exp4_df, self.exp5_df], ["exp1", "exp4", "exp5"], "fitness_env_experiments.pdf", "Environment fitnesses from different experiments")
+        self._multiple_plot_max_fitness_vs_environment([self.our_algo_morph_evo_gen_df, self.spec_morph_evo_df, self.our_algo_default_morph_gen_df], ["our_algo_morph_evo_gen", "spec_morph_evo", "our_algo_default_morph_gen"], "fitness_env_experiments.pdf", "Environment fitnesses from different experiments")
 
-        self._plot_max_fitness_boxplot_with_significance([self.exp1_df, self.exp2_df, self.exp4_df, self.exp5_df], ["exp1", "exp2",  "exp4", "exp5"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")    
+        self._plot_max_fitness_boxplot_with_significance([self.our_algo_morph_evo_gen_df, self.spec_morph_evo_df, self.our_algo_default_morph_gen_df], ["our_algo_morph_evo_gen",  "spec_morph_evo", "our_algo_default_morph_gen"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")    
 
     def _get_run_path(self, run_paths, exp: str) -> Path:
         exp_paths = [path for path in run_paths if exp in str(path)]
@@ -1256,7 +1249,7 @@ class GraphBuilderCombination():
 
         for i, params in enumerate(g):
             for terrain in self.ts.all_terrains:
-                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo=("exp5" in str(run_path)))
+                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo=("our_algo_default_morph_gen" in str(run_path)))
                 row = {
                     "Environment": terrain.short_string(),
                     "Controller": i,
