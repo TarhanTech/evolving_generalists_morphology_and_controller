@@ -16,3 +16,4 @@ evo_vid
 .vscode/launch.json
 nohup.out
 combined_data
+*.log
