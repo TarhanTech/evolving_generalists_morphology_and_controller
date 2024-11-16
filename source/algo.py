@@ -49,7 +49,9 @@ class Algo(ABC):
         gen_stagnation: int,
         init_training_generations: int,
         parallel_jobs: int = 6,
+        full_gen_algo: bool = False
     ):
+        self.full_gen_algo: bool = full_gen_algo
         self.max_generations: int = max_generations
         self.gen_stagnation: int = gen_stagnation
         self.init_training_generations: int = init_training_generations
@@ -89,7 +91,7 @@ class Algo(ABC):
     def _initialize_searcher(self) -> XNES:
         """Initialize the XNES searcher."""
         problem = AntProblem(
-            self.device, self.t, self.individuals, self.morph_params_bounds_enc
+            self.device, self.t, self.individuals, self.morph_params_bounds_enc, self.full_gen_algo
         )
         self.searcher = XNES(problem, stdev_init=0.01)
         self.pandas_logger = PandasLogger(self.searcher)
@@ -115,6 +117,7 @@ class GeneralistExperimentBase(Algo):
         init_training_generations: int,
         exp_folder_name: str,
         parallel_jobs: int = 6,
+        full_gen_algo: bool = False
     ):
         super().__init__(
             dis_morph_evo,
@@ -123,6 +126,7 @@ class GeneralistExperimentBase(Algo):
             gen_stagnation,
             init_training_generations,
             parallel_jobs,
+            full_gen_algo
         )
 
         self.ff_manager: FFManagerGeneralist = FFManagerGeneralist(exp_folder_name)
@@ -389,9 +393,47 @@ class OurAlgoOneGen(GeneralistExperimentBase):
         self.ff_manager.save_pickle("G_var.pkl", self.g)
         self.ff_manager.save_pickle("E_var.pkl", self.e)
 
+class FullGeneralist(GeneralistExperimentBase):
+    """
+    Class used to run an algorithm to create a full generalist. In here, as an objective function, 
+    we validate the fitness on all training environments and take the average.
+
+    1. Full generalist with morphological evolution.
+    2. Full generalist without morphological evolution (default morphology).
+    """
+
+    def __init__(
+        self, dis_morph_evo: bool, parallel_jobs: int = 6
+    ):
+        exp_folder_name: str = ""
+        if dis_morph_evo:
+            exp_folder_name = "FullGen-DefaultMorph-Gen"
+        elif dis_morph_evo is False:
+            exp_folder_name = "FullGen-MorphEvo-Gen"
+        else:
+            raise ValueError(
+                "Undefined experiment configuration"
+            )
+
+        super().__init__(
+            dis_morph_evo=dis_morph_evo,
+            default_morph=False,
+            max_generations=5000,
+            gen_stagnation=500,
+            init_training_generations=2500,
+            exp_folder_name=exp_folder_name,
+            parallel_jobs=parallel_jobs,
+            full_gen_algo=True
+        )
+
 
 class Specialist(SpecialistExperimentBase):
-    """Class used to run the specialist experiment where you create a specialist for each of the environments"""
+    """
+    Class used to run the specialist experiment where you create a specialist for each of the environments
+    1. Specialists with morphological evolution.
+    2. Specialists with morphological evolution (long generations).
+    3. Specialists without morphological evolution (default morphology).
+    """
 
     def __init__(self, dis_morph_evo: bool, long: bool, parallel_jobs: int = 6):
         exp_folder_name: str = ""

@@ -3,6 +3,7 @@
 from typing import List
 from evotorch import Problem
 import torch
+import numpy as np
 import evotorch
 import joblib
 from source.individual import Individual
@@ -18,7 +19,14 @@ from source.training_env import (
 class AntProblem(Problem):
     """Definition of the custom optimization problem used for evotorch"""
 
-    def __init__(self, device, tr_schedule: TrainingSchedule, individuals: List[Individual], initial_bounds: tuple[float, float]):
+    def __init__(
+        self,
+        device,
+        tr_schedule: TrainingSchedule,
+        individuals: List[Individual],
+        initial_bounds: tuple[float, float],
+        full_gen_algo: bool = False
+    ):
         super().__init__(
             "max",
             solution_length=individuals[0].params_size,
@@ -27,23 +35,25 @@ class AntProblem(Problem):
             eval_dtype=torch.float64,
             device=device,
         )
+        self.full_gen_algo: bool = full_gen_algo
         self.individuals: List[Individual] = individuals
         self.tr_schedule = tr_schedule
 
     def evals(self, params: torch.Tensor, ind: Individual) -> float:
-        """Evaluate Individual on next training environment."""
-        training_env: TerrainType = self.tr_schedule.get_training_terrain(ind.generation)
-
-        if isinstance(training_env, RoughTerrain):
-            ind.setup_ant_rough(params, training_env.floor_height, training_env.block_size)
-        elif isinstance(training_env, HillsTerrain):
-            ind.setup_ant_hills(params, training_env.floor_height, training_env.scale)
-        elif isinstance(training_env, DefaultTerrain):
-            ind.setup_ant_default(params)
+        """Evaluate Individual on next training environment or on all environments if the full_gen_algo flag is true"""
+        if self.full_gen_algo is True:
+            fitnesses: list[float] = []
+            for t_env in self.tr_schedule.training_terrains:
+                ind.setup_env_ind(params, t_env)
+                fitnesses.append(ind.evaluate_fitness())
+            fitnesses = np.array(fitnesses)
+            return np.mean(fitnesses)
         else:
-            assert False, "Class type not supported"
-
-        return ind.evaluate_fitness()
+            training_env: TerrainType = self.tr_schedule.get_training_terrain(
+                ind.generation
+            )
+            ind.setup_env_ind(params, training_env)
+            return ind.evaluate_fitness()
 
     def _evaluate_batch(self, batch: evotorch.SolutionBatch):
         batch_size: int = len(self.individuals)
@@ -54,7 +64,10 @@ class AntProblem(Problem):
 
         for i in range(0, len(batch.values), batch_size):
             batch_vals = batch.values[i : i + batch_size]
-            tasks = (joblib.delayed(self.evals)(params, ind) for params, ind in zip(batch_vals, self.individuals))
+            tasks = (
+                joblib.delayed(self.evals)(params, ind)
+                for params, ind in zip(batch_vals, self.individuals)
+            )
             batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
             all_fitness.extend(batch_fitness)
         batch.set_evals(torch.tensor(all_fitness, dtype=torch.float64))

@@ -6,7 +6,7 @@ total_runs=1
 
 run_experiment() {
     echo "Starting $exp_name..."
-    python main.py our_algo --long
+    python main.py specialist --long
     echo "Finished $exp_name"
 }
 

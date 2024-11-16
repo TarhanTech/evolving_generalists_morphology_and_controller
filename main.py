@@ -14,7 +14,7 @@ import os
 import torch
 from source.individual import Individual
 from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, TerrainType
-from source.algo import OurAlgo, OurAlgoOneGen, Specialist
+from source.algo import FullGeneralist, OurAlgo, OurAlgoOneGen, Specialist
 
 
 def our_algo(dis_morph_evo: bool, default_morph: bool):
@@ -28,6 +28,10 @@ def our_algo_one_gen():
     algo: OurAlgoOneGen = OurAlgoOneGen(23)
     algo.run()
 
+def full_gen(dis_morph_evo: bool):
+    os.environ["MUJOCO_GL"] = "egl"
+    algo: FullGeneralist = FullGeneralist(dis_morph_evo, 23)
+    algo.run()
 
 def specialist(dis_morph_evo: bool, long: bool):
     os.environ["MUJOCO_GL"] = "egl"
@@ -101,6 +105,13 @@ def main():
         help="Run the experiment where you create one generalist for all the environments",
     )
 
+    parser_full_gen = subparsers.add_parser("full_gen")
+    parser_full_gen.add_argument(
+        "--dis_morph_evo",
+        action="store_true",
+        default=False,
+    )
+
     parser_specialist = subparsers.add_parser(
         "specialist",
         help="Run the fourth experiment where you create a specialist for each of the environments using same resources as experiment 1",
@@ -147,6 +158,8 @@ def main():
         our_algo(args.dis_morph_evo, args.default_morph)
     elif args.experiment == "our_algo_one_gen":
         our_algo_one_gen()
+    elif args.experiment == "full_gen":
+        full_gen(args.dis_morph_evo)
     elif args.experiment == "specialist":
         specialist(args.dis_morph_evo, args.long)
     elif args.experiment == "test":

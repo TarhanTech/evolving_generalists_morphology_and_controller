@@ -487,30 +487,34 @@ class Graphbuilder(ABC):
         ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
 
     def _change_folder_name(self):
+        # Calculate mean fitness
         fitness_only = np.array([x[1] for x in self.env_fitnesses])
         mean_fitness = round(np.mean(fitness_only))
 
+        # Current run path and folder name
         current_run_path = self.run_path
-
         folder_name = current_run_path.name
 
-        pattern = r"^(exp\d+_(?:gen|spec)_)(\d+_)?(.*)$"
+        # Define the regex pattern to capture parts before and after the first underscore
+        pattern = r"^(.*?)_(.*)$"
 
+        # Define the replacement function
         def repl(match):
-            prefix = match.group(1)  # "expX_gen_" or "expX_spec_"
-            suffix = match.group(3)  # The rest of the folder name
-            return f"{prefix}{mean_fitness}_{suffix}"
+            prefix = match.group(1)  # Everything before the first underscore
+            suffix = match.group(2)  # Everything after the first underscore
+            return f"{prefix}_{mean_fitness}_{suffix}"
 
         # Apply the substitution to get the new folder name
-        new_folder_name = re.sub(pattern, repl, folder_name)
+        new_folder_name = re.sub(pattern, repl, folder_name, count=1)
 
         # Construct the new run path
         new_run_path = current_run_path.parent / new_folder_name
 
-        # Rename the folder (ensure the new path doesn"t already exist)
+        # Rename the folder if the new path doesn't already exist
         if not new_run_path.exists():
             current_run_path.rename(new_run_path)
             self.run_path = new_run_path
+            print(f"Folder renamed to: {new_folder_name}")
         else:
             print(f"Cannot rename: {new_run_path} already exists.")
         
@@ -1150,6 +1154,33 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             cv2.destroyAllWindows()
             video.release()
+
+    def _evaluate_envs(self, terrains: List[TerrainType], create_videos: bool) -> List[List[Tuple[TerrainType, float]]]:
+        env_fitnesses = []
+        
+        for terrain in terrains:
+            index: int = None
+            for i, terrain_list in enumerate(self.e):
+                if terrain in terrain_list:
+                    index = i
+                    break
+
+            fitnesses = []
+            self.inds[0].setup_env_ind(self.g[index], terrain)
+            for i in range(self._evaluation_count):
+                fitness = self.inds[0].evaluate_fitness()
+                fitnesses.append(fitness)
+            mean_fitness = sum(fitnesses) / len(fitnesses)
+            env_fitnesses.append((terrain, mean_fitness))
+
+            if create_videos:
+                video_thread = threading.Thread(
+                    target=self._create_video,
+                    args=(terrain, copy.deepcopy(self.inds[0]), self.g[index])
+                )
+                video_thread.start()
+        
+        return env_fitnesses
 
     def _load_morph_data(self) -> Tuple[list[pd.DataFrame], list[list[int]], list]:
         morph_data_dfs: list[pd.DataFrame] = []
