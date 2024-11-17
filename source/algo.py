@@ -417,7 +417,7 @@ class FullGeneralist(GeneralistExperimentBase):
 
         super().__init__(
             dis_morph_evo=dis_morph_evo,
-            default_morph=False,
+            default_morph=True,
             max_generations=5000,
             gen_stagnation=500,
             init_training_generations=2500,
