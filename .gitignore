@@ -17,3 +17,5 @@ evo_vid
 nohup.out
 combined_data
 *.log
+list_last_tensors_gen.py
+list_last_tensors_spec.py
