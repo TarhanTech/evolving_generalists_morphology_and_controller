@@ -517,17 +517,35 @@ class Graphbuilder(ABC):
             print(f"Folder renamed to: {new_folder_name}")
         else:
             print(f"Cannot rename: {new_run_path} already exists.")
-        
+
 
 class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
 
     def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
         super().__init__(run_path, dis_morph_evo)
-        self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
-        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
-        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
+        test_file_path = self.run_path / "env_fitnesses_test.pkl"
+        training_file_path = self.run_path / "env_fitnesses_training.pkl"
+
+        if os.path.exists(test_file_path):
+            with open(test_file_path, "rb") as file:
+                self.env_fitnesses_test = pickle.load(file)
+        else:
+            self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
+            with open(test_file_path, "wb") as file:
+                pickle.dump(self.env_fitnesses_test, file)
+
+        if os.path.exists(training_file_path):
+            with open(training_file_path, "rb") as file:
+                self.env_fitnesses_training = pickle.load(file)
+        else:
+            self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+            with open(training_file_path, "wb") as file:
+                pickle.dump(self.env_fitnesses_training, file)
+
+        self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
+        
         self._change_folder_name()
         self._print_run_data()
         
@@ -884,7 +902,16 @@ class GraphBuilderSpecialist(Graphbuilder):
         self.ts.testing_terrains = []
 
         self.env_fitnesses_test: List[Tuple[TerrainType, float]] = []
-        self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+
+        training_file_path = self.run_path / "env_fitnesses_training.pkl"
+        if os.path.exists(training_file_path):
+            with open(training_file_path, "rb") as file:
+                self.env_fitnesses_training = pickle.load(file)
+        else:
+            self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
+            with open(training_file_path, "wb") as file:
+                pickle.dump(self.env_fitnesses_training, file)
+
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
         self._change_folder_name()
