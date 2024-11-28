@@ -500,6 +500,9 @@ class GraphBuilderGeneralist(Graphbuilder):
     def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
         super().__init__(run_path, dis_morph_evo)
 
+        self.e_init: List[List[TerrainType]] = self._load_e()
+        self.e: List[List[TerrainType]] = [[] for _ in range(len(self.e_init))]
+
         test_file_path = self.run_path / "env_fitnesses_test.pkl"
         training_file_path = self.run_path / "env_fitnesses_training.pkl"
         e_file_path = self.run_path / "E_established.pkl"
@@ -892,6 +895,8 @@ class GraphBuilderSpecialist(Graphbuilder):
     def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False):
         super().__init__(run_path, dis_morph_evo)
 
+        self.e: List[List[TerrainType]] = self._load_e()
+
         self.ts.training_terrains = self.ts.all_terrains
         self.ts.testing_terrains = []
 
@@ -917,6 +922,16 @@ class GraphBuilderSpecialist(Graphbuilder):
         self.morph_data_dfs: list[pd.DataFrame] = x1
         self.best_tensors_indices: list[list[int]] = x2
         self.best_images = x3
+
+    def create_graphs(self):
+        self.create_ant_screenshots()
+        self.create_generalist_heatmap_partition(self.e, "hm_partition.pdf")
+        self.create_fitness_heatmap()
+        self.create_fitness_env_boxplot()
+        self.create_fitness_evaluation_graph()
+        self.create_morph_params_plot()
+        self.create_morph_params_pca_scatterplot()
+        self.create_evolution_video()
 
     def create_ant_screenshots(self):
         for g, e in zip(self.g, self.e):

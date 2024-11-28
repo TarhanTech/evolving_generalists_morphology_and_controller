@@ -86,15 +86,7 @@ def main():
         
     elif args.type == "specialist":
         graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos, args.dis_morph_evo)
-        graph_builder_spec.create_ant_screenshots()
-        graph_builder_spec.create_generalist_heatmap_partition()
-        graph_builder_spec.create_fitness_heatmap()
-        graph_builder_spec.create_fitness_env_boxplot()
-
-        graph_builder_spec.create_fitness_evaluation_graph()
-        graph_builder_spec.create_morph_params_plot()
-        graph_builder_spec.create_morph_params_pca_scatterplot()
-        graph_builder_spec.create_evolution_video()
+        graph_builder_spec.create_graphs()
     elif args.type == "combined":
         gs = GraphBuilderCombination(args.run_paths)
         gs.create_graphs()
