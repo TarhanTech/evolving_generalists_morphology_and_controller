@@ -29,11 +29,11 @@ fi
 # Loop through all folders matching the pattern in the "runs/" directory
 for dir in runs/"$exp_name"*; do
   if [ -d "$dir" ]; then
-    # Skip directories that contain an underscore followed by 3 or more digits
-    if [[ "$dir" =~ _[0-9]{3,} ]]; then
-      echo "Skipping $dir"
-      continue
-    fi
+    # # Skip directories that contain an underscore followed by 3 or more digits
+    # if [[ "$dir" =~ _[0-9]{3,} ]]; then
+    #   echo "Skipping $dir"
+    #   continue
+    # fi
     
     # Run the Python script in the background
     echo $dir

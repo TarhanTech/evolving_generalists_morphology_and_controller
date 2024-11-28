@@ -1,17 +1,5 @@
 """This module defines the parent class used to initiate one of the experimental runs."""
 
-"""
-Our algorithm in these experiments lets the iterations/generations go till max 5000. We will assume this number for our calculation.
-The problem creates a population of 23 individuals. This means we have 23 evaluations per iterations.
-After every generation, we calculate the generalist score using the training environments (33 environments).
-
-|evals| = (5000 * 23) + (5000 * 33) = 5000(23 + 33) = 280.000
-
-We need 81 specialist MC-pairs.
-|evals|/specialist =  280.000/81 = 3457 evals/specialist
-|generation|/specialist = 3545/23 = 150 generations/specialist
-"""
-
 from collections import defaultdict
 from typing import List, Tuple
 from abc import ABC, abstractmethod
@@ -435,6 +423,19 @@ class Specialist(SpecialistExperimentBase):
     3. Specialists without morphological evolution (default morphology).
     """
 
+    """
+    Our algorithm in these experiments lets the iterations/generations go till max 5000. We will assume this number for our calculation.
+    The problem creates a population of 23 individuals. This means we have 23 evaluations per iterations.
+    After every generation, we calculate the generalist score using the training environments (33 environments).
+    In this calculation, I am assuming it partitions 3 times.
+
+    |evals| = 5000(23 + 33) * 3 = 840.000
+
+    We need 81 specialist MC-pairs.
+    |evals|/specialist =  840.000/81 = 10.371 evals/specialist
+    |generation|/specialist = 10.371/23 = 451 generations/specialist
+    """
+
     def __init__(self, dis_morph_evo: bool, long: bool, parallel_jobs: int = 6):
         exp_folder_name: str = ""
         if dis_morph_evo is False and long is False:
@@ -451,9 +452,9 @@ class Specialist(SpecialistExperimentBase):
         super().__init__(
             dis_morph_evo,
             default_morph=True,
-            max_generations=10000 if long else 150,
-            gen_stagnation=750 if long else 150,
-            init_training_generations=2500 if long else 150,
+            max_generations=10000 if long else 451,
+            gen_stagnation=750 if long else 451,
+            init_training_generations=2500 if long else 451,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
         )
