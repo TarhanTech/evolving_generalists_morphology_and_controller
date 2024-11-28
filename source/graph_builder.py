@@ -59,22 +59,24 @@ class Graphbuilder(ABC):
         self.ts: TrainingSchedule = TrainingSchedule()
 
         self.g: List[Tensor] = self._load_g()
-        self.e: List[List[TerrainType]] = self._load_e()
+        self.e_init: List[List[TerrainType]] = self._load_e()
+        self.e: List[List[TerrainType]] = [[] for _ in range(len(self.e_init))]
+
         self._print_run_data()
 
         self._evaluation_count: int = 30
-        
+
     @abstractmethod
     def create_ant_screenshots(self):
         """Method that creates photos of the ants morphology in the environment"""
         pass
 
-    def create_generalist_heatmap_partition(self):
+    def create_generalist_heatmap_partition(self, e: List[List[TerrainType]], file_name: str):
         """Method that creates heatmap to show which environments are being handled by which partition"""
         default_df, hills_df, rt_df = self._create_dataframe_terrains()
 
-        for j in range(len(self.e)):
-            for env in self.e[j]:
+        for j in range(len(e)):
+            for env in e[j]:
                 if isinstance(env, RoughTerrain):
                     rt_df.loc[round(env.block_size, 1), round(env.floor_height, 1)] = j
                 elif isinstance(env, HillsTerrain):
@@ -137,7 +139,7 @@ class Graphbuilder(ABC):
 
         plt.tight_layout()  # Adjust layout
         plt.savefig(
-            self.run_path / "generalist_heatmap_partition.pdf",
+            self.run_path / file_name,
             dpi=300,
             bbox_inches="tight",
         )
@@ -418,32 +420,6 @@ class Graphbuilder(ABC):
         def eval(ind: Individual):
             return ind.evaluate_fitness()
 
-        # if terrain in self.ts.training_terrains:
-        #     params: Tensor = None
-        #     for i, terrains in enumerate(self.e):
-        #         if terrain in terrains:
-        #             params = self.g[i]
-        #             break
-
-        #     if create_videos:
-        #         video_thread = threading.Thread(
-        #             target=self._create_video,
-        #             args=(terrain, copy.deepcopy(self.inds[0]), params)
-        #         )
-        #         video_thread.start()
-
-        #     setup_env_ind(terrain, params)
-
-        #     fitnesses: list[float] = []
-        #     batch_size = len(self.inds)
-        #     for i in range(0, self._evaluation_count, batch_size):
-        #         tasks = (joblib.delayed(eval)(ind) for ind in self.inds)
-        #         batch_fitness = joblib.Parallel(n_jobs=batch_size)(tasks)
-        #         fitnesses.extend(batch_fitness)
-
-        #     mean_fitness = sum(fitnesses) / len(fitnesses)
-        #     return (terrain, mean_fitness)
-        # elif terrain in self.ts.testing_terrains:
         fitnesses_part: list[float] = []
         for params in self.g:
             setup_env_ind(terrain, params)
@@ -470,8 +446,6 @@ class Graphbuilder(ABC):
             video_thread.start()
 
         return (terrain, highest_fitness)
-        # else: 
-        #     raise ValueError(f"Terrain {terrain} not found in training or testing terrains.")
 
     def _create_video(self, terrain, ind: Individual, params):
         if isinstance(terrain, RoughTerrain):
@@ -495,16 +469,17 @@ class Graphbuilder(ABC):
         current_run_path = self.run_path
         folder_name = current_run_path.name
 
-        # Define the regex pattern to capture parts before and after the first underscore
-        pattern = r"^(.*?)_(.*)$"
+        # Define the regex pattern to capture an existing mean fitness number (if present)
+        # and the timestamp
+        pattern = r"^(.*?_)(\d+_)?(\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d+)$"
 
-        # Define the replacement function
+        # Replacement function to insert or replace the mean fitness
         def repl(match):
-            prefix = match.group(1)  # Everything before the first underscore
-            suffix = match.group(2)  # Everything after the first underscore
-            return f"{prefix}_{mean_fitness}_{suffix}"
+            prefix = match.group(1)  # Everything before the existing mean fitness
+            timestamp = match.group(3)  # The timestamp part
+            return f"{prefix}{mean_fitness}_{timestamp}"
 
-        # Apply the substitution to get the new folder name
+        # Apply the substitution to clean up and insert the new mean fitness
         new_folder_name = re.sub(pattern, repl, folder_name, count=1)
 
         # Construct the new run path
@@ -527,22 +502,29 @@ class GraphBuilderGeneralist(Graphbuilder):
 
         test_file_path = self.run_path / "env_fitnesses_test.pkl"
         training_file_path = self.run_path / "env_fitnesses_training.pkl"
+        e_file_path = self.run_path / "E_established.pkl"
 
-        if os.path.exists(test_file_path):
+        if os.path.exists(test_file_path) and os.path.exists(training_file_path) and os.path.exists(e_file_path):
             with open(test_file_path, "rb") as file:
                 self.env_fitnesses_test = pickle.load(file)
+
+            with open(training_file_path, "rb") as file:
+                self.env_fitnesses_training = pickle.load(file)
+
+            with open(e_file_path, "rb") as file:
+                self.e = pickle.load(file)
         else:
             self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
             with open(test_file_path, "wb") as file:
                 pickle.dump(self.env_fitnesses_test, file)
-
-        if os.path.exists(training_file_path):
-            with open(training_file_path, "rb") as file:
-                self.env_fitnesses_training = pickle.load(file)
-        else:
+            
             self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
             with open(training_file_path, "wb") as file:
                 pickle.dump(self.env_fitnesses_training, file)
+
+            with open(e_file_path, "wb") as file:
+                pickle.dump(self.e, file)
+
 
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
         
@@ -556,7 +538,19 @@ class GraphBuilderGeneralist(Graphbuilder):
             self.morph_data_dfs: list[pd.DataFrame] = x1
             self.best_tensors_indices: list[list[int]] = x2
             self.best_images = x3
-        
+    
+    def create_graphs(self):
+        self.create_ant_screenshots()
+        self.create_generalist_heatmap_partition(self.e_init, "hm_partition_by_algo.pdf")
+        self.create_generalist_heatmap_partition(self.e, "hm_partition_by_best_mc.pdf")
+        self.create_fitness_heatmap()
+        self.create_fitness_env_boxplot()
+        self.create_generalist_evaluation_graph()
+        self.create_fitness_evaluation_graphs()
+        self.create_morph_params_plot()
+        self.create_morph_params_pca_scatterplot()
+        self.create_evolution_video()
+
     def create_ant_screenshots(self):
         for i, g in enumerate(self.g):
             self.inds[0].setup_ant_default(g)
