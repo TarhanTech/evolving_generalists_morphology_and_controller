@@ -27,7 +27,7 @@ else
 fi
 
 # Loop through all folders matching the pattern in the "runs/" directory
-for dir in runs/"$exp_name"*; do
+for dir in runs/$exp_name/"$exp_name"*; do
   if [ -d "$dir" ]; then
     # # Skip directories that contain an underscore followed by 3 or more digits
     # if [[ "$dir" =~ _[0-9]{3,} ]]; then

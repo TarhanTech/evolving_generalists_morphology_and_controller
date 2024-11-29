@@ -448,14 +448,7 @@ class Graphbuilder(ABC):
         return (terrain, highest_fitness)
 
     def _create_video(self, terrain, ind: Individual, params):
-        if isinstance(terrain, RoughTerrain):
-            ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
-        elif isinstance(terrain, HillsTerrain):
-            ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
-        elif isinstance(terrain, DefaultTerrain):
-            ind.setup_ant_default(params)
-        else:
-            assert False, "Class type not supported"
+        ind.setup_env_ind(params, terrain)
 
         video_save_path = self.run_path / "videos_env" / terrain.__str__()
         ind.evaluate_fitness(render_mode="rgb_array", video_save_path=video_save_path)
@@ -516,6 +509,12 @@ class GraphBuilderGeneralist(Graphbuilder):
 
             with open(e_file_path, "rb") as file:
                 self.e = pickle.load(file)
+            
+            if create_videos is True:
+                for i in range(len(self.e)):
+                    for j in range(len(self.e[i])):
+                        self._create_video(self.e[i][j], self.g[i])
+
         else:
             self.env_fitnesses_test: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.testing_terrains, create_videos)
             with open(test_file_path, "wb") as file:
