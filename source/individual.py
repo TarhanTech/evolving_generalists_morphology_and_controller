@@ -34,8 +34,8 @@ class Individual:
         penalty_growth_rate: float,
         penalty_scale_factor: int,
         penalty_scale_factor_err: int,
-        dis_morph_evo: bool = False,
-        default_morph: bool = False,
+        dis_morph_evo: bool,
+        default_morph: bool,
     ):
         self.dis_morph_evo = dis_morph_evo
         self.uid: uuid.UUID = uuid.uuid4()

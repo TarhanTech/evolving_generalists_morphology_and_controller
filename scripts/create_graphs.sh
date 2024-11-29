@@ -16,9 +16,13 @@ dis_morph_evo_flag=""  # Initialize as empty
 
 if [[ "$exp_name" == "OurAlgo-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgoNoPart-MorphEvo-Gen" ]]; then
   python_arg="generalist"
-elif [[ "$exp_name" == "OurAlgo-LargeMorph-Gen" ]] || [[ "$exp_name" == "OurAlgo-DefaultMorph-Gen" ]]; then
+elif [[ "$exp_name" == "OurAlgo-LargeMorph-Gen" ]]; then
   python_arg="generalist"
   dis_morph_evo_flag="--dis_morph_evo"
+elif [[ "$exp_name" == "OurAlgo-DefaultMorph-Gen" ]]; then
+  python_arg="generalist"
+  dis_morph_evo_flag="--dis_morph_evo"
+  default_morph_flag="--default_morph"
 elif [[ "$exp_name" == "Spec-MorphEvo" ]] || [[ "$exp_name" == "Spec-MorphEvo-Long" ]]; then
   python_arg="specialist"
 else
@@ -37,7 +41,7 @@ for dir in runs/$exp_name/"$exp_name"*; do
     
     # Run the Python script in the background
     echo $dir
-    python graphs.py "$python_arg" --run_path "$dir" $dis_morph_evo_flag &
+    python graphs.py "$python_arg" $dis_morph_evo_flag $default_morph_flag --run_path "$dir" &
     ((counter++))
 
     # If we reach the max_jobs limit, wait for all current jobs to finish
