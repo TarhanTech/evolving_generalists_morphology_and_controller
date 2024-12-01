@@ -390,6 +390,23 @@ class FullGeneralist(GeneralistExperimentBase):
     2. Full generalist without morphological evolution (default morphology).
     """
 
+    """
+    Our algorithm in these experiments lets the iterations/generations go till max 5000. We will assume this number for our calculation.
+    The problem creates a population of 23 individuals. This means we have 23 evaluations per iterations.
+    After every generation, we calculate the generalist score using the training environments (33 environments).
+    In this calculation, I am assuming it partitions 3 times.
+
+    |evals| = 5000(23 + 33) + 5000(23 + 7) + 5000(23 + 1) = 550.000
+    |evals| = 280.000 + 150.000 + 120.000 = 550.000
+
+    We want the same amount of evaluations for this algorithm. Full generalist takes:
+    |evals| = num_generations * 23 * 33 = 550.000
+    Solving for num_generations gives:
+    num_generations = 725
+
+    Partitioning in this algorithm is not possible in any way.
+    """
+
     def __init__(
         self, dis_morph_evo: bool, parallel_jobs: int = 6
     ):
@@ -406,13 +423,29 @@ class FullGeneralist(GeneralistExperimentBase):
         super().__init__(
             dis_morph_evo=dis_morph_evo,
             default_morph=True,
-            max_generations=5000,
-            gen_stagnation=500,
-            init_training_generations=2500,
+            max_generations=725,
+            gen_stagnation=725,
+            init_training_generations=725,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
             full_gen_algo=True
         )
+    
+    def run(self):
+        """Run the experiment where you create one generalist for all the environments"""
+        partitions: int = 1
+
+        self.ff_manager.create_partition_folder(partitions)
+        self._initialize_searcher()
+        best_generalist, _ = self._train(partitions)
+
+        self.e.append(self.t.training_terrains)
+        self.g.append(best_generalist)
+
+        self._dump_logs(partitions)
+
+        self.ff_manager.save_pickle("G_var.pkl", self.g)
+        self.ff_manager.save_pickle("E_var.pkl", self.e)
 
 
 class Specialist(SpecialistExperimentBase):
@@ -429,11 +462,12 @@ class Specialist(SpecialistExperimentBase):
     After every generation, we calculate the generalist score using the training environments (33 environments).
     In this calculation, I am assuming it partitions 3 times.
 
-    |evals| = 5000(23 + 33) * 3 = 840.000
+    |evals| = 5000(23 + 33) + 5000(23 + 7) + 5000(23 + 1) = 550.000
+    |evals| = 280.000 + 150.000 + 120.000 = 550.000
 
     We need 81 specialist MC-pairs.
-    |evals|/specialist =  840.000/81 = 10.371 evals/specialist
-    |generation|/specialist = 10.371/23 = 451 generations/specialist
+    |evals|/specialist =  550.000/81 = 6790 evals/specialist
+    |generation|/specialist = 6790/23 = 295 generations/specialist
     """
 
     def __init__(self, dis_morph_evo: bool, long: bool, parallel_jobs: int = 6):
@@ -452,9 +486,9 @@ class Specialist(SpecialistExperimentBase):
         super().__init__(
             dis_morph_evo,
             default_morph=True,
-            max_generations=10000 if long else 451,
-            gen_stagnation=750 if long else 451,
-            init_training_generations=2500 if long else 451,
+            max_generations=10000 if long else 295,
+            gen_stagnation=750 if long else 295,
+            init_training_generations=2500 if long else 295,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
         )
