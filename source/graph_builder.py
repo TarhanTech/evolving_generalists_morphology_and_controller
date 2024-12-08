@@ -346,7 +346,7 @@ class Graphbuilder(ABC):
             g = pickle.load(file)
         return g
 
-    def _load_e(self):
+    def _load_e(self) -> List[List[TerrainType]]:
         with open(self.run_path / "E_var.pkl", "rb") as file:
             e = pickle.load(file)
         return e
@@ -1264,30 +1264,44 @@ class GraphBuilderCombination():
         if run_paths is not None and len(run_paths) > 0:
             self.path_to_save.mkdir(parents=True, exist_ok=True)
 
-            our_algo_morph_evo_gen_path: Path = self._get_run_path(run_paths, "our_algo_morph_evo_gen")
-            if our_algo_morph_evo_gen_path is not None:
-                self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path)
-                self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "our_algo_morph_evo_gen_df.csv", index=False)
-
-            spec_morph_evo_long_path: Path = self._get_run_path(run_paths, "spec_morph_evo_long")
-            if spec_morph_evo_long_path is not None:
-                self.spec_morph_evo_long_df: pd.DataFrame = self._create_df(spec_morph_evo_long_path)
-                self.spec_morph_evo_long_df.to_csv(self.path_to_save / "spec_morph_evo_long_df.csv", index=False) 
-
-            spec_morph_evo_path: Path = self._get_run_path(run_paths, "spec_morph_evo")
-            if spec_morph_evo_path is not None:
-                self.spec_morph_evo_df: pd.DataFrame = self._create_df(spec_morph_evo_path)
-                self.spec_morph_evo_df.to_csv(self.path_to_save / "spec_morph_evo_df.csv", index=False) 
-
-            our_algo_default_morph_gen_path: Path = self._get_run_path(run_paths, "our_algo_default_morph_gen")
+            our_algo_default_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-DefaultMorph-Gen")
             if our_algo_default_morph_gen_path is not None:
-                self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path)
-                self.our_algo_default_morph_gen_df.to_csv(self.path_to_save / "our_algo_default_morph_gen_df.csv", index=False) 
+                self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path, True)
+                self.our_algo_default_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-DefaultMorph-Gen.csv", index=False) 
+
+            our_algo_large_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-LargeMorph-Gen")
+            if our_algo_large_morph_gen_path is not None:
+                self.our_algo_large_morph_gen_df: pd.DataFrame = self._create_df(our_algo_large_morph_gen_path, True)
+                self.our_algo_large_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-LargeMorph-Gen.csv", index=False)
+
+            our_algo_morph_evo_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-MorphEvo-Gen")
+            if our_algo_morph_evo_gen_path is not None:
+                self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path, True)
+                self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-Gen.csv", index=False)
+
+            
+            spec_default_morph_path: Path = self._get_run_path(run_paths, "Spec-DefaultMorph")
+            if spec_default_morph_path is not None:
+                self.spec_default_morph_df: pd.DataFrame = self._create_df(spec_default_morph_path, False)
+                self.spec_default_morph_df.to_csv(self.path_to_save / "Spec-DefaultMorph.csv", index=False) 
+
+            spec_morph_evo_path: Path = self._get_run_path(run_paths, "Spec-MorphEvo")
+            if spec_morph_evo_path is not None:
+                self.spec_morph_evo_df: pd.DataFrame = self._create_df(spec_morph_evo_path, False)
+                self.spec_morph_evo_df.to_csv(self.path_to_save / "Spec-MorphEvo.csv", index=False) 
+
+            spec_morph_evo_long_path: Path = self._get_run_path(run_paths, "Spec-MorphEvo-Long")
+            if spec_morph_evo_long_path is not None:
+                self.spec_morph_evo_long_df: pd.DataFrame = self._create_df(spec_morph_evo_long_path, False)
+                self.spec_morph_evo_long_df.to_csv(self.path_to_save / "Spec-MorphEvo-Long.csv", index=False) 
         else:
-            self.our_algo_morph_evo_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "our_algo_morph_evo_gen_df.csv")
-            # self.spec_morph_evo_long_df: pd.DataFrame = pd.read_csv(self.path_to_save / "spec_morph_evo_long_df.csv")
-            self.spec_morph_evo_df: pd.DataFrame = pd.read_csv(self.path_to_save / "spec_morph_evo_df.csv")
-            self.our_algo_default_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "our_algo_default_morph_gen_df.csv")
+            self.our_algo_default_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "OurAlgo-DefaultMorph-Gen.csv")
+            self.our_algo_large_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "OurAlgo-LargeMorph-Gen.csv")
+            self.our_algo_morph_evo_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "OurAlgo-MorphEvo-Gen.csv")
+
+            self.spec_default_morph_df: pd.DataFrame = pd.read_csv(self.path_to_save / "Spec-DefaultMorph.csv") 
+            self.spec_morph_evo_df: pd.DataFrame = pd.read_csv(self.path_to_save / "Spec-MorphEvo.csv")
+            self.spec_morph_evo_long_df: pd.DataFrame = pd.read_csv(self.path_to_save / "Spec-MorphEvo-Long.csv")
     
     def create_graphs(self):
         self._plot_fitness_vs_environment(self.our_algo_morph_evo_gen_df, "our_algo_morph_evo_gen_fitness_env.pdf", "our_algo_morph_evo_gen: Environment fitnesses of MC-Pairs of each partition")
@@ -1309,9 +1323,9 @@ class GraphBuilderCombination():
         else:
             raise ValueError(f"Multiple paths containing {exp} found.")
         
-    def _create_df(self, run_path: Path) -> pd.DataFrame:
+    def _create_df(self, run_path: Path, is_generalist: bool) -> pd.DataFrame:
         g = self._load_g(run_path)
-
+        e = self._load_e(run_path)
         rows = []
 
         for i, params in enumerate(g):
@@ -1319,7 +1333,7 @@ class GraphBuilderCombination():
                 fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo=("our_algo_default_morph_gen" in str(run_path)))
                 row = {
                     "Environment": terrain.short_string(),
-                    "Controller": i,
+                    "Controller": f"partition_{i}" if is_generalist else e[i][0].short_string(),
                     "Fitness": fitness_mean,
                     "Fitness std": fitness_std 
                 }
@@ -1332,6 +1346,11 @@ class GraphBuilderCombination():
         with open(run_path / "G_var.pkl", "rb") as file:
             g = pickle.load(file)
         return g
+
+    def _load_e(self, run_path: Path) -> List[List[TerrainType]]:
+        with open(run_path / "E_var.pkl", "rb") as file:
+            e = pickle.load(file)
+        return e
 
     def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool) -> Tuple[float, float]:
         parallel_jobs = 30
