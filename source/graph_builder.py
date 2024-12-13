@@ -871,7 +871,7 @@ class GraphBuilderGeneralist(Graphbuilder):
             for j, tensor_file in enumerate(sorted_tensor_files):
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
-                    params = torch.load(tensor_path)
+                    params = torch.load(tensor_path, map_location=torch.device('cpu'))
                     self.inds[0].setup_ant_default(params)
                     
                     morph_data.append({
@@ -906,11 +906,18 @@ class GraphBuilderSpecialist(Graphbuilder):
         if os.path.exists(training_file_path):
             with open(training_file_path, "rb") as file:
                 self.env_fitnesses_training = pickle.load(file)
+            print("Evaluations of env_fitnesses found in folder, reusing same one.")
+
+            if create_videos is True:
+                for i in range(len(self.e)):
+                    for j in range(len(self.e[i])):
+                        self._create_video(self.e[i][j], self.inds[0], self.g[i])
         else:
             self.env_fitnesses_training: List[Tuple[TerrainType, float]] = self._evaluate_envs(self.ts.training_terrains, create_videos)
             with open(training_file_path, "wb") as file:
                 pickle.dump(self.env_fitnesses_training, file)
-
+                print("evaluating env_fitnesses again")
+        
         self.env_fitnesses: List[Tuple[TerrainType, float]] = self.env_fitnesses_test + self.env_fitnesses_training
 
         self._change_folder_name()
@@ -1234,7 +1241,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             for j, tensor_file in enumerate(sorted_tensor_files):
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
-                    params = torch.load(tensor_path)
+                    params = torch.load(tensor_path, map_location=torch.device('cpu'))
                     self.inds[0].setup_ant_default(params)
                     
                     morph_data.append({

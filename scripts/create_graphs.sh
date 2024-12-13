@@ -14,17 +14,20 @@ max_jobs=3
 # Determine the Python argument and whether to include the --dis_morph_evo flag
 dis_morph_evo_flag=""  # Initialize as empty
 
-if [[ "$exp_name" == "OurAlgo-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgoNoPart-MorphEvo-Gen" ]]; then
+if [[ "$exp_name" == "OurAlgo-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgoNoPart-MorphEvo-Gen" ]] || [[ "$exp_name" == "FullGen-MorphEvo-Gen" ]]; then
   python_arg="generalist"
 elif [[ "$exp_name" == "OurAlgo-LargeMorph-Gen" ]]; then
   python_arg="generalist"
   dis_morph_evo_flag="--dis_morph_evo"
-elif [[ "$exp_name" == "OurAlgo-DefaultMorph-Gen" ]]; then
+elif [[ "$exp_name" == "OurAlgo-DefaultMorph-Gen" ]] || [[ "$exp_name" == "FullGen-DefaultMorph-Gen" ]]; then
   python_arg="generalist"
   dis_morph_evo_flag="--dis_morph_evo"
   default_morph_flag="--default_morph"
 elif [[ "$exp_name" == "Spec-MorphEvo" ]] || [[ "$exp_name" == "Spec-MorphEvo-Long" ]]; then
   python_arg="specialist"
+elif [[ "$exp_name" == "Spec-DefaultMorph" ]]; then
+  python_arg="specialist"
+  default_morph_flag="--default_morph"
 else
   echo "Error: Experiment name must be one of the experiments."
   exit 1
