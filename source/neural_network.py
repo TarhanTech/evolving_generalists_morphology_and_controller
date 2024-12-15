@@ -28,7 +28,12 @@ class NeuralNetwork(nn.Module):
     def forward(self, x: Tensor) -> np.ndarray:
         x = self.tanh(self.fc1(x))
         x = self.tanh(self.fc2(x))
-        return x.to("cpu").detach().numpy()
+
+        if x.is_cuda: 
+            return x.to("cpu").detach().numpy()
+        else: 
+            return x.detach().numpy()
+
 
     def set_nn_params(self, nn_params: Tensor):
         """Method that sets the weights of the neural network."""

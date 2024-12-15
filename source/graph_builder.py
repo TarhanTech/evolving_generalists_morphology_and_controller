@@ -1286,7 +1286,6 @@ class GraphBuilderCombination():
                 self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path, True)
                 self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-Gen.csv", index=False)
 
-            
             spec_default_morph_path: Path = self._get_run_path(run_paths, "Spec-DefaultMorph")
             if spec_default_morph_path is not None:
                 self.spec_default_morph_df: pd.DataFrame = self._create_df(spec_default_morph_path, False)
@@ -1335,9 +1334,11 @@ class GraphBuilderCombination():
         e = self._load_e(run_path)
         rows = []
 
+        dis_morph_evo, default_morph = self._decide_ind_params(run_path)
+
         for i, params in enumerate(g):
             for terrain in self.ts.all_terrains:
-                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo=("our_algo_default_morph_gen" in str(run_path)))
+                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo, default_morph)
                 row = {
                     "Environment": terrain.short_string(),
                     "Controller": f"partition_{i}" if is_generalist else e[i][0].short_string(),
@@ -1359,7 +1360,21 @@ class GraphBuilderCombination():
             e = pickle.load(file)
         return e
 
-    def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool) -> Tuple[float, float]:
+    def _decide_ind_params(self, run_path: Path):
+        if "OurAlgo-DefaultMorph-Gen" in str(run_path):
+            return (True, True)
+        elif "OurAlgo-LargeMorph-Gen" in str(run_path):
+            return (True, False)
+        elif "OurAlgo-MorphEvo-Gen" in str(run_path):
+            return (False, False)
+        elif "Spec-DefaultMorph" in str(run_path):
+            return (True, True)
+        elif "Spec-MorphEvo" in str(run_path):
+            return (False, True)
+        elif "Spec-MorphEvo-Long" in str(run_path):
+            return (False, True)
+
+    def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool, default_morph: bool) -> Tuple[float, float]:
         parallel_jobs = 30
         fitnesses = []
         inds: list[Individual] = [
@@ -1369,7 +1384,8 @@ class GraphBuilderCombination():
                 Algo.penalty_growth_rate,
                 Algo.penalty_scale_factor,
                 Algo.penalty_scale_factor_err,
-                dis_morph_evo)
+                dis_morph_evo,
+                default_morph)
             for _ in range(parallel_jobs)
         ]
         for ind in inds: ind.setup_env_ind(params, terrain)

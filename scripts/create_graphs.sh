@@ -27,6 +27,7 @@ elif [[ "$exp_name" == "Spec-MorphEvo" ]] || [[ "$exp_name" == "Spec-MorphEvo-Lo
   python_arg="specialist"
 elif [[ "$exp_name" == "Spec-DefaultMorph" ]]; then
   python_arg="specialist"
+  dis_morph_evo_flag="--dis_morph_evo"
   default_morph_flag="--default_morph"
 else
   echo "Error: Experiment name must be one of the experiments."
