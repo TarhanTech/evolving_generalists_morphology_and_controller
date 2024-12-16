@@ -27,7 +27,7 @@ def delete_items_in_folders(base_folder, items_to_delete):
 
 if __name__ == "__main__":
     # Base folder to iterate through
-    base_folder = "./_graphs_for_paper/Spec-MorphEvo_1115_08-12_08-19-00-263340/specialist"
+    base_folder = "_graphs_for_paper/Spec-MorphEvo-Long_2770_02-11_15-36-23-918885/specialist"
 
     # List of folders and files to delete
     items_to_delete = [
