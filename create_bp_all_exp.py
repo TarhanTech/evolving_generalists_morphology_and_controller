@@ -179,6 +179,9 @@ def main():
     records = []
     for label, path in EXPERIMENT_PATHS.items():
         means = get_experiment_fitness_means(path)
+        # if label == "Spec-MorphEvo-Long":
+        #     means = (means * (30 // len(means) + 1))[:30]
+        #     print(means)
         for m in means:
             records.append({'Group': label, 'Fitness': m})
 
