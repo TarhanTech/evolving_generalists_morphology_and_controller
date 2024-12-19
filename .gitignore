@@ -1,3 +1,4 @@
+*.slurm
 env_thesis
 __pycache__
 tensors

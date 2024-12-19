@@ -13,6 +13,7 @@ max_jobs=3
 
 # Determine the Python argument and whether to include the --dis_morph_evo flag
 dis_morph_evo_flag=""  # Initialize as empty
+default_morph_flag=""
 
 if [[ "$exp_name" == "OurAlgo-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgoNoPart-MorphEvo-Gen" ]] || [[ "$exp_name" == "FullGen-MorphEvo-Gen" ]]; then
   python_arg="generalist"
