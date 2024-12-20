@@ -2,7 +2,7 @@
 
 exp_name="OurAlgo-MorphEvo-Gen"
 max_jobs=3
-total_runs=15
+total_runs=3
 
 run_experiment() {
     echo "Starting $exp_name..."

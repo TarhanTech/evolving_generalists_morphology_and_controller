@@ -137,7 +137,7 @@ class GeneralistExperimentBase(Algo):
     def run(self):
         """Run the experiment where you create a generalist for each partition of the environment."""
         partitions: int = 0
-        while len(self.t.training_terrains) != 0 or (self.max_evals is not None and self.number_of_evals < self.max_evals):
+        while len(self.t.training_terrains) != 0 and (self.max_evals is not None and self.number_of_evals < self.max_evals):
             partitions += 1
 
             self.ff_manager.create_partition_folder(partitions)
@@ -146,11 +146,12 @@ class GeneralistExperimentBase(Algo):
             best_generalist, best_generalist_score = self._train(partitions)
             p_terrains: List[TerrainType] = self._partition(best_generalist)
 
-            self.t.setup_train_on_terrain_partition(p_terrains)
-            best_generalist, _ = self._train(
-                partitions, best_generalist, best_generalist_score
-            )
-            self.t.restore_training_terrains()
+            if self.max_evals is None or (self.max_evals is not None and self.number_of_evals < self.max_evals):
+                self.t.setup_train_on_terrain_partition(p_terrains)
+                best_generalist, _ = self._train(
+                    partitions, best_generalist, best_generalist_score
+                )
+                self.t.restore_training_terrains()
 
             self.e.append(p_terrains)
             self.g.append(best_generalist)
@@ -225,18 +226,7 @@ class GeneralistExperimentBase(Algo):
     def _validate(
         self, training_env: TerrainType, ind: Individual, best_params: Tensor
     ) -> float:
-        if isinstance(training_env, RoughTerrain):
-            ind.setup_ant_rough(
-                best_params, training_env.floor_height, training_env.block_size
-            )
-        elif isinstance(training_env, HillsTerrain):
-            ind.setup_ant_hills(
-                best_params, training_env.floor_height, training_env.scale
-            )
-        elif isinstance(training_env, DefaultTerrain):
-            ind.setup_ant_default(best_params)
-        else:
-            assert False, "Class type not supported"
+        ind.setup_env_ind(best_params, training_env)
         return ind.evaluate_fitness()
 
     def _partition(self, best_params: Tensor) -> List[TerrainType]:
