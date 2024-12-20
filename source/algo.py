@@ -36,6 +36,7 @@ class Algo(ABC):
         max_generations: int,
         gen_stagnation: int,
         init_training_generations: int,
+        max_evals: int = None,
         parallel_jobs: int = 6,
         full_gen_algo: bool = False
     ):
@@ -54,6 +55,10 @@ class Algo(ABC):
         self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo, default_morph)
         self.searcher = None
         self.pandas_logger = None
+
+        self.max_evals = max_evals
+        if self.max_evals is not None:
+            self.number_of_evals = 0
 
     @abstractmethod
     def run(self):
@@ -92,7 +97,12 @@ class Algo(ABC):
     def _continue_search(self, num_generations_no_improvement: int, gen: int) -> bool:
         cond1: bool = num_generations_no_improvement < self.gen_stagnation
         cond2: bool = gen < self.max_generations
-        return cond1 and cond2
+
+        cond3: bool = True
+        if self.max_evals is not None:
+            cond3 = self.number_of_evals < self.max_evals
+
+        return cond1 and cond2 and cond3
 
 
 class GeneralistExperimentBase(Algo):
@@ -104,6 +114,7 @@ class GeneralistExperimentBase(Algo):
         gen_stagnation: int,
         init_training_generations: int,
         exp_folder_name: str,
+        max_evals: int = None,
         parallel_jobs: int = 6,
         full_gen_algo: bool = False
     ):
@@ -113,6 +124,7 @@ class GeneralistExperimentBase(Algo):
             max_generations,
             gen_stagnation,
             init_training_generations,
+            max_evals,
             parallel_jobs,
             full_gen_algo
         )
@@ -125,7 +137,7 @@ class GeneralistExperimentBase(Algo):
     def run(self):
         """Run the experiment where you create a generalist for each partition of the environment."""
         partitions: int = 0
-        while len(self.t.training_terrains) != 0:
+        while len(self.t.training_terrains) != 0 or (self.max_evals is not None and self.number_of_evals < self.max_evals):
             partitions += 1
 
             self.ff_manager.create_partition_folder(partitions)
@@ -185,6 +197,11 @@ class GeneralistExperimentBase(Algo):
                 )
                 if self.init_training_generations < self.searcher.step_count:
                     num_generations_no_improvement += 1
+
+            if self.max_evals is not None:
+                self.number_of_evals += self.searcher._popsize + len(self.t.training_terrains)
+                print(self.searcher._popsize)
+                print(self.number_of_evals)
 
             self.df_gen_scores["Generalist Score"].append(generalist_score)
             self.fitness_scores_dict[
@@ -344,9 +361,10 @@ class OurAlgo(GeneralistExperimentBase):
         super().__init__(
             dis_morph_evo=dis_morph_evo,
             default_morph=default_morph,
-            max_generations=5000,
-            gen_stagnation=500,
-            init_training_generations=2500,
+            max_generations=10000,
+            gen_stagnation=300,
+            init_training_generations=0,
+            max_evals=303600,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
         )
