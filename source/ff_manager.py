@@ -32,6 +32,11 @@ class FFManager(ABC):
         with open(pickle_path, "wb") as file:
             pickle.dump(data, file)
 
+    def log_evaluations(self, regarding: str, number_of_evals: int):
+        eval_log_path: Path = self.root_folder / "number_of_evals.log"
+        with open(eval_log_path, "a") as file:
+            file.write(f"{regarding} number of evals: {number_of_evals}")
+
 
 class FFManagerGeneralist(FFManager):
     """Manages folder creation and file saving specifically for generalist runs."""

@@ -208,6 +208,9 @@ class GeneralistExperimentBase(Algo):
             self.fitness_scores_dict[
                 self.t.get_training_terrain(self.searcher.step_count).__str__()
             ].append(self.searcher.status["pop_best_eval"])
+        
+
+        self.ff_manager.log_evaluations(f"partition {partitions}", self.number_of_evals)
         return best_generalist, best_generalist_score
 
     def _validate_as_generalist(self, best_params: Tensor) -> np.ndarray[float]:
