@@ -35,7 +35,7 @@ class FFManager(ABC):
     def log_evaluations(self, regarding: str, number_of_evals: int):
         eval_log_path: Path = self.root_folder / "number_of_evals.log"
         with open(eval_log_path, "a") as file:
-            file.write(f"{regarding} number of evals: {number_of_evals}")
+            file.write(f"{regarding} number of evals: {number_of_evals}\n")
 
 
 class FFManagerGeneralist(FFManager):
