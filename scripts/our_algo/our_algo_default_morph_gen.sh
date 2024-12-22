@@ -1,8 +1,8 @@
 #!/bin/bash
 
 exp_name="OurAlgo-DefaultMorph-Gen"
-max_jobs=2
-total_runs=26
+max_jobs=3
+total_runs=30
 
 run_experiment() {
     echo "Starting $exp_name..."
