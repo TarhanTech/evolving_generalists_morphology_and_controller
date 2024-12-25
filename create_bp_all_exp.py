@@ -11,14 +11,14 @@ import scikit_posthocs as sp
 BASE_RUNS_PATH = Path("./runs")
 
 EXPERIMENT_PATHS = {
-    "FullGen-DefaultMorph-Gen": BASE_RUNS_PATH / "FullGen-DefaultMorph-Gen",
+    # "FullGen-DefaultMorph-Gen": BASE_RUNS_PATH / "FullGen-DefaultMorph-Gen",
     "FullGen-MorphEvo-Gen": BASE_RUNS_PATH / "FullGen-MorphEvo-Gen",
-    "OurAlgo-DefaultMorph-Gen": BASE_RUNS_PATH / "OurAlgo-DefaultMorph-Gen",
+    # "OurAlgo-DefaultMorph-Gen": BASE_RUNS_PATH / "OurAlgo-DefaultMorph-Gen",
     "OurAlgo-LargeMorph-Gen": BASE_RUNS_PATH / "OurAlgo-LargeMorph-Gen",
     "OurAlgo-MorphEvo-Gen": BASE_RUNS_PATH / "OurAlgo-MorphEvo-Gen",
-    "Spec-DefaultMorph": BASE_RUNS_PATH / "Spec-DefaultMorph",
-    "Spec-MorphEvo": BASE_RUNS_PATH / "Spec-MorphEvo",
-    "Spec-MorphEvo-Long": BASE_RUNS_PATH / "Spec-MorphEvo-Long"
+    # "Spec-DefaultMorph": BASE_RUNS_PATH / "Spec-DefaultMorph",
+    # "Spec-MorphEvo": BASE_RUNS_PATH / "Spec-MorphEvo",
+    # "Spec-MorphEvo-Long": BASE_RUNS_PATH / "Spec-MorphEvo-Long"
 }
 
 

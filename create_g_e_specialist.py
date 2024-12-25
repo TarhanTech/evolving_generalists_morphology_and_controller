@@ -22,7 +22,7 @@ g: list[Tensor] = []
 e: list[list[TerrainType]] = []
 t: TrainingSchedule = TrainingSchedule()
 
-run_path: Path = Path("runs/Spec-MorphEvo-Long_02-11_15-36-23-918885_4")
+run_path: Path = Path("runs/Spec-MorphEvo-Long_19-12_21-57-24-152797")
 specialist_path: Path = run_path / "specialist"
 
 # Iterate over folders in VSCode sorting order

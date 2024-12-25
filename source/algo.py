@@ -506,6 +506,19 @@ class Specialist(SpecialistExperimentBase):
 
     def run(self):
         """run the third experiment where you create a specialist for each of the environments"""
+        self.t.all_terrains = [
+            RoughTerrain(0.1, 4),
+            RoughTerrain(0.2, 4),
+            RoughTerrain(0.3, 4),
+            RoughTerrain(0.4, 4),
+            RoughTerrain(0.5, 4),
+            RoughTerrain(0.6, 4),
+            RoughTerrain(0.7, 4),
+            RoughTerrain(0.8, 4),
+            RoughTerrain(0.9, 4),
+            RoughTerrain(1.0, 3),
+            RoughTerrain(1.0, 4),
+        ]
         for terrain in self.t.all_terrains:
             self.t.setup_train_on_terrain_partition([terrain])
             self.ff_manager.create_terrain_folder(terrain)
