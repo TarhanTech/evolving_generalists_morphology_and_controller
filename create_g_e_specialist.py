@@ -44,11 +44,11 @@ for env_folder in sorted(specialist_path.iterdir(), key=lambda p: (not p.is_dir(
             raise ValueError(f"Multiple terrains matched for folder: {folder_name}. Matches: {matched_terrains}")
         
         # Append the single matched environment
-        e.append(matched_terrains[0])
-
+        e.append(matched_terrains)
+print(e)
 # Print lengths to verify
 print(f"Number of tensors: {len(g)}")
-print(f"Number of environments: {len(e)}")
+print(f"Number of environments: {len(e[0])}")
 
 # Save the tensors and environments
 save_pickle("G_var.pkl", g, run_path)
