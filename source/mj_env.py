@@ -187,7 +187,7 @@ class Morphology:
     total_leg_width_params: int = 8
 
     def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool, default_morph: bool):
-        self.dis_morp_evo: bool = dis_morph_evo
+        self.dis_morph_evo: bool = dis_morph_evo
         self.default_morph: bool = default_morph
         self.total_params: int = self.total_leg_length_params + self.total_leg_width_params
 
@@ -196,7 +196,7 @@ class Morphology:
         self.morph_params_tensor, self.morph_params_map = self._get_default_morph_params()
 
     def set_morph_params(self, morph_params: Tensor):
-        if self.dis_morp_evo:
+        if self.dis_morph_evo:
             raise Exception("Morphological evolution is disabled. Setting custom morph parameters is not supported.")
 
         assert (
