@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exp_name="OurAlgo-DefaultMorph-Gen"
+exp_name="OurAlgo-CustomMorph-Gen"
 max_jobs=3
 total_runs=30
 

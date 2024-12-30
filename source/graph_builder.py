@@ -40,7 +40,7 @@ from source.algo import Algo
 class Graphbuilder(ABC):
     """Superclass used to create graphs for an experimental run, images and videos for the experimental runs"""
 
-    def __init__(self, run_path: Path, dis_morph_evo: bool, default_morph: bool):
+    def __init__(self, run_path: Path, dis_morph_evo: bool, morph_type: str):
         self.run_path: Path = run_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dis_morph_evo = dis_morph_evo
@@ -52,7 +52,7 @@ class Graphbuilder(ABC):
                 Algo.penalty_scale_factor,
                 Algo.penalty_scale_factor_err,
                 dis_morph_evo,
-                default_morph
+                morph_type
             )
             for _ in range(10)
         ]
@@ -491,8 +491,8 @@ class Graphbuilder(ABC):
 class GraphBuilderGeneralist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for generalist runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False, default_morph: bool = False):
-        super().__init__(run_path, dis_morph_evo, default_morph)
+    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False, morph_type: str = None):
+        super().__init__(run_path, dis_morph_evo, morph_type)
 
         self.e_init: List[List[TerrainType]] = self._load_e()
         self.e: List[List[TerrainType]] = [[] for _ in range(len(self.e_init))]
@@ -892,8 +892,8 @@ class GraphBuilderGeneralist(Graphbuilder):
 class GraphBuilderSpecialist(Graphbuilder):
     """Class used to create graphs, images and videos for the experimental runs dedicated for specialist runs"""
 
-    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False, default_morph: bool = False):
-        super().__init__(run_path, dis_morph_evo, default_morph)
+    def __init__(self, run_path: Path, create_videos: bool = False, dis_morph_evo = False, morph_type: str = None):
+        super().__init__(run_path, dis_morph_evo, morph_type)
 
         self.e: List[List[TerrainType]] = self._load_e()
 

@@ -48,9 +48,8 @@ def main():
         help=""
     )
     parser_generalist.add_argument(
-        "--default_morph",
-        action="store_true",
-        default=False,
+        "--morph_type",
+        type=str,
     )
 
     parser_specialist = subparsers.add_parser(
@@ -75,9 +74,8 @@ def main():
         help=""
     )
     parser_specialist.add_argument(
-        "--default_morph",
-        action="store_true",
-        default=False,
+        "--morph_type",
+        type=str,
     )
 
     parser_combined = subparsers.add_parser("combined", help="Create combined graphs to compare results from different experiments.")
@@ -91,11 +89,11 @@ def main():
     args = parser.parse_args()
                 
     if args.type == "generalist":
-        graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos, args.dis_morph_evo, args.default_morph)
+        graph_builder_gen: GraphBuilderGeneralist = GraphBuilderGeneralist(args.run_path, args.videos, args.dis_morph_evo, args.morph_type)
         graph_builder_gen.create_graphs()
         
     elif args.type == "specialist":
-        graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos, args.dis_morph_evo, args.default_morph)
+        graph_builder_spec: GraphBuilderSpecialist = GraphBuilderSpecialist(args.run_path, args.videos, args.dis_morph_evo, args.morph_type)
         graph_builder_spec.create_graphs()
     elif args.type == "combined":
         gs = GraphBuilderCombination(args.run_paths)

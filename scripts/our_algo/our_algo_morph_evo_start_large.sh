@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exp_name="OurAlgo-MorphEvo-Gen"
+exp_name="OurAlgo-MorphEvo-StartLarge-Gen"
 max_jobs=6
 total_runs=24
 
