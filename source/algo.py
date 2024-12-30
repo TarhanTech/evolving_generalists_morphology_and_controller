@@ -32,7 +32,8 @@ class Algo(ABC):
     def __init__(
         self,
         dis_morph_evo: bool,
-        default_morph: bool,
+        morph_type: str,
+        use_custom_start_morph: bool,
         max_generations: int,
         gen_stagnation: int,
         init_training_generations: int,
@@ -41,6 +42,7 @@ class Algo(ABC):
         full_gen_algo: bool = False
     ):
         self.full_gen_algo: bool = full_gen_algo
+        self.use_custom_start_morph: bool = use_custom_start_morph
         self.max_generations: int = max_generations
         self.gen_stagnation: int = gen_stagnation
         self.init_training_generations: int = init_training_generations
@@ -52,7 +54,7 @@ class Algo(ABC):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.parallel_jobs = parallel_jobs
 
-        self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo, default_morph)
+        self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo, morph_type)
         self.searcher = None
         self.pandas_logger = None
 
@@ -65,7 +67,7 @@ class Algo(ABC):
         """Run the experiment"""
         pass
 
-    def _initialize_individuals(self, dis_morph_evo: bool, default_morph: bool) -> List[Individual]:
+    def _initialize_individuals(self, dis_morph_evo: bool, morph_type: str) -> List[Individual]:
         """Initialize the list of individuals."""
 
         return [
@@ -76,7 +78,7 @@ class Algo(ABC):
                 self.penalty_scale_factor,
                 self.penalty_scale_factor_err,
                 dis_morph_evo,
-                default_morph
+                morph_type
             )
             for _ in range(self.parallel_jobs)
         ]
@@ -84,7 +86,7 @@ class Algo(ABC):
     def _initialize_searcher(self) -> XNES:
         """Initialize the XNES searcher."""
         problem = AntProblem(
-            self.device, self.t, self.individuals, self.morph_params_bounds_enc, self.full_gen_algo
+            self.device, self.t, self.individuals, self.morph_params_bounds_enc, self.full_gen_algo, self.use_custom_start_morph
         )
         self.searcher = XNES(problem, stdev_init=0.01)
         self.pandas_logger = PandasLogger(self.searcher)
@@ -109,7 +111,8 @@ class GeneralistExperimentBase(Algo):
     def __init__(
         self,
         dis_morph_evo: bool,
-        default_morph: bool,
+        morph_type: str,
+        use_custom_start_morph,
         max_generations: int,
         gen_stagnation: int,
         init_training_generations: int,
@@ -120,7 +123,8 @@ class GeneralistExperimentBase(Algo):
     ):
         super().__init__(
             dis_morph_evo,
-            default_morph,
+            morph_type,
+            use_custom_start_morph,
             max_generations,
             gen_stagnation,
             init_training_generations,
@@ -273,7 +277,6 @@ class SpecialistExperimentBase(Algo):
     def __init__(
         self,
         dis_morph_evo: bool,
-        default_morph: bool,
         max_generations: int,
         gen_stagnation: int,
         init_training_generations: int,
@@ -281,12 +284,12 @@ class SpecialistExperimentBase(Algo):
         parallel_jobs: int = 6,
     ):
         super().__init__(
-            dis_morph_evo,
-            default_morph,
-            max_generations,
-            gen_stagnation,
-            init_training_generations,
-            parallel_jobs,
+            dis_morph_evo=dis_morph_evo,
+            morph_type=None,
+            max_generations=max_generations,
+            gen_stagnation=gen_stagnation,
+            init_training_generations=init_training_generations,
+            parallel_jobs=parallel_jobs,
         )
 
         self.ff_manager: FFManagerSpecialist = FFManagerSpecialist(exp_folder_name)
@@ -337,23 +340,33 @@ class OurAlgo(GeneralistExperimentBase):
     """
 
     def __init__(
-        self, dis_morph_evo: bool, default_morph: bool, parallel_jobs: int = 6
+        self, dis_morph_evo: bool, morph_type: bool, use_custom_start_morph: bool, parallel_jobs: int = 6
     ):
+        if dis_morph_evo is False and morph_type is not None:
+            raise InvalidCombinationError("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
+        if use_custom_start_morph and (morph_type is not None or dis_morph_evo is True):
+            raise InvalidCombinationError("Invalid argument combination: use_custom_start_morph can only be done with morphological evolution")
+        
         exp_folder_name: str = ""
-        if dis_morph_evo is False and default_morph is False:
+        if use_custom_start_morph:
+            exp_folder_name = "OurAlgo-MorphEvo-StartLarge-Gen"
+        elif dis_morph_evo is False:
             exp_folder_name = "OurAlgo-MorphEvo-Gen"
-        elif dis_morph_evo and default_morph:
+        elif dis_morph_evo and morph_type == "default":
             exp_folder_name = "OurAlgo-DefaultMorph-Gen"
-        elif dis_morph_evo and default_morph is False:
+        elif dis_morph_evo and morph_type == "large":
             exp_folder_name = "OurAlgo-LargeMorph-Gen"
+        elif dis_morph_evo and morph_type == "custom":
+            exp_folder_name = "OurAlgo-CustomMorph-Gen"
         else:
             raise ValueError(
-                "Undefined experiment configuration: dis_morph_evo and default_morph combination is not handled."
+                "Undefined experiment configuration: dis_morph_evo and morph_type combination is not handled."
             )
 
         super().__init__(
             dis_morph_evo=dis_morph_evo,
-            default_morph=default_morph,
+            morph_type=morph_type,
+            use_custom_start_morph=use_custom_start_morph,
             max_generations=10000,
             gen_stagnation=300,
             init_training_generations=0,
@@ -419,10 +432,13 @@ class FullGeneralist(GeneralistExperimentBase):
     """
 
     def __init__(
-        self, dis_morph_evo: bool, parallel_jobs: int = 6
+        self, dis_morph_evo: bool, morph_type: str, parallel_jobs: int = 6
     ):
+        if dis_morph_evo is False and morph_type is not None:
+            raise InvalidCombinationError("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
+        
         exp_folder_name: str = ""
-        if dis_morph_evo:
+        if dis_morph_evo and morph_type == "default":
             exp_folder_name = "FullGen-DefaultMorph-Gen"
         elif dis_morph_evo is False:
             exp_folder_name = "FullGen-MorphEvo-Gen"
@@ -433,7 +449,7 @@ class FullGeneralist(GeneralistExperimentBase):
 
         super().__init__(
             dis_morph_evo=dis_morph_evo,
-            default_morph=True,
+            morph_type="default",
             max_generations=725,
             gen_stagnation=725,
             init_training_generations=725,
@@ -495,8 +511,7 @@ class Specialist(SpecialistExperimentBase):
             )
 
         super().__init__(
-            dis_morph_evo,
-            default_morph=True,
+            dis_morph_evo=dis_morph_evo,
             max_generations=10000 if long else 295,
             gen_stagnation=750 if long else 295,
             init_training_generations=2500 if long else 295,

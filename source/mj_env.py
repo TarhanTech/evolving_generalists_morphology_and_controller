@@ -14,11 +14,11 @@ from noise import pnoise2
 class MJEnv:
     """Class defining the mujoco environment, so the agent and environment."""
 
-    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool, default_morph: bool):
+    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool, morph_type: str):
         self.dis_morph_evo = dis_morph_evo
         self.uid: uuid.UUID = uid
         self.terrain_env = TerrainEnv(uid)
-        self.morphology = Morphology(uid, morph_params_bounds_enc, dis_morph_evo, default_morph)
+        self.morphology = Morphology(uid, morph_params_bounds_enc, dis_morph_evo, morph_type)
 
         self.file_path_template_hills = "./xml_models/ant_hills_with_keys.xml"
         self.file_path_template_rough = "./xml_models/ant_rough_with_keys.xml"
@@ -186,9 +186,9 @@ class Morphology:
     leg_width_range = (0.05, 0.2)
     total_leg_width_params: int = 8
 
-    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool, default_morph: bool):
+    def __init__(self, uid: uuid.UUID, morph_params_bounds_enc: tuple[float, float], dis_morph_evo: bool, morph_type: str):
         self.dis_morph_evo: bool = dis_morph_evo
-        self.default_morph: bool = default_morph
+        self.morph_type: str = morph_type
         self.total_params: int = self.total_leg_length_params + self.total_leg_width_params
 
         self.uid: uuid.UUID = uid
@@ -212,16 +212,20 @@ class Morphology:
 
     def _get_default_morph_params(self):
         scalar: int = 1
-        if self.default_morph:
+        if self.morph_type == "default" or self.morph_type is None:
             default_values = np.array(
                 [0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4] +  # Lengths
                 [0.08] * self.total_leg_width_params        # Widths
             )
-        else:
+        elif self.morph_type == "large":
             default_values = np.array(
                 [self.leg_length_range[1]] * self.total_leg_length_params + # Lengths
                 [0.08] * self.total_leg_width_params                        # Widths
             )
+        elif self.morph_type == "custom":
+            default_values = np.array([1.354, 0.877, 1.25, 1.407, 1.327, 1.234, 1.397, 1.405, 0.059, 0.175, 0.054, 0.111, 0.085, 0.151, 0.082, 0.09])
+        else:
+            raise Exception(f"morph_type: {self.morph_type} is not supported. Implement this first")
         morph_params_tensor = torch.tensor(default_values * scalar)
         morph_params_map = self._tensor_to_map(morph_params_tensor)
         return morph_params_tensor, morph_params_map

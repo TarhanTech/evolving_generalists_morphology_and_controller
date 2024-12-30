@@ -17,25 +17,25 @@ from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, Terr
 from source.algo import FullGeneralist, OurAlgo, OurAlgoOneGen, Specialist
 
 
-def our_algo(dis_morph_evo: bool, default_morph: bool):
+def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: OurAlgo = OurAlgo(dis_morph_evo, default_morph, 23)
+    algo: OurAlgo = OurAlgo(dis_morph_evo=dis_morph_evo, use_custom_start_morph=use_custom_start_morph, morph_type=morph_type, parallel_jobs=23)
     algo.run()
 
 
 def our_algo_one_gen():
     os.environ["MUJOCO_GL"] = "egl"
-    algo: OurAlgoOneGen = OurAlgoOneGen(23)
+    algo: OurAlgoOneGen = OurAlgoOneGen(parallel_jobs=23)
     algo.run()
 
 def full_gen(dis_morph_evo: bool):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: FullGeneralist = FullGeneralist(dis_morph_evo, 23)
+    algo: FullGeneralist = FullGeneralist(dis_morph_evo=dis_morph_evo, parallel_jobs=23)
     algo.run()
 
 def specialist(dis_morph_evo: bool, long: bool):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: Specialist = Specialist(dis_morph_evo, long, 23)
+    algo: Specialist = Specialist(dis_morph_evo=dis_morph_evo, long=long, parallel_jobs=23)
     algo.run()
 
 
@@ -55,7 +55,7 @@ def test_ant(tensor_path: Path, terrain: str, params: str):
                 ) from e
 
     terrain_type: TerrainType = TERRAIN_MAP[terrain]
-    ind: Individual = Individual("cpu", (-0.1, 0.1), 1.03, 100, 1000)
+    ind: Individual = Individual("cpu", (-0.1, 0.1), 1.03, 100, 1000, False)
     tensor_params = torch.load(tensor_path)
     if terrain_type is DefaultTerrain:
         ind.setup_ant_default(tensor_params)
@@ -95,9 +95,13 @@ def main():
         default=False,
     )
     parser_our_algo.add_argument(
-        "--default_morph",
+        "--use_custom_start_morph",
         action="store_true",
         default=False,
+    )
+    parser_our_algo.add_argument(
+        "--morph_type",
+        type=str,
     )
 
     parser_our_algo_one_gen = subparsers.add_parser(
@@ -155,7 +159,7 @@ def main():
     args = parser.parse_args()
 
     if args.experiment == "our_algo":
-        our_algo(args.dis_morph_evo, args.default_morph)
+        our_algo(args.dis_morph_evo, args.morph_type, args.use_custom_start_morph)
     elif args.experiment == "our_algo_one_gen":
         our_algo_one_gen()
     elif args.experiment == "full_gen":

@@ -35,12 +35,12 @@ class Individual:
         penalty_scale_factor: int,
         penalty_scale_factor_err: int,
         dis_morph_evo: bool,
-        default_morph: bool,
+        morph_type: str = "default",
     ):
         self.dis_morph_evo = dis_morph_evo
         self.uid: uuid.UUID = uuid.uuid4()
         self.device = device
-        self.mj_env = MJEnv(self.uid, morph_params_bounds_enc, dis_morph_evo, default_morph)
+        self.mj_env = MJEnv(self.uid, morph_params_bounds_enc, dis_morph_evo, morph_type)
         self.controller = NeuralNetwork(self.uid).to(self.device)
         self.params_size = self.controller.total_weigths + (0 if self.dis_morph_evo else self.mj_env.morphology.total_params)
         self.generation: int = 0
