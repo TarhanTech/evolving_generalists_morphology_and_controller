@@ -408,22 +408,12 @@ class Graphbuilder(ABC):
         return env_fitnesses
 
     def _evaluate(self, terrain: TerrainType,  create_videos: bool):
-        def setup_env_ind(terrain: TerrainType, params: Tensor):
-            if isinstance(terrain, RoughTerrain):
-                for ind in self.inds: ind.setup_ant_rough(params, terrain.floor_height, terrain.block_size)
-            elif isinstance(terrain, HillsTerrain):
-                for ind in self.inds: ind.setup_ant_hills(params, terrain.floor_height, terrain.scale)
-            elif isinstance(terrain, DefaultTerrain):
-                for ind in self.inds: ind.setup_ant_default(params)
-            else:
-                assert False, "Class type not supported"
-
         def eval(ind: Individual):
             return ind.evaluate_fitness()
 
         fitnesses_part: list[float] = []
         for params in self.g:
-            setup_env_ind(terrain, params)
+            for ind in self.inds: ind.setup_env_ind(params, terrain) 
             fitnesses: list[float] = []
             batch_size = len(self.inds)
             for i in range(0, self._evaluation_count, batch_size):
