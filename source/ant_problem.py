@@ -25,12 +25,12 @@ class AntProblem(Problem):
         self.nn_params_size = individuals[0].controller.total_weigths
         self.morph_params_size = individuals[0].mj_env.morphology.total_params
         if use_custom_start_morph:
-
+            
             # For convenience, break out the scalar bounds:
             low, high = initial_bounds   # e.g. low=-1.0, high=1.0
 
             # Build per-parameter bounds array, shape (2, solution_length)
-            param_bounds = np.zeros((2, solution_length), dtype=np.float64)
+            param_bounds = np.zeros((2, self.nn_params_size + self.morph_params_size), dtype=np.float64)
 
             # 1) For the NN portion, allow [-1.0, 1.0] (example)
             param_bounds[0, :self.nn_params_size] = low
