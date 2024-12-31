@@ -58,7 +58,7 @@ def full_gen(exp_path: Path):
         print(f"Selected best tensor: {best_file.name} (Generation {best_num})")
 
         try:
-            tensor = torch.load(best_file)
+            tensor = torch.load(best_file, weights_only=False)
         except Exception as e:
             print(f"Error loading tensor from {best_file.name}: {e}")
             continue
@@ -133,7 +133,7 @@ def spec(exp_path: Path):
             print(f"{env_path.name}: {best_num}")
             print(best_num)
             try:
-                tensor: Tensor = torch.load(best_file)
+                tensor: Tensor = torch.load(best_file, weights_only=False)
             except Exception as e:
                 print(f"Error loading tensor from {best_file.name}: {e}")
                 continue

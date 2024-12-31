@@ -5,7 +5,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--tensor", type=str, help="Path to a tensor.pt file that should be tested")
 args = parser.parse_args()
-params = torch.load(args.tensor) 
+params = torch.load(args.tensor, weights_only=False,) 
 
 ind: Individual = Individual(id=101)
 tr_schedule: TrainingSchedule = TrainingSchedule()

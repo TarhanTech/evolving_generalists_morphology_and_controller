@@ -32,7 +32,7 @@ for env_folder in sorted(specialist_path.iterdir(), key=lambda p: (not p.is_dir(
     if best_files:
         # Extract the highest-numbered tensor file
         best_tensor_path = max(best_files, key=lambda f: int(f.stem.split('_')[1]))
-        best_tensor: Tensor = torch.load(best_tensor_path)
+        best_tensor: Tensor = torch.load(best_tensor_path, weights_only=False)
         g.append(best_tensor)
 
         # Match folder name to TerrainType and check for exactly one match
