@@ -51,7 +51,7 @@ for dir in runs/$exp_name/"$exp_name"*; do
     
     # Run the Python script in the background
     echo $dir
-    python graphs.py "$python_arg" $dis_morph_evo_flag $default_morph_flag --run_path "$dir" &
+    python graphs.py "$python_arg" $dis_morph_evo_flag $morph_type --run_path "$dir" &
     ((counter++))
 
     # If we reach the max_jobs limit, wait for all current jobs to finish
