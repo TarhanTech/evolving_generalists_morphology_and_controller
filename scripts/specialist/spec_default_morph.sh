@@ -6,7 +6,7 @@ total_runs=30
 
 run_experiment() {
     echo "Starting $exp_name..."
-    python main.py specialist --dis_morph_evo
+    python main.py specialist --dis_morph_evo --morph_type default
     echo "Finished $exp_name"
 }
 

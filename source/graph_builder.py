@@ -1261,6 +1261,26 @@ class GraphBuilderCombination():
         if run_paths is not None and len(run_paths) > 0:
             self.path_to_save.mkdir(parents=True, exist_ok=True)
 
+            # placeholder_1: Path = self._get_run_path(run_paths, "placeholder_2")
+            # if placeholder_1 is not None:
+            #     self.placeholder_3: pd.DataFrame = self._create_df(placeholder_1, True)
+            #     self.placeholder_3.to_csv(self.path_to_save / "placeholder_2.csv", index=False)
+
+            full_gen_morph_evo_gen_path: Path = self._get_run_path(run_paths, "FullGen-MorphEvo-Gen")
+            if full_gen_morph_evo_gen_path is not None:
+                self.full_gen_morph_evo_gen_df: pd.DataFrame = self._create_df(full_gen_morph_evo_gen_path, True)
+                self.full_gen_morph_evo_gen_df.to_csv(self.path_to_save / "FullGen-MorphEvo-Gen.csv", index=False)
+
+            full_gen_default_morph_gen_path: Path = self._get_run_path(run_paths, "FullGen-DefaultMorph-Gen")
+            if full_gen_default_morph_gen_path is not None:
+                self.full_gen_default_morph_gen_df: pd.DataFrame = self._create_df(full_gen_default_morph_gen_path, True)
+                self.full_gen_default_morph_gen_df.to_csv(self.path_to_save / "FullGen-DefaultMorph-Gen.csv", index=False)
+
+            our_algo_custom_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-CustomMorph-Gen")
+            if our_algo_custom_morph_gen_path is not None:
+                self.our_algo_custom_morph_gen_df: pd.DataFrame = self._create_df(our_algo_custom_morph_gen_path, True)
+                self.our_algo_custom_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-CustomMorph-Gen.csv", index=False)
+
             our_algo_default_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-DefaultMorph-Gen")
             if our_algo_default_morph_gen_path is not None:
                 self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path, True)
@@ -1275,6 +1295,11 @@ class GraphBuilderCombination():
             if our_algo_morph_evo_gen_path is not None:
                 self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path, True)
                 self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-Gen.csv", index=False)
+
+            our_algo_morph_evo_start_large_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-MorphEvo-StartLarge-Gen")
+            if our_algo_morph_evo_start_large_gen_path is not None:
+                self.our_algo_morph_evo_start_large_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_start_large_gen_path, True)
+                self.our_algo_morph_evo_start_large_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-StartLarge-Gen.csv", index=False)
 
             spec_default_morph_path: Path = self._get_run_path(run_paths, "Spec-DefaultMorph")
             if spec_default_morph_path is not None:
@@ -1324,11 +1349,11 @@ class GraphBuilderCombination():
         e = self._load_e(run_path)
         rows = []
 
-        dis_morph_evo, default_morph = self._decide_ind_params(run_path)
+        dis_morph_evo, morph_type = self._decide_ind_params(run_path)
 
         for i, params in enumerate(g):
             for terrain in self.ts.all_terrains:
-                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo, default_morph)
+                fitness_mean, fitness_std = self._evaluate(params, terrain, dis_morph_evo, morph_type)
                 row = {
                     "Environment": terrain.short_string(),
                     "Controller": f"partition_{i}" if is_generalist else e[i][0].short_string(),
@@ -1351,20 +1376,29 @@ class GraphBuilderCombination():
         return e
 
     def _decide_ind_params(self, run_path: Path):
-        if "OurAlgo-DefaultMorph-Gen" in str(run_path):
-            return (True, True)
+        '''Returns dis_morph_evo: bool and morph_type: str''' 
+        if "FullGen-DefaultMorph-Gen" in str(run_path):
+            return (True, "default")
+        elif "FullGen-MorphEvo-Gen" in str(run_path):
+            return (False, None)
+        elif "OurAlgo-CustomMorph-Gen" in str(run_path):
+            return (True, "custom")
+        elif "OurAlgo-DefaultMorph-Gen" in str(run_path):
+            return (True, "default")
         elif "OurAlgo-LargeMorph-Gen" in str(run_path):
-            return (True, False)
+            return (True, "large")
         elif "OurAlgo-MorphEvo-Gen" in str(run_path):
-            return (False, False)
+            return (False, None)
+        elif "OurAlgo-MorphEvo-StartLarge-Gen" in str(run_path):
+            return (False, None)
         elif "Spec-DefaultMorph" in str(run_path):
-            return (True, True)
+            return (True, "default")
         elif "Spec-MorphEvo" in str(run_path):
-            return (False, True)
+            return (False, None)
         elif "Spec-MorphEvo-Long" in str(run_path):
-            return (False, True)
+            return (False, None)
 
-    def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool, default_morph: bool) -> Tuple[float, float]:
+    def _evaluate(self, params: Tensor, terrain: TerrainType, dis_morph_evo: bool, morph_type: str) -> Tuple[float, float]:
         parallel_jobs = 30
         fitnesses = []
         inds: list[Individual] = [
@@ -1375,7 +1409,7 @@ class GraphBuilderCombination():
                 Algo.penalty_scale_factor,
                 Algo.penalty_scale_factor_err,
                 dis_morph_evo,
-                default_morph)
+                morph_type)
             for _ in range(parallel_jobs)
         ]
         for ind in inds: ind.setup_env_ind(params, terrain)
@@ -1383,7 +1417,6 @@ class GraphBuilderCombination():
         def eval(ind: Individual) -> float: return ind.evaluate_fitness() 
         for _ in range(0, self.evaluation_count, parallel_jobs):
             batch_size = min(parallel_jobs, self.evaluation_count - len(fitnesses))
-            print(batch_size)
 
             tasks = (joblib.delayed(eval)(ind) for ind in inds[:batch_size])
             batch_fitness = joblib.Parallel(n_jobs=parallel_jobs)(tasks)

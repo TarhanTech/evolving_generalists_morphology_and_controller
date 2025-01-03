@@ -6,7 +6,7 @@ total_runs=30
 
 run_experiment() {
     echo "Starting $exp_name..."
-    python main.py our_algo --dis_morph_evo
+    python main.py our_algo --dis_morph_evo --morph_type large
     echo "Finished $exp_name"
 }
 

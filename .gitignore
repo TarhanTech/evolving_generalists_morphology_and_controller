@@ -26,6 +26,7 @@ runs/**/fitness_evals_envs
 runs/**/morph_params_evolution_plots
 runs/**/evolution_video.mp4
 runs
+fitness_df
 
 # runs/_olds_or_wrong
 # runs/FullGen-DefaultMorph-Gen
