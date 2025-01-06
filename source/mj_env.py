@@ -72,8 +72,9 @@ class MJEnv:
 
     def has_invalid_parameters(self) -> bool:
         return any(
-            param < 0.0001 for param in self.morphology.morph_params_map.values()
-        )  # mujoco does not allow numbers lower then 1e-15
+            math.isnan(param) or param < 0.0001 
+            for param in self.morphology.morph_params_map.values()
+        )  # mujoco does not allow numbers lower than 1e-15
 
     def _create_xml_with_morph_params(self, template_xml: str):
         with open(template_xml, "r") as file:

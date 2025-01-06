@@ -17,9 +17,9 @@ from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, Terr
 from source.algo import FullGeneralist, OurAlgo, OurAlgoOneGen, Specialist
 
 
-def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool):
+def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool, freeze_params: str):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: OurAlgo = OurAlgo(dis_morph_evo=dis_morph_evo, use_custom_start_morph=use_custom_start_morph, morph_type=morph_type, parallel_jobs=23)
+    algo: OurAlgo = OurAlgo(dis_morph_evo=dis_morph_evo, use_custom_start_morph=use_custom_start_morph, morph_type=morph_type, parallel_jobs=23, freeze_params=freeze_params)
     algo.run()
 
 
@@ -103,6 +103,11 @@ def main():
         "--morph_type",
         type=str,
     )
+    parser_our_algo.add_argument(
+        "--freeze_params",
+        type=str,
+        default=None,
+    )
 
     parser_our_algo_one_gen = subparsers.add_parser(
         "our_algo_one_gen",
@@ -159,7 +164,7 @@ def main():
     args = parser.parse_args()
 
     if args.experiment == "our_algo":
-        our_algo(args.dis_morph_evo, args.morph_type, args.use_custom_start_morph)
+        our_algo(args.dis_morph_evo, args.morph_type, args.use_custom_start_morph, args.freeze_params)
     elif args.experiment == "our_algo_one_gen":
         our_algo_one_gen()
     elif args.experiment == "full_gen":

@@ -12,6 +12,7 @@ from evotorch.logging import PandasLogger, StdOutLogger
 from source.individual import Individual
 from source.ant_problem import AntProblem
 from source.ff_manager import FFManagerGeneralist, FFManagerSpecialist
+from source.xnes_with_freeze import XNESWithFreeze
 from source.training_env import (
     TrainingSchedule,
     DefaultTerrain,
@@ -39,8 +40,10 @@ class Algo(ABC):
         init_training_generations: int,
         max_evals: int = None,
         parallel_jobs: int = 6,
-        full_gen_algo: bool = False
+        full_gen_algo: bool = False,
+        freeze_params: str = None
     ):
+        self.freeze_params: str = freeze_params
         self.full_gen_algo: bool = full_gen_algo
         self.use_custom_start_morph: bool = use_custom_start_morph
         self.max_generations: int = max_generations
@@ -88,7 +91,11 @@ class Algo(ABC):
         problem = AntProblem(
             self.device, self.t, self.individuals, self.morph_params_bounds_enc, self.full_gen_algo, self.use_custom_start_morph
         )
-        self.searcher = XNES(problem, stdev_init=0.01)
+        if self.freeze_params is None:
+            self.searcher = XNES(problem, stdev_init=0.01)
+        else:
+            self.searcher = XNESWithFreeze(problem=problem, stdev_init=0.01, freeze_params=self.freeze_params)
+        
         self.pandas_logger = PandasLogger(self.searcher)
         StdOutLogger(self.searcher)
 
@@ -119,7 +126,8 @@ class GeneralistExperimentBase(Algo):
         exp_folder_name: str,
         max_evals: int = None,
         parallel_jobs: int = 6,
-        full_gen_algo: bool = False
+        full_gen_algo: bool = False,
+        freeze_params: str = None
     ):
         super().__init__(
             dis_morph_evo,
@@ -130,7 +138,8 @@ class GeneralistExperimentBase(Algo):
             init_training_generations,
             max_evals,
             parallel_jobs,
-            full_gen_algo
+            full_gen_algo,
+            freeze_params=freeze_params,
         )
 
         self.ff_manager: FFManagerGeneralist = FFManagerGeneralist(exp_folder_name)
@@ -205,8 +214,6 @@ class GeneralistExperimentBase(Algo):
 
             if self.max_evals is not None:
                 self.number_of_evals += self.searcher._popsize + len(self.t.training_terrains)
-                print(self.searcher._popsize)
-                print(self.number_of_evals)
 
             self.df_gen_scores["Generalist Score"].append(generalist_score)
             self.fitness_scores_dict[
@@ -340,15 +347,19 @@ class OurAlgo(GeneralistExperimentBase):
     """
 
     def __init__(
-        self, dis_morph_evo: bool, morph_type: bool, use_custom_start_morph: bool, parallel_jobs: int = 6
+        self, dis_morph_evo: bool, morph_type: bool, use_custom_start_morph: bool, parallel_jobs: int = 6, freeze_params: str = None
     ):
         if dis_morph_evo is False and morph_type is not None:
-            raise InvalidCombinationError("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
+            raise Exception("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
         if use_custom_start_morph and (morph_type is not None or dis_morph_evo is True):
-            raise InvalidCombinationError("Invalid argument combination: use_custom_start_morph can only be done with morphological evolution")
+            raise Exception("Invalid argument combination: use_custom_start_morph can only be done with morphological evolution")
         
         exp_folder_name: str = ""
-        if use_custom_start_morph:
+        if freeze_params == "morphology":
+            exp_folder_name = "OurAlgo-MorphEvo-FreezeMorph"
+        elif freeze_params == "controller":
+            exp_folder_name = "OurAlgo-MorphEvo-FreezeContr"
+        elif use_custom_start_morph:
             exp_folder_name = "OurAlgo-MorphEvo-StartLarge-Gen"
         elif dis_morph_evo is False:
             exp_folder_name = "OurAlgo-MorphEvo-Gen"
@@ -373,6 +384,7 @@ class OurAlgo(GeneralistExperimentBase):
             max_evals=303600,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
+            freeze_params=freeze_params,
         )
 
 
@@ -435,7 +447,7 @@ class FullGeneralist(GeneralistExperimentBase):
         self, dis_morph_evo: bool, morph_type: str, parallel_jobs: int = 6
     ):
         if dis_morph_evo is False and morph_type is not None:
-            raise InvalidCombinationError("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
+            raise Exception("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
         
         exp_folder_name: str = ""
         if dis_morph_evo and morph_type == "default":
