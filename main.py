@@ -17,7 +17,7 @@ from source.training_env import DefaultTerrain, HillsTerrain, RoughTerrain, Terr
 from source.algo import FullGeneralist, OurAlgo, OurAlgoOneGen, Specialist
 
 
-def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool, freeze_params: str, freeze_interval: int):
+def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool, freeze_params: str, freeze_interval: int, dis_morph_evo_later: bool):
     os.environ["MUJOCO_GL"] = "egl"
     algo: OurAlgo = OurAlgo(
         dis_morph_evo=dis_morph_evo, 
@@ -25,7 +25,9 @@ def our_algo(dis_morph_evo: bool, morph_type: str, use_custom_start_morph: bool,
         morph_type=morph_type, 
         parallel_jobs=23, 
         freeze_params=freeze_params,
-        freeze_interval=freeze_interval)
+        freeze_interval=freeze_interval,
+        dis_morph_evo_later=dis_morph_evo_later,
+    )
     algo.run()
 
 
@@ -106,6 +108,11 @@ def main():
         default=False,
     )
     parser_our_algo.add_argument(
+        "--dis_morph_evo_later",
+        action="store_true",
+        default=False,
+    )
+    parser_our_algo.add_argument(
         "--morph_type",
         type=str,
     )
@@ -175,7 +182,7 @@ def main():
     args = parser.parse_args()
 
     if args.experiment == "our_algo":
-        our_algo(args.dis_morph_evo, args.morph_type, args.use_custom_start_morph, args.freeze_params, args.freeze_interval)
+        our_algo(args.dis_morph_evo, args.morph_type, args.use_custom_start_morph, args.freeze_params, args.freeze_interval, args.dis_morph_evo_later)
     elif args.experiment == "our_algo_one_gen":
         our_algo_one_gen()
     elif args.experiment == "full_gen":

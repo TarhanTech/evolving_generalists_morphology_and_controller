@@ -197,8 +197,8 @@ class Morphology:
         self.morph_params_tensor, self.morph_params_map = self._get_default_morph_params()
 
     def set_morph_params(self, morph_params: Tensor):
-        if self.dis_morph_evo:
-            raise Exception("Morphological evolution is disabled. Setting custom morph parameters is not supported.")
+        # if self.dis_morph_evo:
+        #     raise Exception("Morphological evolution is disabled. Setting custom morph parameters is not supported.")
 
         assert (
             morph_params.size(0) == self.total_params

@@ -44,6 +44,8 @@ class Algo(ABC):
         freeze_params: str = None,
         freeze_interval: int = None,
     ):
+        self.dis_morph_evo = dis_morph_evo
+        self.morph_type = morph_type
         self.freeze_params: str = freeze_params
         self.freeze_interval: int = freeze_interval
         self.full_gen_algo: bool = full_gen_algo
@@ -59,7 +61,7 @@ class Algo(ABC):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.parallel_jobs = parallel_jobs
 
-        self.individuals: List[Individual] = self._initialize_individuals(dis_morph_evo, morph_type)
+        self.individuals: List[Individual] = self._initialize_individuals(self.dis_morph_evo, self.morph_type)
         self.searcher = None
         self.pandas_logger = None
 
@@ -88,23 +90,93 @@ class Algo(ABC):
             for _ in range(self.parallel_jobs)
         ]
 
-    def _initialize_searcher(self) -> XNES:
-        """Initialize the XNES searcher."""
+    def _initialize_searcher(self, old_searcher: XNES = None) -> XNES:
+        """
+        Initialize the XNES searcher. If an old searcher is provided,
+        transfer its distribution into the newly created searcher.
+        """
         problem = AntProblem(
-            self.device, self.t, self.individuals, self.morph_params_bounds_enc, self.full_gen_algo, self.use_custom_start_morph
+            self.device,
+            self.t,
+            self.individuals,
+            self.morph_params_bounds_enc,
+            self.full_gen_algo,
+            self.use_custom_start_morph
         )
+        
         if self.freeze_params is None:
             self.searcher = XNES(problem, stdev_init=0.01)
         else:
             self.searcher = XNESWithFreeze(
-                problem=problem, 
-                stdev_init=0.01, 
-                freeze_params=self.freeze_params, 
+                problem=problem,
+                stdev_init=0.01,
+                freeze_params=self.freeze_params,
                 freeze_interval=self.freeze_interval
             )
         
+        if old_searcher is not None:
+            old_dist = old_searcher._distribution
+            new_dim = problem.solution_length
+
+            new_dist = self._slice_expgaussian_to_controller_only(old_dist, new_dim)
+
+            print(f"old_searcher.step_count: {old_searcher.step_count}")
+            self.searcher._steps_count = old_searcher.step_count
+            self.searcher._distribution = new_dist
+
         self.pandas_logger = PandasLogger(self.searcher)
         StdOutLogger(self.searcher)
+        
+        return self.searcher
+
+    def _slice_expgaussian_to_controller_only(self, old_dist, nn_params_size: int):
+        """
+        Given an ExpGaussian `old_dist` of dimension d,
+        extract only the first `nn_params_size` coordinates
+        (the 'controller' portion), building a new ExpGaussian
+        of dimension `nn_params_size`.
+
+        Args:
+            old_dist: The existing ExpGaussian (as used by XNES),
+                    dimension = d.
+            nn_params_size: The dimension of the new distribution
+                            (the 'controller' slice).
+
+        Returns:
+            A new ExpGaussian distribution of dimension `nn_params_size`
+            with sub-blocks of mu, sigma, sigma_inv from old_dist.
+        """
+
+        import torch
+        from evotorch.distributions import ExpGaussian
+
+        old_mu = old_dist.mu
+        new_mu = old_mu[:nn_params_size].clone()
+
+        old_sigma = old_dist.sigma  # 2D
+        new_sigma = old_sigma[:nn_params_size, :nn_params_size].clone()
+
+        if "sigma_inv" in old_dist.parameters:
+            old_sigma_inv = old_dist.sigma_inv
+            new_sigma_inv = old_sigma_inv[:nn_params_size, :nn_params_size].clone()
+        else:
+            new_sigma_inv = None
+
+        new_params = {
+            "mu": new_mu,
+            "sigma": new_sigma,
+        }
+        if new_sigma_inv is not None:
+            new_params["sigma_inv"] = new_sigma_inv
+
+        new_dist = ExpGaussian(
+            parameters=new_params,
+            solution_length=nn_params_size,
+            device=old_dist.device,
+            dtype=old_dist.dtype,
+        )
+
+        return new_dist
 
     def _set_individuals_generation(self, gen: int):
         for ind in self.individuals:
@@ -136,6 +208,7 @@ class GeneralistExperimentBase(Algo):
         full_gen_algo: bool = False,
         freeze_params: str = None,
         freeze_interval: int = None,
+        dis_morph_evo_later: bool = False,
     ):
         super().__init__(
             dis_morph_evo,
@@ -151,6 +224,7 @@ class GeneralistExperimentBase(Algo):
             freeze_interval=freeze_interval
         )
 
+        self.dis_morph_evo_later: bool = dis_morph_evo_later
         self.ff_manager: FFManagerGeneralist = FFManagerGeneralist(exp_folder_name)
 
         self.df_gen_scores = {"Generalist Score": []}
@@ -163,10 +237,20 @@ class GeneralistExperimentBase(Algo):
             partitions += 1
 
             self.ff_manager.create_partition_folder(partitions)
+            self.individuals = self._initialize_individuals(self.dis_morph_evo, self.morph_type)
             self._initialize_searcher()
 
             best_generalist, best_generalist_score = self._train(partitions)
             p_terrains: List[TerrainType] = self._partition(best_generalist)
+
+            if self.dis_morph_evo_later:
+                self.individuals = self._initialize_individuals(True, self.morph_type)
+                for ind in self.individuals: 
+                    _, morph_params = torch.split(
+                        best_generalist, (self.individuals[0].controller.total_weigths, self.individuals[0].mj_env.morphology.total_params)
+                    )
+                    ind.mj_env.morphology.set_morph_params(morph_params)
+                self._initialize_searcher(self.searcher)
 
             if self.max_evals is None or (self.max_evals is not None and self.number_of_evals < self.max_evals):
                 self.t.setup_train_on_terrain_partition(p_terrains)
@@ -356,7 +440,7 @@ class OurAlgo(GeneralistExperimentBase):
     """
 
     def __init__(
-        self, dis_morph_evo: bool, morph_type: bool, use_custom_start_morph: bool, parallel_jobs: int = 6, freeze_params: str = None, freeze_interval: int = None
+        self, dis_morph_evo: bool, morph_type: bool, use_custom_start_morph: bool, dis_morph_evo_later: bool, parallel_jobs: int = 6, freeze_params: str = None, freeze_interval: int = None,
     ):
         if dis_morph_evo is False and morph_type is not None:
             raise Exception("Invalid argument combination: dis_morph_evo and specifying morph type is not possible. Morphology will be evolved")
@@ -370,6 +454,8 @@ class OurAlgo(GeneralistExperimentBase):
             exp_folder_name = f"OurAlgo-MorphEvo-FreezeMorph{freeze_interval}"
         elif freeze_params == "controller":
             exp_folder_name = f"OurAlgo-MorphEvo-FreezeContr{freeze_interval}"
+        elif dis_morph_evo_later:
+            exp_folder_name = "OurAlgo-MorphEvo-DisMorphLater-Gen"
         elif use_custom_start_morph:
             exp_folder_name = "OurAlgo-MorphEvo-StartLarge-Gen"
         elif dis_morph_evo is False:
@@ -397,6 +483,7 @@ class OurAlgo(GeneralistExperimentBase):
             parallel_jobs=parallel_jobs,
             freeze_params=freeze_params,
             freeze_interval=freeze_interval,
+            dis_morph_evo_later=dis_morph_evo_later,
         )
 
 
