@@ -255,7 +255,7 @@ class GeneralistExperimentBase(Algo):
             if self.max_evals is None or (self.max_evals is not None and self.number_of_evals < self.max_evals):
                 self.t.setup_train_on_terrain_partition(p_terrains)
                 best_generalist, _ = self._train(
-                    partitions, best_generalist, best_generalist_score
+                    partitions, best_generalist, best_generalist_score, self.dis_morph_evo_later
                 )
                 self.t.restore_training_terrains()
 
@@ -272,6 +272,7 @@ class GeneralistExperimentBase(Algo):
         partitions,
         best_generalist: Tensor = None,
         best_generalist_score: float = float("-inf"),
+        append_morph_to_tensor: bool = False,
     ) -> Tuple[Tensor, float]:
         num_generations_no_improvement: int = 0
 
@@ -284,6 +285,8 @@ class GeneralistExperimentBase(Algo):
             self.searcher.step()
             self._set_individuals_generation(self.searcher.step_count)
             pop_best: Tensor = self.searcher.status["pop_best"].values
+            if append_morph_to_tensor:
+                pop_best = torch.cat(pop_best, self.individuals[0].mj_env.morphology.morph_params_tensor)
 
             self.ff_manager.save_screenshot_ant(
                 partitions, self.searcher.step_count, pop_best, self.individuals[0]
