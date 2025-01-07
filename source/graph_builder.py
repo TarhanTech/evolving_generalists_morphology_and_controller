@@ -1335,14 +1335,14 @@ class GraphBuilderCombination():
         self._plot_max_fitness_boxplot_with_significance([self.our_algo_morph_evo_gen_df, self.spec_morph_evo_df, self.our_algo_default_morph_gen_df], ["our_algo_morph_evo_gen",  "spec_morph_evo", "our_algo_default_morph_gen"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")    
 
     def _get_run_path(self, run_paths, exp: str) -> Path:
-        exp_paths = [path for path in run_paths if exp in str(path)]
-    
+        exp_paths = [path for path in run_paths if path.name == exp]
+
         if len(exp_paths) == 1:
             return exp_paths[0]
         elif len(exp_paths) == 0:
             return None
         else:
-            raise ValueError(f"Multiple paths containing {exp} found.")
+            raise ValueError(f"Multiple paths with the name {exp} found.")
         
     def _create_df(self, run_path: Path, is_generalist: bool) -> pd.DataFrame:
         g = self._load_g(run_path)
