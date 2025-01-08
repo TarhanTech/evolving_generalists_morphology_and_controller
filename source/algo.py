@@ -285,12 +285,14 @@ class GeneralistExperimentBase(Algo):
             self.searcher.step()
             self._set_individuals_generation(self.searcher.step_count)
             pop_best: Tensor = self.searcher.status["pop_best"].values
-            if append_morph_to_tensor:
-                pop_best = torch.cat(pop_best, self.individuals[0].mj_env.morphology.morph_params_tensor)
-
             self.ff_manager.save_screenshot_ant(
                 partitions, self.searcher.step_count, pop_best, self.individuals[0]
             )
+
+            pop_best_to_save = pop_best
+            if append_morph_to_tensor:
+                pop_best_to_save = torch.cat([pop_best, self.individuals[0].mj_env.morphology.morph_params_tensor])
+
 
             fitness_scores: List[float] = self._validate_as_generalist(pop_best)
             generalist_score: float = np.mean(fitness_scores)
@@ -298,7 +300,7 @@ class GeneralistExperimentBase(Algo):
                 best_generalist = pop_best
                 best_generalist_score = generalist_score
                 self.ff_manager.save_generalist_tensor(
-                    partitions, self.searcher.step_count, pop_best, True
+                    partitions, self.searcher.step_count, pop_best_to_save, True
                 )
                 num_generations_no_improvement = 0
             else:
