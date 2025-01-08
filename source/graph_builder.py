@@ -1268,53 +1268,74 @@ class GraphBuilderCombination():
 
             full_gen_morph_evo_gen_path: Path = self._get_run_path(run_paths, "FullGen-MorphEvo-Gen")
             if full_gen_morph_evo_gen_path is not None:
-                self.full_gen_morph_evo_gen_df: pd.DataFrame = self._create_df(full_gen_morph_evo_gen_path, True)
-                self.full_gen_morph_evo_gen_df.to_csv(self.path_to_save / "FullGen-MorphEvo-Gen.csv", index=False)
+                save_path = self.path_to_save / "FullGen-MorphEvo-Gen.csv"
+                if not save_path.exists():
+                    self.full_gen_morph_evo_gen_df: pd.DataFrame = self._create_df(full_gen_morph_evo_gen_path, True)
+                    self.full_gen_morph_evo_gen_df.to_csv(save_path, index=False)
 
             full_gen_default_morph_gen_path: Path = self._get_run_path(run_paths, "FullGen-DefaultMorph-Gen")
             if full_gen_default_morph_gen_path is not None:
-                self.full_gen_default_morph_gen_df: pd.DataFrame = self._create_df(full_gen_default_morph_gen_path, True)
-                self.full_gen_default_morph_gen_df.to_csv(self.path_to_save / "FullGen-DefaultMorph-Gen.csv", index=False)
+                save_path = self.path_to_save / "FullGen-DefaultMorph-Gen.csv"
+                if not save_path.exists():
+                    self.full_gen_default_morph_gen_df: pd.DataFrame = self._create_df(full_gen_default_morph_gen_path, True)
+                    self.full_gen_default_morph_gen_df.to_csv(save_path, index=False)
 
             our_algo_custom_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-CustomMorph-Gen")
             if our_algo_custom_morph_gen_path is not None:
-                self.our_algo_custom_morph_gen_df: pd.DataFrame = self._create_df(our_algo_custom_morph_gen_path, True)
-                self.our_algo_custom_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-CustomMorph-Gen.csv", index=False)
+                save_path = self.path_to_save / "OurAlgo-CustomMorph-Gen.csv"
+                if not save_path.exists():
+                    self.our_algo_custom_morph_gen_df: pd.DataFrame = self._create_df(our_algo_custom_morph_gen_path, True)
+                    self.our_algo_custom_morph_gen_df.to_csv(save_path, index=False)
 
             our_algo_default_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-DefaultMorph-Gen")
             if our_algo_default_morph_gen_path is not None:
-                self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path, True)
-                self.our_algo_default_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-DefaultMorph-Gen.csv", index=False) 
+                save_path = self.path_to_save / "OurAlgo-DefaultMorph-Gen.csv"
+                if not save_path.exists():
+                    self.our_algo_default_morph_gen_df: pd.DataFrame = self._create_df(our_algo_default_morph_gen_path, True)
+                    self.our_algo_default_morph_gen_df.to_csv(save_path, index=False)
 
             our_algo_large_morph_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-LargeMorph-Gen")
             if our_algo_large_morph_gen_path is not None:
-                self.our_algo_large_morph_gen_df: pd.DataFrame = self._create_df(our_algo_large_morph_gen_path, True)
-                self.our_algo_large_morph_gen_df.to_csv(self.path_to_save / "OurAlgo-LargeMorph-Gen.csv", index=False)
+                save_path = self.path_to_save / "OurAlgo-LargeMorph-Gen.csv"
+                if not save_path.exists():
+                    self.our_algo_large_morph_gen_df: pd.DataFrame = self._create_df(our_algo_large_morph_gen_path, True)
+                    self.our_algo_large_morph_gen_df.to_csv(save_path, index=False)
 
             our_algo_morph_evo_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-MorphEvo-Gen")
             if our_algo_morph_evo_gen_path is not None:
-                self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path, True)
-                self.our_algo_morph_evo_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-Gen.csv", index=False)
+                save_path = self.path_to_save / "OurAlgo-MorphEvo-Gen.csv"
+                if not save_path.exists():
+                    self.our_algo_morph_evo_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_gen_path, True)
+                    self.our_algo_morph_evo_gen_df.to_csv(save_path, index=False)
 
             our_algo_morph_evo_start_large_gen_path: Path = self._get_run_path(run_paths, "OurAlgo-MorphEvo-StartLarge-Gen")
             if our_algo_morph_evo_start_large_gen_path is not None:
-                self.our_algo_morph_evo_start_large_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_start_large_gen_path, True)
-                self.our_algo_morph_evo_start_large_gen_df.to_csv(self.path_to_save / "OurAlgo-MorphEvo-StartLarge-Gen.csv", index=False)
+                save_path = self.path_to_save / "OurAlgo-MorphEvo-StartLarge-Gen.csv"
+                if not save_path.exists():
+                    self.our_algo_morph_evo_start_large_gen_df: pd.DataFrame = self._create_df(our_algo_morph_evo_start_large_gen_path, True)
+                    self.our_algo_morph_evo_start_large_gen_df.to_csv(save_path, index=False)
 
             spec_default_morph_path: Path = self._get_run_path(run_paths, "Spec-DefaultMorph")
             if spec_default_morph_path is not None:
-                self.spec_default_morph_df: pd.DataFrame = self._create_df(spec_default_morph_path, False)
-                self.spec_default_morph_df.to_csv(self.path_to_save / "Spec-DefaultMorph.csv", index=False) 
+                save_path = self.path_to_save / "Spec-DefaultMorph.csv"
+                if not save_path.exists():
+                    self.spec_default_morph_df: pd.DataFrame = self._create_df(spec_default_morph_path, False)
+                    self.spec_default_morph_df.to_csv(save_path, index=False)
 
             spec_morph_evo_path: Path = self._get_run_path(run_paths, "Spec-MorphEvo")
             if spec_morph_evo_path is not None:
-                self.spec_morph_evo_df: pd.DataFrame = self._create_df(spec_morph_evo_path, False)
-                self.spec_morph_evo_df.to_csv(self.path_to_save / "Spec-MorphEvo.csv", index=False) 
+                save_path = self.path_to_save / "Spec-MorphEvo.csv"
+                if not save_path.exists():
+                    self.spec_morph_evo_df: pd.DataFrame = self._create_df(spec_morph_evo_path, False)
+                    self.spec_morph_evo_df.to_csv(save_path, index=False)
 
             spec_morph_evo_long_path: Path = self._get_run_path(run_paths, "Spec-MorphEvo-Long")
             if spec_morph_evo_long_path is not None:
-                self.spec_morph_evo_long_df: pd.DataFrame = self._create_df(spec_morph_evo_long_path, False)
-                self.spec_morph_evo_long_df.to_csv(self.path_to_save / "Spec-MorphEvo-Long.csv", index=False) 
+                save_path = self.path_to_save / "Spec-MorphEvo-Long.csv"
+                if not save_path.exists():
+                    self.spec_morph_evo_long_df: pd.DataFrame = self._create_df(spec_morph_evo_long_path, False)
+                    self.spec_morph_evo_long_df.to_csv(save_path, index=False)
+
         else:
             self.our_algo_default_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "OurAlgo-DefaultMorph-Gen.csv")
             self.our_algo_large_morph_gen_df: pd.DataFrame = pd.read_csv(self.path_to_save / "OurAlgo-LargeMorph-Gen.csv")
@@ -1335,7 +1356,7 @@ class GraphBuilderCombination():
         self._plot_max_fitness_boxplot_with_significance([self.our_algo_morph_evo_gen_df, self.spec_morph_evo_df, self.our_algo_default_morph_gen_df], ["our_algo_morph_evo_gen",  "spec_morph_evo", "our_algo_default_morph_gen"], "fitness_env_experiments_boxplot.pdf", "Environment fitnesses from different experiments")    
 
     def _get_run_path(self, run_paths, exp: str) -> Path:
-        exp_paths = [path for path in run_paths if path.name == exp]
+        exp_paths = [path for path in run_paths if path.parts[-2] == exp]
 
         if len(exp_paths) == 1:
             return exp_paths[0]
