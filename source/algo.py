@@ -259,6 +259,9 @@ class GeneralistExperimentBase(Algo):
                 )
                 self.t.restore_training_terrains()
 
+            if self.dis_morph_evo_later:
+                torch.cat([best_generalist, self.individuals[0].mj_env.morphology.morph_params_tensor])
+                
             self.e.append(p_terrains)
             self.g.append(best_generalist)
 
