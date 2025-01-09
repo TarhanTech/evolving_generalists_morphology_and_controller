@@ -6,7 +6,7 @@ import sys
 import torch
 from source.training_env import TrainingSchedule, TerrainType
 
-MAX_EVALS: int = 303600
+MAX_EVALS: int = 150000
 
 def vscode_sorting_key(path):
     # Natural sorting: split into parts (digits and text)
@@ -72,7 +72,7 @@ def full_gen(exp_path: Path):
             print(f"Error saving G_var.pkl in {run_path}: {e}")
             continue
 
-        for fname in ["env_fitnesses_test.pkl", "env_fitnesses_training.pkl"]:
+        for fname in ["env_fitnesses_test.pkl", "env_fitnesses_training.pkl", "E_established.pkl"]:
             fpath = run_path / fname
             if fpath.exists() and fpath.is_file():
                 try:
@@ -166,7 +166,7 @@ def spec(exp_path: Path):
             print(f"Error saving E_var.pkl in {run_path}: {e}")
             continue
 
-        for fname in ["env_fitnesses_test.pkl", "env_fitnesses_training.pkl"]:
+        for fname in ["env_fitnesses_test.pkl", "env_fitnesses_training.pkl", "E_established.pkl"]:
             fpath = run_path / fname
             if fpath.exists() and fpath.is_file():
                 try:
