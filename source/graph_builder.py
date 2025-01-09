@@ -831,7 +831,7 @@ class GraphBuilderGeneralist(Graphbuilder):
         for i in range(len(self.g)):
             partition_folder: Path = self.run_path / f"partition_{i+1}"
             images_folder: Path = partition_folder / "screenshots"
-            sorted_image_files = sorted(os.listdir(images_folder), key=lambda file: get_creation_time(file, images_folder))
+            sorted_image_files = sorted(os.listdir(images_folder), key=lambda file: vscode_sorting_key(images_folder / file))
 
             frame = cv2.imread(str(images_folder / sorted_image_files[0]))
             height, width, layers = frame.shape
@@ -856,9 +856,10 @@ class GraphBuilderGeneralist(Graphbuilder):
             best_tensors_index = []
             best_images = []
 
-            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensors_path))
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: vscode_sorting_key(tensors_path / file))
 
             for j, tensor_file in enumerate(sorted_tensor_files):
+                print(tensor_file)
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path, weights_only=False, map_location=torch.device('cpu'))
@@ -989,7 +990,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             plt.savefig(save_path)
             plt.close()
 
-        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: vscode_sorting_key(self.run_path / "specialist" / file))
 
         for df, folder in zip(self.morph_data_dfs, spec_folders):
             folder_save_path: Path = self.run_path / "specialist" / folder / "morph_params_evolution_plots"
@@ -1095,7 +1096,7 @@ class GraphBuilderSpecialist(Graphbuilder):
             # Close the plot to free memory
             plt.close()
 
-        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+        spec_folders = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: vscode_sorting_key(self.run_path / "specialist" / file))
 
         for i, (df, folder) in enumerate(zip(self.morph_data_dfs, spec_folders)):
             pandas_logger_df = pd.read_csv(self.run_path / "specialist" / folder / "pandas_logger_df.csv")
@@ -1171,7 +1172,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
     def create_evolution_video(self):
         """Method creating evolution video by putting all images from screenshot folder back-to-back"""
-        sorted_files = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist"))
+        sorted_files = sorted(os.listdir(self.run_path / "specialist"), key=lambda file: vscode_sorting_key(self.run_path / "specialist" / file))
         for folder in sorted_files:
             full_folder_path: Path = self.run_path / "specialist" / folder
             images_folder: Path = full_folder_path / "screenshots"
@@ -1220,14 +1221,13 @@ class GraphBuilderSpecialist(Graphbuilder):
         best_tensors_indices: list[list[int]] = []
         best_images_part = []
 
-        for folder in sorted(os.listdir(self.run_path / "specialist"), key=lambda file: get_creation_time(file, self.run_path / "specialist")):
+        for folder in sorted(os.listdir(self.run_path / "specialist"), key=lambda file: vscode_sorting_key(self.run_path / "specialist" / file)):
             tensors_path = self.run_path / "specialist" / folder / "gen_tensors"
             morph_data = []
             best_tensors_index = []
             best_images = []
 
-            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: get_creation_time(file, tensors_path))
-
+            sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: vscode_sorting_key(tensors_path / file))
             for j, tensor_file in enumerate(sorted_tensor_files):
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
@@ -1630,3 +1630,11 @@ class GraphBuilderCombination():
 
 def get_creation_time(file, path):
     return os.path.getctime(path / file)
+
+def vscode_sorting_key(path):
+    # Natural sorting: split into parts (digits and text)
+    import re
+    return [
+        int(part) if part.isdigit() else part.lower()
+        for part in re.split(r'(\d+)', path.name)
+    ]
