@@ -859,7 +859,6 @@ class GraphBuilderGeneralist(Graphbuilder):
             sorted_tensor_files = sorted(os.listdir(tensors_path), key=lambda file: vscode_sorting_key(tensors_path / file))
 
             for j, tensor_file in enumerate(sorted_tensor_files):
-                print(tensor_file)
                 if j % self.morph_step_size == 0 or tensor_file.endswith("best.pt"):
                     tensor_path = tensors_path / tensor_file
                     params = torch.load(tensor_path, weights_only=False, map_location=torch.device('cpu'))

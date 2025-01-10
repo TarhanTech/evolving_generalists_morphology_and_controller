@@ -259,9 +259,9 @@ class GeneralistExperimentBase(Algo):
                 )
                 self.t.restore_training_terrains()
 
-            if self.dis_morph_evo_later:
-                torch.cat([best_generalist, self.individuals[0].mj_env.morphology.morph_params_tensor])
-                
+            if self.dis_morph_evo_later and best_generalist.numel() == self.individuals[0].controller.total_weigths:
+                best_generalist = torch.cat([best_generalist, self.individuals[0].mj_env.morphology.morph_params_tensor])
+            
             self.e.append(p_terrains)
             self.g.append(best_generalist)
 
@@ -308,7 +308,7 @@ class GeneralistExperimentBase(Algo):
                 num_generations_no_improvement = 0
             else:
                 self.ff_manager.save_generalist_tensor(
-                    partitions, self.searcher.step_count, pop_best, False
+                    partitions, self.searcher.step_count, pop_best_to_save, False
                 )
                 if self.init_training_generations < self.searcher.step_count:
                     num_generations_no_improvement += 1
