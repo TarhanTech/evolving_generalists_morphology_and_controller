@@ -246,21 +246,26 @@ class GeneralistExperimentBase(Algo):
             _, morph_params = torch.split(
                 best_generalist, (self.individuals[0].controller.total_weigths, self.individuals[0].mj_env.morphology.total_params)
             )
-            if self.dis_morph_evo_later:
-                self.individuals = self._initialize_individuals(True, self.morph_type)
-                for ind in self.individuals: 
-                    ind.mj_env.morphology.set_morph_params(morph_params)
-                self._initialize_searcher(self.searcher)
 
             if self.max_evals is None or (self.max_evals is not None and self.number_of_evals < self.max_evals):
                 self.t.setup_train_on_terrain_partition(p_terrains)
-                best_generalist, _ = self._train(
-                    partitions, best_generalist, best_generalist_score, self.dis_morph_evo_later
-                )
-                self.t.restore_training_terrains()
 
-            if self.dis_morph_evo_later and best_generalist.numel() == self.individuals[0].controller.total_weigths:
-                best_generalist = torch.cat([best_generalist, morph_params])
+                if self.dis_morph_evo_later:
+                    self.individuals = self._initialize_individuals(True, self.morph_type)
+                    for ind in self.individuals: 
+                        ind.mj_env.morphology.set_morph_params(morph_params)
+                    self._initialize_searcher(self.searcher)
+
+                    best_generalist, _ = self._train(
+                        partitions, best_generalist, best_generalist_score,
+                    )
+                    if best_generalist.numel() == self.individuals[0].controller.total_weigths:
+                        best_generalist = torch.cat([best_generalist, morph_params])
+                else:
+                    best_generalist, _ = self._train(
+                        partitions, best_generalist, best_generalist_score,
+                    )
+                self.t.restore_training_terrains()
             
             self.e.append(p_terrains)
             self.g.append(best_generalist)
@@ -275,7 +280,7 @@ class GeneralistExperimentBase(Algo):
         partitions,
         best_generalist: Tensor = None,
         best_generalist_score: float = float("-inf"),
-        append_morph_to_tensor: bool = False,
+        morph_to_append: Tensor = None,
     ) -> Tuple[Tensor, float]:
         num_generations_no_improvement: int = 0
 
@@ -293,8 +298,8 @@ class GeneralistExperimentBase(Algo):
             )
 
             pop_best_to_save = pop_best
-            if append_morph_to_tensor:
-                pop_best_to_save = torch.cat([pop_best, self.individuals[0].mj_env.morphology.morph_params_tensor])
+            if morph_to_append:
+                pop_best_to_save = torch.cat([pop_best, morph_to_append])
 
 
             fitness_scores: List[float] = self._validate_as_generalist(pop_best)
