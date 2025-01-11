@@ -243,12 +243,12 @@ class GeneralistExperimentBase(Algo):
             best_generalist, best_generalist_score = self._train(partitions)
             p_terrains: List[TerrainType] = self._partition(best_generalist)
 
+            _, morph_params = torch.split(
+                best_generalist, (self.individuals[0].controller.total_weigths, self.individuals[0].mj_env.morphology.total_params)
+            )
             if self.dis_morph_evo_later:
                 self.individuals = self._initialize_individuals(True, self.morph_type)
                 for ind in self.individuals: 
-                    _, morph_params = torch.split(
-                        best_generalist, (self.individuals[0].controller.total_weigths, self.individuals[0].mj_env.morphology.total_params)
-                    )
                     ind.mj_env.morphology.set_morph_params(morph_params)
                 self._initialize_searcher(self.searcher)
 
@@ -260,7 +260,7 @@ class GeneralistExperimentBase(Algo):
                 self.t.restore_training_terrains()
 
             if self.dis_morph_evo_later and best_generalist.numel() == self.individuals[0].controller.total_weigths:
-                best_generalist = torch.cat([best_generalist, self.individuals[0].mj_env.morphology.morph_params_tensor])
+                best_generalist = torch.cat([best_generalist, morph_params])
             
             self.e.append(p_terrains)
             self.g.append(best_generalist)
