@@ -33,7 +33,7 @@ def delete_items_in_folders(base_folder, items_to_delete):
 
 if __name__ == "__main__":
     # Base folder to iterate through
-    base_folder = "_graphs_for_paper/FullGen-DefaultMorph-Gen_1003_08-12_22-31-06-347217"
+    base_folder = "_graphs_for_paper/Spec-DefaultMorph_955_08-12_10-08-24-851613"
 
     # List of folder and file names to delete (exact names)
     items_to_delete = [
