@@ -1112,7 +1112,8 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             gen_scores = []
             for j in df.index.to_list():
-                gen_scores.append(pandas_logger_df.loc[j - 1, "mean_eval"])
+                gen_scores.append(pandas_logger_df.loc[j - 1, "pop_best_eval"])
+            
             df_pca["Fitness Score"] = gen_scores
 
             best_indices = self.best_tensors_indices[i] 
@@ -1139,7 +1140,7 @@ class GraphBuilderSpecialist(Graphbuilder):
 
             gen_scores = []
             for j in df.index.to_list():
-                gen_scores.append(pandas_logger_df.loc[j - 1, "mean_eval"])
+                gen_scores.append(pandas_logger_df.loc[j - 1, "pop_best_eval"])
             df_pca["Fitness Score"] = gen_scores
 
             best_tensors = df_pca.iloc[best_indices]
