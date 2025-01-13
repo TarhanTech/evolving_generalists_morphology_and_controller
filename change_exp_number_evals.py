@@ -115,7 +115,7 @@ def full_gen(exp_path: Path):
             if csv_path.exists() and csv_path.is_file():
                 try:
                     df = pd.read_csv(csv_path, index_col=0)
-                    df_filtered = df[df.index <= max_generations]
+                    df_filtered = df.iloc[:max_generations]
                     df_filtered.to_csv(csv_path)
                     print(f"Cleaned up rows in {csv_path.name} to max gen {max_generations}")
                 except Exception as e:
@@ -215,7 +215,7 @@ def spec(exp_path: Path):
             if logger_csv_path.exists() and logger_csv_path.is_file():
                 try:
                     df = pd.read_csv(logger_csv_path, index_col=0)
-                    df_filtered = df[df.index <= max_generations]
+                    df_filtered = df.iloc[:max_generations]
                     df_filtered.to_csv(logger_csv_path)
                     print(f"Cleaned up rows in {logger_csv_path.name} to max gen {max_generations}")
                 except Exception as e_csv:
