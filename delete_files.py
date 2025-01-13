@@ -33,7 +33,7 @@ def delete_items_in_folders(base_folder, items_to_delete):
 
 if __name__ == "__main__":
     # Base folder to iterate through
-    base_folder = "_graphs_for_paper/Spec-DefaultMorph_955_08-12_10-08-24-851613"
+    base_folder = "_graphs_for_paper/Spec-MorphEvo_1073_01-12_23-36-12-412793"
 
     # List of folder and file names to delete (exact names)
     items_to_delete = [
@@ -41,7 +41,6 @@ if __name__ == "__main__":
         "screenshots",
         "gen_score_pandas_df.csv",
         "fitness_scores.json",
-        "evolution_video.mp4",
         "pandas_logger_df.csv",
         "E_established.pkl",
         "E_var.pkl",
