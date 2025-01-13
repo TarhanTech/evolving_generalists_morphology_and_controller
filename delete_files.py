@@ -3,42 +3,51 @@ import shutil
 
 def delete_items_in_folders(base_folder, items_to_delete):
     """
-    Iterates over all subfolders in a base folder and deletes specified files and folders.
+    Iterates over all subfolders in a base folder and deletes specified files and folders 
+    by looking for items whose names match any in the items_to_delete list.
 
     :param base_folder: The base folder to iterate through.
-    :param items_to_delete: List of file and folder names to delete within each subfolder.
+    :param items_to_delete: List of file and folder names to delete.
     """
-    for root, dirs, files in os.walk(base_folder):
-        for item in items_to_delete:
-            item_path = os.path.join(root, item)
-            try:
-                if os.path.isdir(item_path):
-                    # Check if the item is a directory
-                    shutil.rmtree(item_path)
-                    print(f"Deleted folder: {item_path}")
-                elif os.path.isfile(item_path):
-                    # Check if the item is a file
-                    os.remove(item_path)
-                    print(f"Deleted file: {item_path}")
-                else:
-                    print(f"Path does not exist: {item_path}")
-            except Exception as e:
-                print(f"Failed to delete {item_path}. Error: {e}")
+    # Use topdown=False so that directories are processed after the files inside them.
+    for root, dirs, files in os.walk(base_folder, topdown=False):
+        # Delete matching files
+        for filename in files:
+            if filename in items_to_delete:
+                file_path = os.path.join(root, filename)
+                try:
+                    os.remove(file_path)
+                    print(f"Deleted file: {file_path}")
+                except Exception as e:
+                    print(f"Failed to delete file {file_path}. Error: {e}")
+
+        # Delete matching directories
+        for dirname in dirs:
+            if dirname in items_to_delete:
+                dir_path = os.path.join(root, dirname)
+                try:
+                    shutil.rmtree(dir_path)
+                    print(f"Deleted folder: {dir_path}")
+                except Exception as e:
+                    print(f"Failed to delete folder {dir_path}. Error: {e}")
 
 if __name__ == "__main__":
     # Base folder to iterate through
-    base_folder = "_graphs_for_paper/Spec-MorphEvo-Long_2770_02-11_15-36-23-918885/specialist"
+    base_folder = "_graphs_for_paper/FullGen-DefaultMorph-Gen_1003_08-12_22-31-06-347217"
 
-    # List of folders and files to delete
+    # List of folder and file names to delete (exact names)
     items_to_delete = [
         "gen_tensors",
-        "morph_params_evolution_plots",
-        "pca_plots",
         "screenshots",
+        "gen_scores_pandas_df.csv",
         "evolution_video.mp4",
-        "pandas_logger_df.csv"
-
+        "pandas_logger_df.csv",
+        "E_established.pkl",
+        "E_var.pkl",
+        "env_fitnesses_test.pkl",
+        "env_fitnesses_training.pkl",
+        "G_var.pkl",
     ]
 
-    # Call the delete function
+    # Execute the deletion
     delete_items_in_folders(base_folder, items_to_delete)
