@@ -39,7 +39,8 @@ if __name__ == "__main__":
     items_to_delete = [
         "gen_tensors",
         "screenshots",
-        "gen_scores_pandas_df.csv",
+        "gen_score_pandas_df.csv",
+        "fitness_scores.json",
         "evolution_video.mp4",
         "pandas_logger_df.csv",
         "E_established.pkl",
