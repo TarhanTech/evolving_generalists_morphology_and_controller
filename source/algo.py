@@ -256,7 +256,7 @@ class GeneralistExperimentBase(Algo):
                     self._initialize_searcher(self.searcher)
 
                     best_generalist, _ = self._train(
-                        partitions, best_generalist, best_generalist_score,
+                        partitions, best_generalist, best_generalist_score, morph_params,
                     )
                     if best_generalist.numel() == self.individuals[0].controller.total_weigths:
                         best_generalist = torch.cat([best_generalist, morph_params])
