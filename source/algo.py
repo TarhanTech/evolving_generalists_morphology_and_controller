@@ -297,7 +297,7 @@ class GeneralistExperimentBase(Algo):
             )
 
             pop_best_to_save = pop_best
-            if morph_to_append:
+            if morph_to_append is not None:
                 pop_best_to_save = torch.cat([pop_best, morph_to_append])
 
 
