@@ -1,21 +1,20 @@
-from pathlib import Path
+import os
 import pickle
+from pathlib import Path
+from typing import List
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from typing import List, Tuple
-from scipy.stats import kruskal
-import pandas as pd
-import scikit_posthocs as sp
-import pandas as pd
-import os
+
+from scipy.stats import kruskal, ranksums
 
 # Hardcoded base runs path
-BASE_RUNS_PATH = Path("./runs")
+BASE_RUNS_PATH = Path("./runs/_olds_or_wrong/GenStagnation300_MaxEvals303600")
 
 EXPERIMENT_PATHS = {
     "FullGen-DefaultMorph-Gen": BASE_RUNS_PATH / "FullGen-DefaultMorph-Gen",
     "FullGen-MorphEvo-Gen": BASE_RUNS_PATH / "FullGen-MorphEvo-Gen",
-    "OurAlgo-CustomMorph-Gen": BASE_RUNS_PATH / "OurAlgo-CustomMorph-Gen",
+    # "OurAlgo-CustomMorph-Gen": BASE_RUNS_PATH / "OurAlgo-CustomMorph-Gen",
     "OurAlgo-DefaultMorph-Gen": BASE_RUNS_PATH / "OurAlgo-DefaultMorph-Gen",
     "OurAlgo-LargeMorph-Gen": BASE_RUNS_PATH / "OurAlgo-LargeMorph-Gen",
     "OurAlgo-MorphEvo-Gen": BASE_RUNS_PATH / "OurAlgo-MorphEvo-Gen",
@@ -25,6 +24,21 @@ EXPERIMENT_PATHS = {
     "Spec-MorphEvo-Long": BASE_RUNS_PATH / "Spec-MorphEvo-Long"
 }
 
+def get_last_evaluations(run_folder):
+    evals_file = run_folder / "number_of_evals.log"
+    if evals_file.exists():
+        with open(evals_file, "r") as f:
+            lines = f.readlines()
+            if lines:
+                # Extract the last line with the number of evaluations
+                last_line = lines[-1]
+                try:
+                    # Extract the last number in the line
+                    last_number = int(last_line.split()[-1])
+                    return last_number
+                except (IndexError, ValueError):
+                    pass
+    return "unknown"
 
 def calculate_mean_fitness(run_folder: Path) -> float:
     test_data_path = run_folder / "env_fitnesses_test.pkl"
@@ -43,6 +57,8 @@ def calculate_mean_fitness(run_folder: Path) -> float:
 
 def get_experiment_fitness_means(exp_path: Path) -> List[float]:
     fitness_means = []
+    evaluations = []
+
     if not exp_path.exists():
         print(f"Error: The path '{exp_path}' does not exist.")
         return fitness_means
@@ -56,75 +72,34 @@ def get_experiment_fitness_means(exp_path: Path) -> List[float]:
             mean = calculate_mean_fitness(run_folder)
             fitness_means.append(mean)
 
-    df = pd.DataFrame(fitness_means, columns=["Fitness"])
+            evals = get_last_evaluations(run_folder)
+            evaluations.append(evals)
 
-    # 3. Specify the folder (directory) you want to save to
+    df = pd.DataFrame({
+        "Fitness": fitness_means,
+        "Evaluations": evaluations
+    })
+
+    # Save each experiment's fitness data to a CSV (optional)
     folder_path = "fitness_df"
     file_name = exp_path.name + ".csv"
-
-    # 4. Create the folder if it doesn't already exist
     os.makedirs(folder_path, exist_ok=True)
-
-    # 5. Construct the full file path
     file_path = os.path.join(folder_path, file_name)
-
-    # 6. Save the DataFrame as a CSV file in the specified folder
     df.to_csv(file_path, index=False)
 
     return fitness_means
 
 
-def significance_markers(p):
-    if p <= 0.001:
+def significance_markers(p_value):
+    """Returns a star marker based on p-value thresholds."""
+    if p_value <= 0.001:
         return '***'
-    elif p <= 0.01:
+    elif p_value <= 0.01:
         return '**'
-    elif p <= 0.05:
+    elif p_value <= 0.05:
         return '*'
     else:
         return 'ns'
-
-
-def add_significance_annotations(ax, data: pd.DataFrame, dunn_results: pd.DataFrame):
-    """
-    Annotate the plot with significance lines for each pair that is significant (p < 0.05).
-    Using the original spacing logic.
-    """
-    groups = list(data['Group'].unique())
-    sig_pairs = []
-    for i, g1 in enumerate(groups):
-        for j in range(i+1, len(groups)):
-            g2 = groups[j]
-            p = dunn_results.loc[g1, g2]
-            if p < 0.05:
-                sig_pairs.append((g1, g2, p))
-
-    if not sig_pairs:
-        return  # No significant pairs, nothing to annotate
-
-    max_val = data['Fitness'].max()
-    min_val = data['Fitness'].min()
-
-    # Original spacing
-    step = (max_val - min_val) * 0.05  
-    height = max_val + step
-
-    # Sort pairs by p-value
-    sig_pairs = sorted(sig_pairs, key=lambda x: x[2])
-
-    for (g1, g2, p) in sig_pairs:
-        x1 = groups.index(g1)
-        x2 = groups.index(g2)
-        if x1 > x2:
-            x1, x2 = x2, x1
-
-        line_x = [x1, x1, x2, x2]
-        line_y = [height, height + step * 0.3, height + step * 0.3, height]
-        ax.plot(line_x, line_y, c='k', lw=1.5)
-        ax.text((x1 + x2)*0.5, height + step * 0.3, significance_markers(p),
-                ha='center', va='bottom', color='k', fontsize=10)
-
-        height += step
 
 
 def create_multigroup_boxplot(data: pd.DataFrame, output_path: Path):
@@ -137,6 +112,7 @@ def create_multigroup_boxplot(data: pd.DataFrame, output_path: Path):
     palette = sns.color_palette("tab10", n_colors=len(groups))
     palette = dict(zip(groups, palette))
 
+    # === Boxplot with Whiskers and Outliers ===
     boxplot = sns.boxplot(
         x='Group',
         y='Fitness',
@@ -150,15 +126,17 @@ def create_multigroup_boxplot(data: pd.DataFrame, output_path: Path):
         showmeans=False
     )
 
+    # Add jittered points for each data sample (optional)
     sns.stripplot(
         x='Group',
         y='Fitness',
         data=data,
-        order=order,
+        order=groups,
         palette=palette,
         size=5,
         jitter=True,
-        dodge=False
+        dodge=False,
+        alpha=0.7
     )
 
     boxplot.set_title("Comparison of All Experiments", fontsize=14, fontweight="bold")
@@ -166,31 +144,36 @@ def create_multigroup_boxplot(data: pd.DataFrame, output_path: Path):
     boxplot.set_xlabel("Experiments", fontsize=12)
     boxplot.tick_params(labelsize=10)
 
-    # Rotate x-axis labels vertically
-    plt.xticks(rotation=90)
+    # Rotate x-axis labels if needed
+    plt.xticks(rotation=45, ha='right')
 
-    # Perform Kruskal-Wallis test for overall difference
-    group_data = [data.loc[data['Group'] == g, 'Fitness'] for g in order]
+    # -----------------------
+    # 1. Kruskal-Wallis Test
+    # -----------------------
+    group_data = [data.loc[data['Group'] == g, 'Fitness'] for g in groups]
     stat, p_value_kruskal = kruskal(*group_data)
     print(f"Kruskal-Wallis test: H={stat:.3f}, p={p_value_kruskal:.3e}")
+    if p_value_kruskal < 0.05:
+        print("=> At least one group differs significantly (Kruskal–Wallis).")
+    else:
+        print("=> No significant difference among all groups (Kruskal–Wallis).")
 
-    # Perform Dunn's posthoc test
-    dunn_results = sp.posthoc_dunn(data, val_col='Fitness', group_col='Group', p_adjust='bonferroni')
-    print("Dunn's post-hoc test results (p-values):")
-    print(dunn_results)
+    # ------------------------------------------------------
+    # 2. Pairwise Wilcoxon Rank-Sum (NO multiple correction)
+    # ------------------------------------------------------
+    print("\nPairwise Wilcoxon rank-sum tests (no correction):")
+    pairs = []
+    for i in range(len(groups)):
+        for j in range(i + 1, len(groups)):
+            g1, g2 = groups[i], groups[j]
+            arr1 = data.loc[data['Group'] == g1, 'Fitness']
+            arr2 = data.loc[data['Group'] == g2, 'Fitness']
+            stat, p_val = ranksums(arr1, arr2)
+            star = significance_markers(p_val)
 
-    # Print out all pairs with their p-values and significance
-    print("\nPairwise comparisons:")
-    for i, g1 in enumerate(order):
-        for j in range(i+1, len(order)):
-            g2 = order[j]
-            p = dunn_results.loc[g1, g2]
-            print(f"{g1} vs {g2}: p={p:.4e} ({significance_markers(p)})")
+            print(f"{g1} vs {g2} | p={p_val:.4e} ({star})")
 
-    # Add significance annotations for all significant pairs
-    # add_significance_annotations(boxplot, data, dunn_results)
-
-    # Save figure
+    # Save the figure
     plt.savefig(output_path / "bp_all_experiments.pdf", dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -199,9 +182,6 @@ def main():
     records = []
     for label, path in EXPERIMENT_PATHS.items():
         means = get_experiment_fitness_means(path)
-        # if label == "Spec-MorphEvo-Long":
-        #     means = (means * (30 // len(means) + 1))[:30]
-        #     print(means)
         for m in means:
             records.append({'Group': label, 'Fitness': m})
 
