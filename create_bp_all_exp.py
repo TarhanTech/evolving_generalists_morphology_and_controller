@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import kruskal, ranksums
 
 # Hardcoded base runs path
-BASE_RUNS_PATH = Path("./runs/_olds_or_wrong/GenStagnation300_MaxEvals303600")
+BASE_RUNS_PATH = Path("./runs")
 
 EXPERIMENT_PATHS = {
     "FullGen-DefaultMorph-Gen": BASE_RUNS_PATH / "FullGen-DefaultMorph-Gen",
