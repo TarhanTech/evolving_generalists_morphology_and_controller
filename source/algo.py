@@ -562,7 +562,7 @@ class FullGeneralist(GeneralistExperimentBase):
         exp_folder_name: str = ""
         if dis_morph_evo and morph_type == "default":
             exp_folder_name = "FullGen-DefaultMorph-Gen"
-        elif dis_morph_evo and morph_type == "large"
+        elif dis_morph_evo and morph_type == "large":
             exp_folder_name = "FullGen-LargeMorph-Gen"
         elif dis_morph_evo is False:
             exp_folder_name = "FullGen-MorphEvo-Gen"
