@@ -543,13 +543,12 @@ class FullGeneralist(GeneralistExperimentBase):
     After every generation, we calculate the generalist score using the training environments (33 environments).
     In this calculation, I am assuming it partitions 3 times.
 
-    |evals| = 5000(23 + 33) + 5000(23 + 7) + 5000(23 + 1) = 550.000
-    |evals| = 280.000 + 150.000 + 120.000 = 550.000
+    |evals| = 150.000
 
     We want the same amount of evaluations for this algorithm. Full generalist takes:
-    |evals| = num_generations * 23 * 33 = 550.000
+    |evals| = num_generations * 23 * 33 = 150.000
     Solving for num_generations gives:
-    num_generations = 725
+    num_generations = 197
 
     Partitioning in this algorithm is not possible in any way.
     """
@@ -563,6 +562,8 @@ class FullGeneralist(GeneralistExperimentBase):
         exp_folder_name: str = ""
         if dis_morph_evo and morph_type == "default":
             exp_folder_name = "FullGen-DefaultMorph-Gen"
+        elif dis_morph_evo and morph_type == "large"
+            exp_folder_name = "FullGen-LargeMorph-Gen"
         elif dis_morph_evo is False:
             exp_folder_name = "FullGen-MorphEvo-Gen"
         else:
@@ -572,10 +573,10 @@ class FullGeneralist(GeneralistExperimentBase):
 
         super().__init__(
             dis_morph_evo=dis_morph_evo,
-            morph_type="default",
-            max_generations=725,
-            gen_stagnation=725,
-            init_training_generations=725,
+            morph_type=morph_type,
+            max_generations=197,
+            gen_stagnation=197,
+            init_training_generations=197,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
             full_gen_algo=True

@@ -17,7 +17,7 @@ morph_type=""
 
 if [[ "$exp_name" == "OurAlgo-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgoNoPart-MorphEvo-Gen" ]] || [[ "$exp_name" == "FullGen-MorphEvo-Gen" ]] || [[ "$exp_name" == "OurAlgo-MorphEvo-StartLarge-Gen" ]] || [[ "$exp_name" == "OurAlgo-MorphEvo-FreezeMorph10" ]] || [[ "$exp_name" == "OurAlgo-MorphEvo-FreezeContr10" ]] || [[ "$exp_name" == "OurAlgo-MorphEvo-DisMorphLater-Gen" ]]; then
   python_arg="generalist"
-elif [[ "$exp_name" == "OurAlgo-LargeMorph-Gen" ]]; then
+elif [[ "$exp_name" == "OurAlgo-LargeMorph-Gen" ]] || [[ "$exp_name" == "FullGen-LargeMorph-Gen" ]]; then
   python_arg="generalist"
   dis_morph_evo_flag="--dis_morph_evo"
   morph_type="--morph_type large"
