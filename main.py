@@ -36,9 +36,9 @@ def our_algo_one_gen():
     algo: OurAlgoOneGen = OurAlgoOneGen(parallel_jobs=23)
     algo.run()
 
-def full_gen(dis_morph_evo: bool):
+def full_gen(dis_morph_evo: bool, morph_type: str):
     os.environ["MUJOCO_GL"] = "egl"
-    algo: FullGeneralist = FullGeneralist(dis_morph_evo=dis_morph_evo, parallel_jobs=23)
+    algo: FullGeneralist = FullGeneralist(dis_morph_evo=dis_morph_evo, morph_type=morph_type, parallel_jobs=23)
     algo.run()
 
 def specialist(dis_morph_evo: bool, long: bool):
@@ -138,6 +138,10 @@ def main():
         action="store_true",
         default=False,
     )
+    parser_full_gen.add_argument(
+        "--morph_type",
+        type=str,
+    )
 
     parser_specialist = subparsers.add_parser(
         "specialist",
@@ -186,7 +190,7 @@ def main():
     elif args.experiment == "our_algo_one_gen":
         our_algo_one_gen()
     elif args.experiment == "full_gen":
-        full_gen(args.dis_morph_evo)
+        full_gen(args.dis_morph_evo, args.morph_type)
     elif args.experiment == "specialist":
         specialist(args.dis_morph_evo, args.long)
     elif args.experiment == "test":

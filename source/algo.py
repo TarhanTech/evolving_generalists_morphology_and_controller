@@ -499,7 +499,7 @@ class OurAlgo(GeneralistExperimentBase):
         )
 
 
-# Not used in paper
+# Not used in paper deeprecated
 class OurAlgoOneGen(GeneralistExperimentBase):
     """Class used to run the experiment where you create one generalist for all the environments"""
 
@@ -572,6 +572,7 @@ class FullGeneralist(GeneralistExperimentBase):
             )
 
         super().__init__(
+            use_custom_start_morph=False,
             dis_morph_evo=dis_morph_evo,
             morph_type=morph_type,
             max_generations=197,
