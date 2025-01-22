@@ -396,6 +396,7 @@ class SpecialistExperimentBase(Algo):
         parallel_jobs: int = 6,
     ):
         super().__init__(
+            use_custom_start_morph=False,
             dis_morph_evo=dis_morph_evo,
             morph_type=None,
             max_generations=max_generations,
@@ -638,7 +639,7 @@ class Specialist(SpecialistExperimentBase):
         super().__init__(
             dis_morph_evo=dis_morph_evo,
             max_generations=10000 if long else 295,
-            gen_stagnation=750 if long else 295,
+            gen_stagnation=200 if long else 295,
             init_training_generations=2500 if long else 295,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
