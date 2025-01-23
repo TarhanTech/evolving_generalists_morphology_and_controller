@@ -1,7 +1,7 @@
 #!/bin/bash
 
 exp_name="FullGen-MorphEvo-Gen"
-max_jobs=3
+max_jobs=5
 total_runs=30
 
 run_experiment() {
