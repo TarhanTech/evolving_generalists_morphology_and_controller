@@ -49,3 +49,5 @@ fitness_df
 # runs/OurAlgo-MorphEvo-Gen/**/hm_partition_by_best_mc.pdf
 # runs/**/videos_env
 # runs/**/evolution_video.mp4
+create_csv_experiment_test_training.py
+create_csv_test_training.py
