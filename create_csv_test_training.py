@@ -55,16 +55,15 @@ def main():
             train_mean = calculate_mean_fitnesses(train_data_path)
 
             data_for_df.append({
-                "run_folder": run_folder.name,
                 "fitness_test": test_mean,
                 "fitness_training": train_mean
             })
         else:
             print(f"Skipping non-folder item: {run_folder}")
 
-    df = pd.DataFrame(data_for_df, columns=["run_folder", "fitness_test", "fitness_training"])
+    df = pd.DataFrame(data_for_df, columns=["fitness_test", "fitness_training"])
 
-    csv_output_path = out_path / f"fitness_data_{args.exp_path.name}.csv"
+    csv_output_path = out_path / f"{args.exp_path.name}_fitness_data.csv"
     df.to_csv(csv_output_path, index=False)
 
     print(f"Saved DataFrame to: {csv_output_path}")
