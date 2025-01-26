@@ -640,7 +640,7 @@ class Specialist(SpecialistExperimentBase):
             dis_morph_evo=dis_morph_evo,
             max_generations=10000 if long else 295,
             gen_stagnation=200 if long else 295,
-            init_training_generations=2500 if long else 295,
+            init_training_generations=0 if long else 295,
             exp_folder_name=exp_folder_name,
             parallel_jobs=parallel_jobs,
         )
